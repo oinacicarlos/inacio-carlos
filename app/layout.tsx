@@ -1,29 +1,38 @@
+import type React from "react"
 import type { Metadata } from "next"
-import { Inter, Space_Grotesk } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
+import { Inter_Tight, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({
+const instrumentSans = Inter_Tight({
+  variable: "--font-sans",
   subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
 })
 
-const spaceGrotesk = Space_Grotesk({
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
+  weight: ["400", "700"],
 })
 
 export const metadata: Metadata = {
-  title: "Ionia Business",
-  description: "Não vendemos Marketing, geramos resultados reais.",
+  title: "v0 App",
+  description: "Created with v0",
+  generator: "v0.app",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>{children}</body>
+    <html lang="en">
+      <body className={`font-sans ${instrumentSans.variable} ${jetbrainsMono.variable}`}>
+        <Suspense fallback={null}>{children}</Suspense>
+        <Analytics />
+      </body>
     </html>
   )
 }
