@@ -21,6 +21,15 @@ function interpolate(template: string, vars: { nome: string; empresa: string }) 
     .replace(/\{empresa\}/g, vars.empresa || '')
 }
 
+// Endpoint temporário de diagnóstico — remover após resolver o problema
+export async function GET() {
+  return NextResponse.json({
+    RESEND_API_KEY: process.env.RESEND_API_KEY ? `set (${process.env.RESEND_API_KEY.slice(0, 6)}...)` : 'NOT SET',
+    RESEND_FROM: process.env.RESEND_FROM ?? 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV ?? 'NOT SET',
+  })
+}
+
 export async function POST(req: NextRequest) {
   // Lê as env vars dentro do handler para garantir acesso em runtime no Cloudflare Workers
   const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
