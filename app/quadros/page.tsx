@@ -1,7 +1,3 @@
-import AdminDashboardClient from '@/components/admin-dashboard-client'
-
+import NoSSRDashboard from '@/components/no-ssr-dashboard'
 export const dynamic = 'force-dynamic'
-
-export default function QuadrosPage() {
-  return <AdminDashboardClient initialModule="Quadros" />
-}
+export default function QuadrosPage() { return <NoSSRDashboard initialModule="Quadros" /> }

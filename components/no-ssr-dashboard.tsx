@@ -1,0 +1,14 @@
+'use client'
+
+import nextDynamic from 'next/dynamic'
+
+type AdminModule = 'Disparos' | 'CRM' | 'Financeiro' | 'Links' | 'Quadros' | 'Clientes'
+
+const AdminDashboardClient = nextDynamic(
+  () => import('@/components/admin-dashboard-client'),
+  { ssr: false, loading: () => <main className="admin-dashboard-page" /> }
+)
+
+export default function NoSSRDashboard({ initialModule }: { initialModule: AdminModule }) {
+  return <AdminDashboardClient initialModule={initialModule} />
+}

@@ -1,7 +1,3 @@
-import AdminDashboardClient from '@/components/admin-dashboard-client'
-
+import NoSSRDashboard from '@/components/no-ssr-dashboard'
 export const dynamic = 'force-dynamic'
-
-export default function DisparosPage() {
-  return <AdminDashboardClient initialModule="Disparos" />
-}
+export default function DisparosPage() { return <NoSSRDashboard initialModule="Disparos" /> }
