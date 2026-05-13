@@ -21,5 +21,8 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "RESEND_FROM": "Inácio Carlos <contato@inaciocarlos.com>"
   }
 }
