@@ -1708,6 +1708,42 @@ function getDispatchAudienceLabel(campaign: DispatchCampaign) {
   return parts.join(' · ')
 }
 
+const DISPATCHES_TABLE = 'dispatches'
+
+type DispatchRow = {
+  id: string
+  name: string
+  channel: string
+  subject: string
+  message: string
+  stage_filter: string
+  attempt_filter: string
+  qualification_filter: string
+  status: string
+  sent_count: number
+  failed_count: number
+  created_at: string
+}
+
+function mapDispatchRow(row: DispatchRow): DispatchCampaign {
+  return {
+    id: row.id,
+    name: row.name,
+    channel: row.channel as DispatchChannel,
+    subject: row.subject,
+    message: row.message,
+    stageFilter: row.stage_filter as DispatchStageFilter,
+    attemptFilter: row.attempt_filter as DispatchAttemptFilter,
+    qualificationFilter: row.qualification_filter as DispatchQualificationFilter,
+    status: row.status as DispatchStatus,
+    sentCount: row.sent_count,
+    failedCount: row.failed_count,
+    recipientCount: 0,
+    validRecipientCount: 0,
+    createdAt: row.created_at,
+  }
+}
+
 function DispatchesModule() {
   const [leads, setLeads] = useState<CrmLead[]>([])
   const [campaigns, setCampaigns] = useState<DispatchCampaign[]>([])
@@ -1716,32 +1752,57 @@ function DispatchesModule() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   useEffect(() => {
-    const loadLeads = async () => {
+    const loadData = async () => {
       setLoading(true)
       setError('')
 
-      const { data, error: leadsError } = await supabase
-        .from(CRM_LEADS_TABLE)
-        .select('*')
-        .order('updated_at', { ascending: false })
+      const [leadsResult, campaignsResult] = await Promise.all([
+        supabase.from(CRM_LEADS_TABLE).select('*').order('updated_at', { ascending: false }),
+        supabase.from(DISPATCHES_TABLE).select('*').order('created_at', { ascending: false }),
+      ])
 
-      if (leadsError) {
-        setLeads([])
+      if (leadsResult.error) {
         setError('Não consegui carregar os leads do CRM.')
         setLoading(false)
         return
       }
 
-      setLeads((data ?? []).map(row => mapCrmLead(row as CrmLeadRow)))
+      setLeads((leadsResult.data ?? []).map(row => mapCrmLead(row as CrmLeadRow)))
+      setCampaigns((campaignsResult.data ?? []).map(row => mapDispatchRow(row as DispatchRow)))
       setLoading(false)
     }
 
-    void loadLeads()
+    void loadData()
   }, [])
 
-  const handleCreateCampaign = (campaign: DispatchCampaign) => {
-    setCampaigns(currentCampaigns => [campaign, ...currentCampaigns])
+  const handleCreateCampaign = async (campaign: DispatchCampaign) => {
+    const { data, error: insertError } = await supabase
+      .from(DISPATCHES_TABLE)
+      .insert({
+        name: campaign.name,
+        channel: campaign.channel,
+        subject: campaign.subject,
+        message: campaign.message,
+        stage_filter: campaign.stageFilter,
+        attempt_filter: campaign.attemptFilter,
+        qualification_filter: campaign.qualificationFilter,
+        status: campaign.status,
+        sent_count: 0,
+        failed_count: 0,
+      })
+      .select()
+      .single()
+
+    if (insertError || !data) {
+      setCampaigns(currentCampaigns => [campaign, ...currentCampaigns])
+    } else {
+      setCampaigns(currentCampaigns => [mapDispatchRow(data as DispatchRow), ...currentCampaigns])
+    }
     setIsCreateModalOpen(false)
+  }
+
+  const updateCampaignInDb = async (id: string, fields: Partial<{ status: string; sent_count: number; failed_count: number }>) => {
+    await supabase.from(DISPATCHES_TABLE).update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id)
   }
 
   const handleSendCampaign = async (campaign: DispatchCampaign) => {
@@ -1763,6 +1824,7 @@ function DispatchesModule() {
     setCampaigns(prev => prev.map(c =>
       c.id === campaign.id ? { ...c, status: 'Enviando' } : c
     ))
+    void updateCampaignInDb(campaign.id, { status: 'Enviando' })
 
     try {
       const res = await fetch('/api/dispatch', {
@@ -1788,23 +1850,22 @@ function DispatchesModule() {
             ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length }
             : c
         ))
+        void updateCampaignInDb(campaign.id, { status: 'Erro', sent_count: 0, failed_count: validLeads.length })
         return
       }
 
+      const finalStatus: DispatchStatus = (result.failed ?? 0) > 0 && (result.sent ?? 0) === 0 ? 'Erro' : 'Enviado'
       setCampaigns(prev => prev.map(c =>
         c.id === campaign.id
-          ? {
-              ...c,
-              status: (result.failed ?? 0) > 0 && (result.sent ?? 0) === 0 ? 'Erro' : 'Enviado',
-              sentCount: result.sent ?? 0,
-              failedCount: result.failed ?? 0,
-            }
+          ? { ...c, status: finalStatus, sentCount: result.sent ?? 0, failedCount: result.failed ?? 0 }
           : c
       ))
+      void updateCampaignInDb(campaign.id, { status: finalStatus, sent_count: result.sent ?? 0, failed_count: result.failed ?? 0 })
     } catch {
       setCampaigns(prev => prev.map(c =>
         c.id === campaign.id ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length } : c
       ))
+      void updateCampaignInDb(campaign.id, { status: 'Erro', sent_count: 0, failed_count: validLeads.length })
     }
   }
 
@@ -1910,7 +1971,7 @@ function DispatchCreateModal({
 }: {
   leads: CrmLead[]
   onClose: () => void
-  onCreate: (campaign: DispatchCampaign) => void
+  onCreate: (campaign: DispatchCampaign) => Promise<void>
 }) {
   const [name, setName] = useState('')
   const [channel, setChannel] = useState<DispatchChannel>('WhatsApp')
