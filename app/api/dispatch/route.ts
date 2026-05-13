@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM = process.env.RESEND_FROM ?? 'contato@inaciocarlos.com'
 
 type Recipient = {
@@ -38,6 +37,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nenhum destinatário.' }, { status: 400 })
     }
 
+    if (!RESEND_API_KEY) {
+      return NextResponse.json({ error: 'RESEND_API_KEY não configurada.' }, { status: 500 })
+    }
+
     const emails = body.recipients.map((r) => ({
       from: FROM,
       to: [r.email],
@@ -45,7 +48,7 @@ export async function POST(req: NextRequest) {
       text: interpolate(body.message, r),
     }))
 
-    // Resend batch suporta até 100 e-mails por chamada
+    // Resend batch API suporta até 100 e-mails por chamada
     const BATCH_SIZE = 100
     let sent = 0
     let failed = 0
@@ -54,12 +57,22 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < emails.length; i += BATCH_SIZE) {
       const batch = emails.slice(i, i + BATCH_SIZE)
       try {
-        const { data, error } = await resend.batch.send(batch)
-        if (error) {
+        const res = await fetch('https://api.resend.com/emails/batch', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(batch),
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ message: `HTTP ${res.status}` }))
           failed += batch.length
-          errors.push(error.message)
+          errors.push(errData?.message ?? `HTTP ${res.status}`)
         } else {
-          sent += data?.data?.length ?? batch.length
+          const data = await res.json()
+          sent += Array.isArray(data?.data) ? data.data.length : batch.length
         }
       } catch (err) {
         failed += batch.length
