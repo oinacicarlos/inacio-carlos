@@ -2,24 +2,24 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
-import { Inter_Tight, JetBrains_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
+import "@xyflow/react/dist/style.css"
 import "./globals.css"
 
-const instrumentSans = Inter_Tight({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 })
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.app",
+  title: "Inácio Carlos",
+  description: "Aplicação para empresas que querem vender mais.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({
@@ -28,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans ${instrumentSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="pt-BR">
+      <body className={inter.variable}>
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
       </body>
