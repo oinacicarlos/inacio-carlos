@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,19 +22,32 @@ function interpolate(template: string, vars: { nome: string; empresa: string }) 
     .replace(/\{empresa\}/g, vars.empresa || '')
 }
 
-// Endpoint temporário de diagnóstico — remover após resolver o problema
+// Lê env vars do contexto Cloudflare (bindings do Worker) com fallback para process.env
+function getEnv(key: string): string {
+  try {
+    const { env } = getCloudflareContext()
+    const val = (env as Record<string, string | undefined>)[key]
+    if (val) return val
+  } catch {
+    // fora do contexto Cloudflare (ex: dev local)
+  }
+  return process.env[key] ?? ''
+}
+
+// Endpoint de diagnóstico — remover após confirmar funcionamento
 export async function GET() {
+  const key = getEnv('RESEND_API_KEY')
+  const from = getEnv('RESEND_FROM')
   return NextResponse.json({
-    RESEND_API_KEY: process.env.RESEND_API_KEY ? `set (${process.env.RESEND_API_KEY.slice(0, 6)}...)` : 'NOT SET',
-    RESEND_FROM: process.env.RESEND_FROM ?? 'NOT SET',
+    RESEND_API_KEY: key ? `set (${key.slice(0, 6)}...)` : 'NOT SET',
+    RESEND_FROM: from || 'NOT SET',
     NODE_ENV: process.env.NODE_ENV ?? 'NOT SET',
   })
 }
 
 export async function POST(req: NextRequest) {
-  // Lê as env vars dentro do handler para garantir acesso em runtime no Cloudflare Workers
-  const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
-  const FROM = process.env.RESEND_FROM ?? 'contato@inaciocarlos.com'
+  const RESEND_API_KEY = getEnv('RESEND_API_KEY')
+  const FROM = getEnv('RESEND_FROM') || 'contato@inaciocarlos.com'
 
   try {
     const body = (await req.json()) as DispatchPayload
