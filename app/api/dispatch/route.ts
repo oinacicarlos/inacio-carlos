@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
-const FROM = process.env.RESEND_FROM ?? 'contato@inaciocarlos.com'
+export const dynamic = 'force-dynamic'
 
 type Recipient = {
   email: string
@@ -23,6 +22,10 @@ function interpolate(template: string, vars: { nome: string; empresa: string }) 
 }
 
 export async function POST(req: NextRequest) {
+  // Lê as env vars dentro do handler para garantir acesso em runtime no Cloudflare Workers
+  const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
+  const FROM = process.env.RESEND_FROM ?? 'contato@inaciocarlos.com'
+
   try {
     const body = (await req.json()) as DispatchPayload
 
@@ -38,6 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!RESEND_API_KEY) {
+      console.error('[dispatch] RESEND_API_KEY não encontrada em process.env')
       return NextResponse.json({ error: 'RESEND_API_KEY não configurada.' }, { status: 500 })
     }
 
@@ -82,8 +86,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sent, failed, errors })
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[dispatch] Erro interno:', message)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Erro interno.' },
+      { error: message },
       { status: 500 }
     )
   }
