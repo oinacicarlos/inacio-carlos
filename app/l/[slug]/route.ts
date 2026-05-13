@@ -7,11 +7,12 @@ const MOCK_LINK_DESTINATIONS: Record<string, string> = {
   aplicacao: 'http://localhost:3000/',
 }
 
-export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const requestUrl = new URL(request.url)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const fallbackDestinationUrl = getFallbackDestinationUrl(requestUrl, params.slug)
+  const fallbackDestinationUrl = getFallbackDestinationUrl(requestUrl, slug)
   let destinationUrl = fallbackDestinationUrl
   let linkId = ''
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
       const { data: trackedLink } = await supabase
         .from('tracked_links')
         .select('id, destination_url')
-        .eq('slug', params.slug)
+        .eq('slug', slug)
         .eq('is_active', true)
         .maybeSingle()
 

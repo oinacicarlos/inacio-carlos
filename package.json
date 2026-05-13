@@ -12,14 +12,14 @@
     "@supabase/supabase-js": "^2.105.3",
     "@vercel/analytics": "latest",
     "@xyflow/react": "12.10.2",
-    "next": "14.2.35",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "next": "15.5.18",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5"
   }
 }
