@@ -57,10 +57,10 @@ a:focus-visible {
 
 /* ── Tema claro para o formulário ── */
 .application-page[data-screen="form"] {
-	background: #F9F9F7;
-	--foreground: #1A1A1A;
-	--foreground-soft: rgba(26, 26, 26, 0.45);
-	--background: #F9F9F7;
+	background: #F8F7F4;
+	--foreground: #1C1C1A;
+	--foreground-soft: rgba(28, 28, 26, 0.42);
+	--background: #F8F7F4;
 }
 
 .application-page[data-screen="form"] .animated-grid {
@@ -69,43 +69,159 @@ a:focus-visible {
 }
 
 .application-page[data-screen="form"] .brand-mark {
-	color: #1A1A1A;
+	color: #1C1C1A;
 }
 
-.application-page[data-screen="form"] .choice-option {
-	border-color: rgba(26, 26, 26, 0.14);
-	background: rgba(26, 26, 26, 0.02);
+/* ── Slide transitions ── */
+@keyframes tf-in-up {
+	from { opacity: 0; transform: translateY(40px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes tf-in-down {
+	from { opacity: 0; transform: translateY(-40px); }
+	to   { opacity: 1; transform: translateY(0); }
 }
 
-.application-page[data-screen="form"] .choice-option:hover {
-	border-color: rgba(26, 26, 26, 0.4);
-	background: rgba(26, 26, 26, 0.05);
-	color: #1A1A1A;
+.question-animate[data-direction="forward"] {
+	animation: tf-in-up 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.question-animate[data-direction="backward"] {
+	animation: tf-in-down 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.application-page[data-screen="form"] .choice-option.selected {
-	border-color: #1A1A1A;
-	background: #1A1A1A;
-	color: #F9F9F7;
+/* ── Question number: "1 →" estilo Typeform ── */
+.application-page[data-screen="form"] .question-number {
+	display: inline;
+	width: auto;
+	height: auto;
+	flex: none;
+	background: transparent;
+	color: rgba(28, 28, 26, 0.38);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.6;
+	white-space: nowrap;
 }
 
+/* ── Question heading ── */
+.application-page[data-screen="form"] .question-heading {
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 32px;
+}
+
+.application-page[data-screen="form"] .question-heading label,
+.application-page[data-screen="form"] .question-heading h2 {
+	color: #1C1C1A;
+	font-size: 28px;
+	font-weight: 400;
+	line-height: 1.22;
+	letter-spacing: -0.01em;
+}
+
+/* ── Input ── */
 .application-page[data-screen="form"] .question-form input {
-	border-bottom-color: rgba(26, 26, 26, 0.18);
-	color: #1A1A1A;
+	border-bottom-color: rgba(28, 28, 26, 0.15);
+	color: #1C1C1A;
+	font-size: 22px;
+}
+
+.application-page[data-screen="form"] .question-form input:focus {
+	border-bottom-color: rgba(28, 28, 26, 0.5);
 }
 
 .application-page[data-screen="form"] .question-form input::placeholder {
-	color: rgba(26, 26, 26, 0.28);
+	color: rgba(28, 28, 26, 0.25);
 	opacity: 1;
 }
 
-.application-page[data-screen="form"] .step-controls button {
-	background: #1A1A1A;
-	color: #F9F9F7;
+/* ── Choice options: 1 coluna, limpo ── */
+.application-page[data-screen="form"] .choice-options {
+	grid-template-columns: 1fr;
+	gap: 8px;
 }
 
-.application-page[data-screen="form"] .step-controls button:hover {
+.application-page[data-screen="form"] .choice-option {
+	border-color: rgba(28, 28, 26, 0.12);
+	background: rgba(28, 28, 26, 0.02);
+	color: #1C1C1A;
+	font-size: 15px;
+	min-height: 46px;
+	padding: 10px 16px;
+	border-radius: 6px;
+}
+
+.application-page[data-screen="form"] .choice-option:hover {
+	border-color: rgba(28, 28, 26, 0.35);
+	background: rgba(28, 28, 26, 0.04);
+	transform: none;
+}
+
+.application-page[data-screen="form"] .choice-option.selected {
+	border-color: #1C1C1A;
+	background: #1C1C1A;
+	color: #F8F7F4;
+}
+
+/* ── Actions ── */
+.form-actions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 28px;
+}
+
+.application-page[data-screen="form"] .ok-action {
+	background: #1C1C1A;
+	color: #F8F7F4;
+	border-radius: 4px;
+	font-size: 13px;
+	font-weight: 600;
+	min-width: 68px;
+	min-height: 38px;
+	margin-top: 0;
+	padding: 0 18px;
+}
+
+.application-page[data-screen="form"] .ok-action:hover {
 	background: #333;
+	transform: none;
+}
+
+.enter-hint {
+	color: rgba(28, 28, 26, 0.32);
+	font-size: 12px;
+	font-weight: 300;
+}
+
+.enter-hint strong {
+	font-weight: 500;
+	color: rgba(28, 28, 26, 0.45);
+}
+
+/* ── Back action ── */
+.back-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 24px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: rgba(28, 28, 26, 0.28);
+	font-size: 12px;
+	font-weight: 400;
+	cursor: pointer;
+	transition: color 180ms ease;
+}
+
+.back-action:hover {
+	color: rgba(28, 28, 26, 0.6);
+}
+
+/* ── Form error ── */
+.application-page[data-screen="form"] .form-error {
+	color: rgba(28, 28, 26, 0.45);
 }
 
 .animated-grid {

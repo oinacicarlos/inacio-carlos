@@ -153,6 +153,8 @@ export default function Home() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+  const [animKey, setAnimKey] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentQuestion = QUESTIONS[currentQuestionIndex]
@@ -222,6 +224,8 @@ export default function Home() {
       return
     }
 
+    setDirection('forward')
+    setAnimKey(k => k + 1)
     setCurrentQuestionIndex(currentQuestionIndex + 1)
   }
 
@@ -233,6 +237,8 @@ export default function Home() {
       return
     }
 
+    setDirection('backward')
+    setAnimKey(k => k + 1)
     setCurrentQuestionIndex(currentQuestionIndex - 1)
   }
 
@@ -303,37 +309,39 @@ export default function Home() {
 
       {screen === 'form' && (
         <section className="question-screen" aria-labelledby="question-title">
-          <form className="question-form" onSubmit={submitQuestion} noValidate>
-            <div className="question-heading">
-              <span className="question-number">{currentQuestionIndex + 1}</span>
-              {currentQuestion.type === 'choice' ? (
-                <h2 id="question-title">{currentQuestion.label}</h2>
-              ) : (
-                <label id="question-title" htmlFor={questionInputId}>
-                  {currentQuestion.label}
-                </label>
+          <div className="question-animate" data-direction={direction} key={animKey}>
+            <form className="question-form" onSubmit={submitQuestion} noValidate>
+              <div className="question-heading">
+                <span className="question-number" aria-hidden="true">
+                  {currentQuestionIndex + 1} →
+                </span>
+                {currentQuestion.type === 'choice' ? (
+                  <h2 id="question-title">{currentQuestion.label}</h2>
+                ) : (
+                  <label id="question-title" htmlFor={questionInputId}>
+                    {currentQuestion.label}
+                  </label>
+                )}
+              </div>
+
+              {renderQuestionInput()}
+
+              {error && (
+                <p className="form-error" id="form-error" role="alert">
+                  {error}
+                </p>
               )}
-            </div>
 
-            {renderQuestionInput()}
+              <div className="form-actions">
+                <button className="ok-action" type="submit">OK</button>
+                {currentQuestion.type !== 'choice' && (
+                  <span className="enter-hint" aria-hidden="true">pressione <strong>Enter ↵</strong></span>
+                )}
+              </div>
+            </form>
 
-            {error && (
-              <p className="form-error" id="form-error">
-                {error}
-              </p>
-            )}
-
-            <button className="ok-action" type="submit">
-              OK
-            </button>
-          </form>
-
-          <div className="step-controls" aria-label="Navegação do formulário">
-            <button onClick={goBack} type="button" aria-label="Voltar">
-              ↑
-            </button>
-            <button onClick={advanceQuestion} type="button" aria-label="Avançar">
-              ↓
+            <button className="back-action" onClick={goBack} type="button">
+              ↑ {currentQuestionIndex === 0 ? 'Início' : 'Voltar'}
             </button>
           </div>
         </section>
