@@ -109,6 +109,7 @@ const QUESTIONS: Question[] = [
   },
 ]
 
+const LETTERS = ['A', 'B', 'C', 'D', 'E']
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 function isValidBrazilianPhone(value: string) {
@@ -118,33 +119,16 @@ function isValidBrazilianPhone(value: string) {
   const hasValidLength = localNumber.length === 10 || localNumber.length === 11
   const hasValidAreaCode = areaCode >= 11 && areaCode <= 99
   const isRepeatedNumber = /^(\d)\1+$/.test(localNumber)
-
   return hasValidLength && hasValidAreaCode && !isRepeatedNumber
 }
 
 function validateQuestion(question: Question, answer: string) {
   const value = answer.trim()
-
-  if (!value) {
-    return 'Responda esta pergunta para continuar.'
-  }
-
-  if (question.id === 'name' && value.length < 2) {
-    return 'Digite um nome válido.'
-  }
-
-  if (question.type === 'email' && !EMAIL_PATTERN.test(value)) {
-    return 'Digite um e-mail válido.'
-  }
-
-  if (question.type === 'tel' && !isValidBrazilianPhone(value)) {
-    return 'Digite um WhatsApp válido com DDD.'
-  }
-
-  if (question.id === 'company' && value.length < 2) {
-    return 'Digite o nome da empresa.'
-  }
-
+  if (!value) return 'Responda esta pergunta para continuar.'
+  if (question.id === 'name' && value.length < 2) return 'Digite um nome válido.'
+  if (question.type === 'email' && !EMAIL_PATTERN.test(value)) return 'Digite um e-mail válido.'
+  if (question.type === 'tel' && !isValidBrazilianPhone(value)) return 'Digite um WhatsApp válido com DDD.'
+  if (question.id === 'company' && value.length < 2) return 'Digite o nome da empresa.'
   return ''
 }
 
@@ -153,11 +137,14 @@ export default function Home() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+  const [animationKey, setAnimationKey] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentQuestion = QUESTIONS[currentQuestionIndex]
   const currentAnswer = answers[currentQuestion.id] ?? ''
   const questionInputId = `question-${currentQuestion.id}`
+  const progress = Math.round(((currentQuestionIndex) / QUESTIONS.length) * 100)
 
   useEffect(() => {
     if (screen === 'form' && currentQuestion.type !== 'choice') {
@@ -168,14 +155,13 @@ export default function Home() {
   const startApplication = () => {
     setError('')
     setCurrentQuestionIndex(0)
+    setDirection('forward')
+    setAnimationKey(0)
     setScreen('form')
   }
 
   const updateAnswer = (questionId: string, value: string) => {
-    setAnswers(previousAnswers => ({
-      ...previousAnswers,
-      [questionId]: value,
-    }))
+    setAnswers(prev => ({ ...prev, [questionId]: value }))
     if (error) setError('')
   }
 
@@ -207,32 +193,30 @@ export default function Home() {
 
   const advanceQuestion = () => {
     const validationError = validateQuestion(currentQuestion, currentAnswer)
-
     if (validationError) {
       setError(validationError)
       return
     }
-
     setError('')
-
     if (currentQuestionIndex === QUESTIONS.length - 1) {
       const finalAnswers = { ...answers, [currentQuestion.id]: currentAnswer }
       void submitLead(finalAnswers)
       setScreen('success')
       return
     }
-
+    setDirection('forward')
+    setAnimationKey(k => k + 1)
     setCurrentQuestionIndex(currentQuestionIndex + 1)
   }
 
   const goBack = () => {
     setError('')
-
     if (currentQuestionIndex === 0) {
       setScreen('intro')
       return
     }
-
+    setDirection('backward')
+    setAnimationKey(k => k + 1)
     setCurrentQuestionIndex(currentQuestionIndex - 1)
   }
 
@@ -240,7 +224,7 @@ export default function Home() {
     if (currentQuestion.type === 'choice') {
       return (
         <div className="choice-options" role="radiogroup" aria-labelledby="question-title">
-          {currentQuestion.options.map(option => (
+          {currentQuestion.options.map((option, i) => (
             <button
               className={currentAnswer === option ? 'choice-option selected' : 'choice-option'}
               key={option}
@@ -249,6 +233,7 @@ export default function Home() {
               aria-checked={currentAnswer === option}
               type="button"
             >
+              <span className="choice-letter">{LETTERS[i]}</span>
               {option}
             </button>
           ))}
@@ -277,6 +262,12 @@ export default function Home() {
       <AnimatedBackground />
       <BrandMark />
 
+      {screen === 'form' && (
+        <div className="tf-progress-bar">
+          <div className="tf-progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
       {screen === 'intro' && (
         <section className="hero-screen" aria-labelledby="hero-title">
           <h1 id="hero-title">
@@ -303,38 +294,55 @@ export default function Home() {
 
       {screen === 'form' && (
         <section className="question-screen" aria-labelledby="question-title">
-          <form className="question-form" onSubmit={submitQuestion} noValidate>
-            <div className="question-heading">
-              <span className="question-number">{currentQuestionIndex + 1}</span>
-              {currentQuestion.type === 'choice' ? (
-                <h2 id="question-title">{currentQuestion.label}</h2>
-              ) : (
-                <label id="question-title" htmlFor={questionInputId}>
-                  {currentQuestion.label}
-                </label>
+          <div
+            className="question-animate"
+            data-direction={direction}
+            key={animationKey}
+          >
+            <form className="question-form" onSubmit={submitQuestion} noValidate>
+              <div className="question-heading">
+                <span className="question-number" aria-hidden="true">
+                  {currentQuestionIndex + 1}
+                </span>
+                {currentQuestion.type === 'choice' ? (
+                  <h2 id="question-title">{currentQuestion.label}</h2>
+                ) : (
+                  <label id="question-title" htmlFor={questionInputId}>
+                    {currentQuestion.label}
+                  </label>
+                )}
+              </div>
+
+              {renderQuestionInput()}
+
+              {error && (
+                <p className="form-error" id="form-error" role="alert">
+                  {error}
+                </p>
               )}
-            </div>
 
-            {renderQuestionInput()}
+              <div className="tf-actions">
+                <button className="ok-action" type="submit">
+                  OK <span aria-hidden="true">✓</span>
+                </button>
+                {currentQuestion.type !== 'choice' && (
+                  <span className="enter-hint" aria-hidden="true">
+                    pressione <strong>Enter ↵</strong>
+                  </span>
+                )}
+              </div>
+            </form>
 
-            {error && (
-              <p className="form-error" id="form-error">
-                {error}
-              </p>
+            {currentQuestionIndex > 0 && (
+              <button className="back-link" onClick={goBack} type="button">
+                ↑ Voltar
+              </button>
             )}
-
-            <button className="ok-action" type="submit">
-              OK
-            </button>
-          </form>
-
-          <div className="step-controls" aria-label="Navegação do formulário">
-            <button onClick={goBack} type="button" aria-label="Voltar">
-              ↑
-            </button>
-            <button onClick={advanceQuestion} type="button" aria-label="Avançar">
-              ↓
-            </button>
+            {currentQuestionIndex === 0 && (
+              <button className="back-link" onClick={goBack} type="button">
+                ↑ Início
+              </button>
+            )}
           </div>
         </section>
       )}
