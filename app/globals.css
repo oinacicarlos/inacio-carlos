@@ -226,43 +226,6 @@ a:focus-visible {
 	background: #ffffff;
 }
 
-/* ── Progress bar ── */
-.tf-progress-bar {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	z-index: 10;
-	height: 2px;
-	background: rgba(245, 245, 247, 0.08);
-}
-
-.tf-progress-fill {
-	height: 100%;
-	background: rgba(245, 245, 247, 0.7);
-	transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ── Slide animations ── */
-@keyframes tf-slide-up {
-	from { opacity: 0; transform: translateY(52px); }
-	to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes tf-slide-down {
-	from { opacity: 0; transform: translateY(-52px); }
-	to   { opacity: 1; transform: translateY(0); }
-}
-
-.question-animate[data-direction="forward"] {
-	animation: tf-slide-up 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.question-animate[data-direction="backward"] {
-	animation: tf-slide-down 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* ── Question screen ── */
 .question-screen {
 	display: flex;
 	align-items: center;
@@ -270,185 +233,135 @@ a:focus-visible {
 }
 
 .question-form {
-	width: min(100%, 620px);
+	width: min(100%, 644px);
 	margin-top: 20px;
 }
 
 .question-heading {
 	display: flex;
-	align-items: flex-start;
-	gap: 18px;
-	margin-bottom: 36px;
+	align-items: center;
+	gap: 21px;
+	margin-bottom: 29px;
 }
 
 .question-number {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 26px;
-	height: 26px;
-	flex: 0 0 26px;
-	margin-top: 5px;
-	border: 1px solid rgba(245, 245, 247, 0.3);
-	background: transparent;
-	color: rgba(245, 245, 247, 0.6);
-	font-size: 12px;
-	font-weight: 500;
+	width: 28px;
+	height: 39px;
+	flex: 0 0 28px;
+	background: var(--foreground);
+	color: var(--background);
+	font-size: 19px;
+	font-weight: 650;
 	line-height: 1;
-	border-radius: 50%;
 }
 
 .question-heading label,
 .question-heading h2 {
 	color: var(--foreground);
-	font-size: 28px;
+	font-size: 24px;
 	font-weight: 300;
-	line-height: 1.2;
-	letter-spacing: -0.01em;
+	line-height: 1.15;
+	letter-spacing: 0;
 	margin: 0;
 }
 
 .question-form input {
 	width: 100%;
-	height: 52px;
+	height: 45px;
 	border: 0;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.25);
+	border-bottom: 2px solid var(--foreground);
 	border-radius: 0;
 	background: transparent;
 	color: var(--foreground);
-	font-size: 26px;
+	font-size: 24px;
 	font-weight: 300;
 	letter-spacing: 0;
 	outline: none;
-	transition: border-color 200ms ease;
-}
-
-.question-form input:focus {
-	border-bottom-color: rgba(245, 245, 247, 0.8);
 }
 
 .question-form input::placeholder {
-	color: rgba(245, 245, 247, 0.25);
+	color: var(--foreground);
 	opacity: 1;
 }
 
 .choice-options {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
+	gap: 10px;
 }
 
 .choice-option {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-height: 44px;
-	border: 1px solid rgba(245, 245, 247, 0.15);
-	border-radius: 4px;
-	background: rgba(245, 245, 247, 0.02);
+	min-height: 38px;
+	border: 1px solid rgba(245, 245, 247, 0.42);
+	border-radius: 0;
+	background: rgba(245, 245, 247, 0.03);
 	color: var(--foreground);
-	padding: 10px 14px;
+	padding: 8px 12px;
 	font-size: 14px;
 	font-weight: 300;
 	line-height: 1.2;
 	text-align: left;
 	transition:
-		background 180ms ease,
-		color 180ms ease,
-		border-color 180ms ease,
-		transform 180ms ease;
+		background 160ms ease,
+		color 160ms ease,
+		border-color 160ms ease,
+		transform 160ms ease;
 }
 
-.choice-letter {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	width: 22px;
-	height: 22px;
-	border: 1px solid rgba(245, 245, 247, 0.28);
-	border-radius: 3px;
-	color: rgba(245, 245, 247, 0.5);
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 1;
-	transition:
-		border-color 180ms ease,
-		color 180ms ease,
-		background 180ms ease;
-}
-
-.choice-option:hover {
-	border-color: rgba(245, 245, 247, 0.4);
-	background: rgba(245, 245, 247, 0.05);
-	transform: translateY(-1px);
-}
-
+.choice-option:hover,
 .choice-option.selected {
 	border-color: var(--foreground);
 	background: var(--foreground);
 	color: var(--background);
 }
 
-.choice-option.selected .choice-letter {
-	border-color: var(--background);
-	background: transparent;
-	color: var(--background);
+.choice-option:hover {
+	transform: translateY(-1px);
 }
 
 .form-error {
-	margin: 14px 0 0;
-	color: rgba(245, 245, 247, 0.5);
+	margin: 11px 0 0;
+	color: var(--foreground-soft);
 	font-size: 13px;
 	line-height: 1.4;
 }
 
-/* ── Actions row ── */
-.tf-actions {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	margin-top: 32px;
-}
-
 .ok-action {
-	min-width: 72px;
-	min-height: 36px;
-	padding: 0 18px;
-	font-size: 13px;
-	font-weight: 600;
-	letter-spacing: 0.01em;
-}
-
-.enter-hint {
-	color: rgba(245, 245, 247, 0.32);
+	min-width: 55px;
+	min-height: 32px;
+	margin-top: 36px;
+	padding: 0 14px;
 	font-size: 12px;
-	font-weight: 300;
 }
 
-.enter-hint strong {
-	font-weight: 500;
-	color: rgba(245, 245, 247, 0.48);
+.step-controls {
+	position: fixed;
+	right: 76px;
+	bottom: 76px;
+	z-index: 3;
+	display: flex;
+	gap: 6px;
 }
 
-/* ── Back link ── */
-.back-link {
+.step-controls button {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	margin-top: 28px;
-	padding: 0;
+	justify-content: center;
+	width: 34px;
+	height: 28px;
 	border: 0;
-	background: transparent;
-	color: rgba(245, 245, 247, 0.3);
-	font-size: 13px;
-	font-weight: 300;
-	cursor: pointer;
-	transition: color 180ms ease;
-}
-
-.back-link:hover {
-	color: rgba(245, 245, 247, 0.7);
+	border-radius: 0;
+	background: var(--foreground);
+	color: var(--background);
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1;
+	transition:
+		transform 160ms ease,
+		background 160ms ease;
 }
 
 .success-screen h1 {
@@ -4942,40 +4855,42 @@ a:focus-visible {
 	}
 
 	.question-number {
-		width: 22px;
-		height: 22px;
-		flex-basis: 22px;
-		font-size: 10px;
+		width: 24px;
+		height: 34px;
+		flex-basis: 24px;
+		font-size: 16px;
 	}
 
 	.question-heading label,
-	.question-heading h2 {
-		font-size: 20px;
+	.question-heading h2,
+	.question-form input {
+		font-size: 18px;
 	}
 
 	.question-form input {
-		font-size: 20px;
-		height: 46px;
+		height: 42px;
 	}
 
 	.choice-options {
 		grid-template-columns: 1fr;
-		gap: 7px;
+		gap: 8px;
 	}
 
 	.choice-option {
-		min-height: 40px;
-		padding: 9px 12px;
-		font-size: 13px;
-	}
-
-	.tf-actions {
-		margin-top: 24px;
+		min-height: 34px;
+		padding: 7px 10px;
+		font-size: 12px;
 	}
 
 	.ok-action {
-		min-height: 36px;
-		font-size: 13px;
+		min-height: 32px;
+		margin-top: 32px;
+		font-size: 12px;
+	}
+
+	.step-controls {
+		right: 22px;
+		bottom: 28px;
 	}
 
 	.social-links {
