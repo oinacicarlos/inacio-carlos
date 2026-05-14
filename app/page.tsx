@@ -281,7 +281,7 @@ export default function Home() {
   return (
     <main className="application-page" data-screen={screen}>
       <AnimatedBackground />
-      <BrandMark />
+      {screen !== 'form' && <BrandMark />}
 
       {screen === 'intro' && (
         <section className="hero-screen" aria-labelledby="hero-title">

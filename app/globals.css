@@ -68,8 +68,17 @@ a:focus-visible {
 	pointer-events: none;
 }
 
-.application-page[data-screen="form"] .brand-mark {
-	color: #1C1C1A;
+/* Form: left-aligned like Typeform */
+.application-page[data-screen="form"] .question-screen {
+	align-items: flex-start;
+	justify-content: center;
+	padding-left: max(48px, calc(50% - 360px));
+	padding-right: 48px;
+}
+
+.application-page[data-screen="form"] .question-form {
+	width: min(100%, 560px);
+	margin-top: 0;
 }
 
 /* ── Slide transitions ── */
