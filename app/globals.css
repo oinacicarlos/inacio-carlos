@@ -89,72 +89,78 @@ a:focus-visible {
 	animation: tf-in-down 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Question number: "1 →" estilo Typeform ── */
+/* ── Question number: "1 →" ao lado do label ── */
 .application-page[data-screen="form"] .question-number {
-	display: inline;
+	display: inline-flex;
+	align-items: center;
+	flex: 0 0 auto;
+	margin-top: 8px;
 	width: auto;
 	height: auto;
-	flex: none;
 	background: transparent;
-	color: rgba(28, 28, 26, 0.38);
-	font-size: 14px;
+	color: rgba(28, 28, 26, 0.32);
+	font-size: 13px;
 	font-weight: 500;
-	line-height: 1.6;
 	white-space: nowrap;
 }
 
-/* ── Question heading ── */
+/* ── Question heading: número + label lado a lado ── */
 .application-page[data-screen="form"] .question-heading {
-	flex-direction: column;
-	gap: 6px;
-	margin-bottom: 32px;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 40px;
 }
 
 .application-page[data-screen="form"] .question-heading label,
 .application-page[data-screen="form"] .question-heading h2 {
 	color: #1C1C1A;
-	font-size: 28px;
+	font-size: 34px;
 	font-weight: 400;
-	line-height: 1.22;
-	letter-spacing: -0.01em;
+	line-height: 1.18;
+	letter-spacing: -0.02em;
 }
 
 /* ── Input ── */
 .application-page[data-screen="form"] .question-form input {
 	border-bottom-color: rgba(28, 28, 26, 0.15);
 	color: #1C1C1A;
-	font-size: 22px;
+	font-size: 24px;
+	height: 56px;
 }
 
 .application-page[data-screen="form"] .question-form input:focus {
-	border-bottom-color: rgba(28, 28, 26, 0.5);
+	border-bottom-color: rgba(28, 28, 26, 0.45);
 }
 
 .application-page[data-screen="form"] .question-form input::placeholder {
-	color: rgba(28, 28, 26, 0.25);
+	color: rgba(28, 28, 26, 0.22);
 	opacity: 1;
 }
 
-/* ── Choice options: 1 coluna, limpo ── */
+/* ── Choice options: 1 coluna, espaçosas ── */
 .application-page[data-screen="form"] .choice-options {
 	grid-template-columns: 1fr;
-	gap: 8px;
+	gap: 10px;
 }
 
 .application-page[data-screen="form"] .choice-option {
 	border-color: rgba(28, 28, 26, 0.12);
-	background: rgba(28, 28, 26, 0.02);
+	background: transparent;
 	color: #1C1C1A;
-	font-size: 15px;
-	min-height: 46px;
-	padding: 10px 16px;
+	font-size: 16px;
+	font-weight: 300;
+	min-height: 50px;
+	padding: 12px 18px;
 	border-radius: 6px;
+	transition: border-color 160ms ease, background 160ms ease;
 }
 
 .application-page[data-screen="form"] .choice-option:hover {
-	border-color: rgba(28, 28, 26, 0.35);
-	background: rgba(28, 28, 26, 0.04);
+	border-color: rgba(28, 28, 26, 0.4);
+	background: rgba(28, 28, 26, 0.03);
 	transform: none;
+	color: #1C1C1A;
 }
 
 .application-page[data-screen="form"] .choice-option.selected {
@@ -163,65 +169,66 @@ a:focus-visible {
 	color: #F8F7F4;
 }
 
-/* ── Actions ── */
+/* ── Actions row ── */
 .form-actions {
 	display: flex;
 	align-items: center;
-	gap: 14px;
-	margin-top: 28px;
+	gap: 16px;
+	margin-top: 36px;
 }
 
 .application-page[data-screen="form"] .ok-action {
 	background: #1C1C1A;
 	color: #F8F7F4;
-	border-radius: 4px;
-	font-size: 13px;
+	border-radius: 5px;
+	font-size: 14px;
 	font-weight: 600;
-	min-width: 68px;
-	min-height: 38px;
+	min-width: 72px;
+	min-height: 42px;
 	margin-top: 0;
-	padding: 0 18px;
+	padding: 0 22px;
 }
 
 .application-page[data-screen="form"] .ok-action:hover {
-	background: #333;
+	background: #2e2e2b;
 	transform: none;
 }
 
 .enter-hint {
-	color: rgba(28, 28, 26, 0.32);
+	color: rgba(28, 28, 26, 0.3);
 	font-size: 12px;
 	font-weight: 300;
 }
 
 .enter-hint strong {
 	font-weight: 500;
-	color: rgba(28, 28, 26, 0.45);
+	color: rgba(28, 28, 26, 0.42);
 }
 
 /* ── Back action ── */
 .back-action {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	margin-top: 24px;
+	gap: 5px;
+	margin-top: 28px;
 	padding: 0;
 	border: 0;
 	background: transparent;
-	color: rgba(28, 28, 26, 0.28);
-	font-size: 12px;
-	font-weight: 400;
+	color: rgba(28, 28, 26, 0.25);
+	font-size: 13px;
+	font-weight: 300;
 	cursor: pointer;
 	transition: color 180ms ease;
 }
 
 .back-action:hover {
-	color: rgba(28, 28, 26, 0.6);
+	color: rgba(28, 28, 26, 0.55);
 }
 
 /* ── Form error ── */
 .application-page[data-screen="form"] .form-error {
-	color: rgba(28, 28, 26, 0.45);
+	color: rgba(28, 28, 26, 0.42);
+	margin-top: 16px;
 }
 
 .animated-grid {
