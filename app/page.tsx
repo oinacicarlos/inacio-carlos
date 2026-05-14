@@ -199,7 +199,7 @@ export default function Home() {
       email: finalAnswers.email ?? '',
       phone: finalAnswers.whatsapp ?? '',
       company: finalAnswers.company ?? '',
-      source: finalAnswers.salesSource ?? 'Diagnóstico',
+      source: 'Diagnóstico',
       stage: 'Novos',
       notes: diagnosticNotes,
     })
