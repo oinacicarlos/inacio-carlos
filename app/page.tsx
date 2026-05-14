@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 type Screen = 'intro' | 'form' | 'success'
 type TextQuestion = {
@@ -183,6 +184,27 @@ export default function Home() {
     advanceQuestion()
   }
 
+  const submitLead = async (finalAnswers: Record<string, string>) => {
+    const diagnosticNotes = [
+      `Origem de vendas: ${finalAnswers.salesSource ?? ''}`,
+      `Marketing digital: ${finalAnswers.digitalMarketing ?? ''}`,
+      `Vendedores: ${finalAnswers.salesTeam ?? ''}`,
+      `Problema principal: ${finalAnswers.mainProblem ?? ''}`,
+      `Processo comercial: ${finalAnswers.salesProcess ?? ''}`,
+      `Objetivo: ${finalAnswers.currentGoal ?? ''}`,
+    ].join('\n')
+
+    await supabase.from('crm_leads').insert({
+      name: finalAnswers.name ?? '',
+      email: finalAnswers.email ?? '',
+      phone: finalAnswers.whatsapp ?? '',
+      company: finalAnswers.company ?? '',
+      source: finalAnswers.salesSource ?? 'Diagnóstico',
+      stage: 'Novos',
+      notes: diagnosticNotes,
+    })
+  }
+
   const advanceQuestion = () => {
     const validationError = validateQuestion(currentQuestion, currentAnswer)
 
@@ -194,6 +216,8 @@ export default function Home() {
     setError('')
 
     if (currentQuestionIndex === QUESTIONS.length - 1) {
+      const finalAnswers = { ...answers, [currentQuestion.id]: currentAnswer }
+      void submitLead(finalAnswers)
       setScreen('success')
       return
     }
