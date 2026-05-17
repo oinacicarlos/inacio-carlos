@@ -68,21 +68,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'RESEND_API_KEY não configurada.' }, { status: 500 })
     }
 
-    const emails = body.recipients.map((r) => ({
-      from: FROM,
-      to: [r.email],
-      subject: interpolate(body.subject, r),
-      text: interpolate(body.message, r),
-    }))
-
     // Resend batch API suporta até 100 e-mails por chamada
     const BATCH_SIZE = 100
-    let sent = 0
-    let failed = 0
-    const errors: string[] = []
+    type RecipientResult = {
+      email: string
+      nome: string
+      empresa: string
+      status: 'sent' | 'failed'
+      error?: string
+      sentAt?: string
+    }
+    const results: RecipientResult[] = []
 
-    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
-      const batch = emails.slice(i, i + BATCH_SIZE)
+    for (let i = 0; i < body.recipients.length; i += BATCH_SIZE) {
+      const slice = body.recipients.slice(i, i + BATCH_SIZE)
+      const batch = slice.map((r) => ({
+        from: FROM,
+        to: [r.email],
+        subject: interpolate(body.subject, r),
+        text: interpolate(body.message, r),
+      }))
+
       try {
         const res = await fetch('https://api.resend.com/emails/batch', {
           method: 'POST',
@@ -95,19 +101,40 @@ export async function POST(req: NextRequest) {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({ message: `HTTP ${res.status}` }))
-          failed += batch.length
-          errors.push(errData?.message ?? `HTTP ${res.status}`)
+          const errorMsg = errData?.message ?? `HTTP ${res.status}`
+          slice.forEach((r) => results.push({
+            email: r.email,
+            nome: r.nome,
+            empresa: r.empresa,
+            status: 'failed',
+            error: errorMsg,
+          }))
         } else {
-          const data = await res.json()
-          sent += Array.isArray(data?.data) ? data.data.length : batch.length
+          const now = new Date().toISOString()
+          slice.forEach((r) => results.push({
+            email: r.email,
+            nome: r.nome,
+            empresa: r.empresa,
+            status: 'sent',
+            sentAt: now,
+          }))
         }
       } catch (err) {
-        failed += batch.length
-        errors.push(err instanceof Error ? err.message : 'Erro desconhecido')
+        const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido'
+        slice.forEach((r) => results.push({
+          email: r.email,
+          nome: r.nome,
+          empresa: r.empresa,
+          status: 'failed',
+          error: errorMsg,
+        }))
       }
     }
 
-    return NextResponse.json({ sent, failed, errors })
+    const sent = results.filter((r) => r.status === 'sent').length
+    const failed = results.filter((r) => r.status === 'failed').length
+
+    return NextResponse.json({ sent, failed, results })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[dispatch] Erro interno:', message)

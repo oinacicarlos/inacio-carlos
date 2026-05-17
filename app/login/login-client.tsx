@@ -56,7 +56,7 @@ export default function LoginClient() {
 
           <form className="admin-login-form" onSubmit={handleLogin} noValidate>
             <label className="admin-login-field">
-              <span>Enter work email</span>
+              <span>Entre com seu email</span>
               <input
                 type="email"
                 placeholder="me@example.com"
@@ -71,7 +71,7 @@ export default function LoginClient() {
 
             <label className="admin-login-field">
               <span>
-                Enter password
+                Entre com sua senha
                 <span className="admin-info-dot" aria-hidden>
                   i
                 </span>
@@ -91,22 +91,22 @@ export default function LoginClient() {
             {error && <p className="admin-login-error">{error}</p>}
 
             <button className="admin-primary-button" type="submit" disabled={loading}>
-              {loading ? 'Acessando...' : 'Acessar hub'} <span aria-hidden>→</span>
+              {loading ? 'Acessando...' : 'Acessar hub'}
             </button>
           </form>
 
           <div className="admin-social-auth" aria-label="Entrar com provedores externos">
             <button type="button">
               <GithubIcon />
-              Sign in with GitHub
+              Entrar com GitHub
             </button>
             <button type="button">
               <AppleIcon />
-              Sign in with Apple
+              Entrar com Apple
             </button>
             <button type="button">
               <GoogleIcon />
-              Sign in with Google
+              Entrar com Google
             </button>
           </div>
 

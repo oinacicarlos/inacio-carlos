@@ -264,6 +264,7 @@ export default function Home() {
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
   const [animKey, setAnimKey] = useState(0)
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentQuestion = QUESTIONS[currentQuestionIndex]
@@ -398,9 +399,9 @@ export default function Home() {
 
       {screen === 'intro' && (
         <>
-          <FloatingPlatforms />
           {/* HERO */}
           <section className="hero-screen" aria-labelledby="hero-title">
+            <FloatingPlatforms />
             <span className="hero-badge">Diagnóstico gratuito · 3 minutos</span>
             <h1 id="hero-title">
               Faço a sua empresa vender mais, de forma <strong>simples e fácil.</strong>
@@ -410,6 +411,254 @@ export default function Home() {
               identificar os gargalos da sua empresa!
             </p>
             <div className="hero-actions">
+              <button className="primary-action" onClick={startApplication} type="button">
+                <span className="primary-action-label">Diagnóstico</span>
+              </button>
+              <a className="hero-secondary" href="#goals">Saber mais</a>
+            </div>
+          </section>
+
+          {/* SEÇÃO 2 — Uma análise da sua empresa para você que busca */}
+          <section id="goals" className="goals-section" aria-labelledby="goals-title">
+            <h2 id="goals-title" className="goals-title">
+              Uma análise da sua empresa para você que busca:
+            </h2>
+            <div className="goals-grid">
+              <article className="goal-card">
+                <span className="goal-card-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9.5" />
+                    <circle cx="12" cy="12" r="5.5" />
+                    <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+                  </svg>
+                </span>
+                <h3 className="goal-card-title">Leads</h3>
+                <p className="goal-card-desc">
+                  Mais pessoas chegando até a sua empresa todos os dias.
+                  Estruturo aquisição constante: tráfego, conteúdo e
+                  presença que atraem clientes em vez de só seguidores.
+                </p>
+              </article>
+              <article className="goal-card">
+                <span className="goal-card-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 17 9 11 13 15 21 7" />
+                    <polyline points="15 7 21 7 21 13" />
+                  </svg>
+                </span>
+                <h3 className="goal-card-title">Conversões</h3>
+                <p className="goal-card-desc">
+                  Já entram contatos, mas poucos viram cliente?
+                  Reorganizo o seu processo comercial pra transformar
+                  conversa em venda, sem depender de improviso.
+                </p>
+              </article>
+              <article className="goal-card">
+                <span className="goal-card-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 3 2.5 8 12 13 21.5 8 12 3" />
+                    <polyline points="2.5 13 12 18 21.5 13" />
+                    <polyline points="2.5 18 12 23 21.5 18" />
+                  </svg>
+                </span>
+                <h3 className="goal-card-title">Estrutura</h3>
+                <p className="goal-card-desc">
+                  Sem site, Instagram profissional ou presença digital
+                  organizada? Construo a base do zero pra sua empresa
+                  existir online com identidade e direção.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          {/* SEÇÃO 3 — Quem sou */}
+          <section className="about-section" aria-labelledby="about-title">
+            <div className="about-photo-wrap">
+              <span className="about-photo-accent" aria-hidden="true" />
+              <img
+                src="/inacio.svg"
+                alt="Inácio Carlos"
+                className="about-photo"
+                loading="lazy"
+              />
+            </div>
+            <div className="about-text">
+              <p className="lp-eyebrow about-eyebrow">Quem sou</p>
+              <h2 id="about-title" className="about-name">Inácio Carlos</h2>
+              <div className="about-bio">
+                <p>
+                  Me chamo Inácio Carlos, tenho 22 anos, nasci no Rio de Janeiro,
+                  sempre sonhei em trabalhar com comunicação, desde os 8 anos
+                  trabalho com a internet, criando, vendendo e estudando uma
+                  estratégia nova a cada dia.
+                </p>
+                <p>
+                  Gerei mais de 2 bilhões de visualizações orgânicas nas redes
+                  sociais, movimentei mais de R$5 milhões em vinculação de mídia
+                  paga, atendi mais de 150 empresas no mundo inteiro, fali 3
+                  empresas aos 22 anos e hoje meu objetivo é ajudar empresários
+                  que não conseguem ter resultados através da minha metodologia.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* SEÇÃO 4 — Valor / Pricing */}
+          <section className="pricing-section" aria-labelledby="pricing-title">
+            <p className="lp-eyebrow">O valor</p>
+            <h2 id="pricing-title" className="pricing-title">
+              Quanto é o valor para ter um diagnóstico completo meu?
+            </h2>
+            <p className="pricing-sub">
+              Para ter um diagnóstico completo o valor é R$ 500, mas
+              hoje você terá uma condição especial.
+            </p>
+
+            <div className="pricing-comparison">
+              <div className="pricing-side pricing-side--old">
+                <span className="pricing-side-label">Valor padrão</span>
+                <span className="pricing-side-amount pricing-side-amount--old">
+                  R$ 500
+                </span>
+              </div>
+
+              <div className="pricing-arrow" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="13 6 19 12 13 18" />
+                </svg>
+              </div>
+
+              <div className="pricing-side pricing-side--current">
+                <span className="pricing-side-label">Hoje, pra você</span>
+                <span className="pricing-side-amount pricing-side-amount--free">
+                  Grátis
+                </span>
+              </div>
+            </div>
+
+            <p className="pricing-disclaimer">
+              Você receberá um diagnóstico após preencher o formulário e
+              caso você esteja pronto, entraremos em contato para você
+              receber sua consultoria gratuita de 40 minutos comigo!
+            </p>
+          </section>
+
+          {/* SEÇÃO 5 — FAQ */}
+          <section className="faq-section" aria-labelledby="faq-title">
+            <p className="lp-eyebrow">Perguntas frequentes</p>
+            <h2 id="faq-title" className="faq-title">
+              O que você precisa saber.
+            </h2>
+
+            <ul className="faq-list">
+              {[
+                {
+                  q: 'Quem recebe a consultoria gratuita?',
+                  a: (
+                    <>
+                      Todos recebem o diagnóstico. Alguns recebem apenas o
+                      diagnóstico após a conclusão do preenchimento das perguntas,
+                      outros serão chamados para agendar uma call 100% gratuita.
+                      Isso porque alguns podem não estar prontos ainda para
+                      receber um diagnóstico mais profundo.
+                    </>
+                  ),
+                },
+                {
+                  q: 'Como faço para contratar os serviços de marketing?',
+                  a: (
+                    <>
+                      Para contratar os serviços de gestão de tráfego, trainer
+                      sales, social media e outros,{' '}
+                      <a
+                        className="faq-link"
+                        href="https://wa.me/5511999999999"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        clique aqui
+                      </a>{' '}
+                      e entre em contato diretamente com o atendimento.
+                    </>
+                  ),
+                },
+                {
+                  q: 'Se eu não for chamado para a call, tem outra forma de receber treinamento gratuito?',
+                  a: (
+                    <>
+                      Sim. Eu produzo conteúdos informativos e educativos
+                      ensinando gratuitamente todos que querem aprender a
+                      vender mais, crescer nas redes sociais e ter resultados
+                      na internet.
+                    </>
+                  ),
+                },
+                {
+                  q: 'O diagnóstico é realmente gratuito ou tem alguma pegadinha?',
+                  a: (
+                    <>
+                      O diagnóstico é 100% gratuito. Mas se no final do
+                      diagnóstico ou da call você tiver interesse em contratar
+                      os nossos serviços, vamos oferecer as nossas soluções.
+                    </>
+                  ),
+                },
+                {
+                  q: 'Quais os cursos e treinamentos disponíveis para comprar?',
+                  a: (
+                    <>
+                      Ainda nenhum. Queremos ajudar o máximo de pessoas
+                      possível antes de vender qualquer coisa. Por isso,
+                      aproveite enquanto não vendemos produtos, mas sim
+                      soluções para você aplicar e ter resultados.
+                    </>
+                  ),
+                },
+              ].map((item, i) => {
+                const isOpen = openFaq === i
+                const panelId = `faq-panel-${i}`
+                return (
+                  <li
+                    key={i}
+                    className={`faq-item ${isOpen ? 'faq-item--open' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="faq-question"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => setOpenFaq(isOpen ? null : i)}
+                    >
+                      <span className="faq-question-text">{item.q}</span>
+                      <span className="faq-chevron" aria-hidden="true">
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </span>
+                    </button>
+                    <div
+                      id={panelId}
+                      className="faq-answer-wrap"
+                      role="region"
+                    >
+                      <p className="faq-answer">{item.a}</p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <div className="faq-cta">
               <button className="primary-action" onClick={startApplication} type="button">
                 <span className="primary-action-label">Diagnóstico</span>
               </button>
