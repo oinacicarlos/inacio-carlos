@@ -219,6 +219,26 @@ type DispatchStageFilter = 'Todos' | CrmStage
 type DispatchAttemptFilter = 'Todos' | 'Sem tentativa' | '1 tentativa' | '2 tentativas' | '3 tentativas'
 type DispatchQualificationFilter = 'Todos' | 'Qualificados' | 'Nao qualificados'
 
+type DispatchRecipientLog = {
+  email: string
+  nome: string
+  empresa: string
+  status: 'sent' | 'failed'
+  error?: string
+  sentAt?: string
+}
+
+type ConfirmDialogVariant = 'primary' | 'danger' | 'info'
+
+type ConfirmDialogState = {
+  title: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string | null  // null = hide cancel (alert mode)
+  variant?: ConfirmDialogVariant
+  onConfirm?: () => void
+}
+
 type DispatchCampaign = {
   id: string
   name: string
@@ -233,6 +253,9 @@ type DispatchCampaign = {
   status: DispatchStatus
   sentCount?: number
   failedCount?: number
+  recipientsLog?: DispatchRecipientLog[]
+  extraEmails?: string[]
+  excludedEmails?: string[]
   createdAt: string
 }
 
@@ -480,7 +503,27 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
   const [profileResetSending, setProfileResetSending] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
   const [profileError, setProfileError] = useState('')
-  const [themePreview, setThemePreview] = useState<'Escuro' | 'Branco'>('Escuro')
+  // Lazy initial state: lê do localStorage durante o primeiro render
+  // (síncrono, sem flash, sem race condition).
+  // Como o componente está em dynamic({ ssr: false }), window sempre existe.
+  const [themePreview, setThemePreview] = useState<'Escuro' | 'Branco'>(() => {
+    try {
+      const saved = window.localStorage.getItem('hubTheme')
+      if (saved === 'Branco' || saved === 'Escuro') return saved
+    } catch {
+      // localStorage indisponível (modo privado, etc.)
+    }
+    return 'Escuro'
+  })
+
+  // Persiste mudança de tema
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('hubTheme', themePreview)
+    } catch {
+      // ignora se não puder escrever
+    }
+  }, [themePreview])
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const profilePhotoDragRef = useRef<{
     pointerId: number
@@ -735,12 +778,14 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
     setProfileMessage('Enviamos um link de redefinição para o e-mail informado.')
   }
 
+  const themeAttr = themePreview === 'Branco' ? 'light' : 'dark'
+
   if (checkingSession) {
-    return <main className="admin-dashboard-page" />
+    return <main className="admin-dashboard-page" data-theme={themeAttr} />
   }
 
   return (
-    <main className={sidebarOpen ? 'admin-dashboard-page' : 'admin-dashboard-page collapsed'}>
+    <main className={sidebarOpen ? 'admin-dashboard-page' : 'admin-dashboard-page collapsed'} data-theme={themeAttr}>
       <aside className="admin-sidebar" aria-label="Módulos administrativos">
         <div className="admin-sidebar-top">
           <button
@@ -811,9 +856,22 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
                 role="menuitem"
                 onClick={openProfileModal}
               >
+                <span className="admin-profile-menu-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
                 Meu perfil
               </button>
               <button type="button" role="menuitem" onClick={handleSignOut}>
+                <span className="admin-profile-menu-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </span>
                 Sair
               </button>
               <button
@@ -821,6 +879,20 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
                 role="menuitem"
                 onClick={() => setThemePreview(themePreview === 'Escuro' ? 'Branco' : 'Escuro')}
               >
+                <span className="admin-profile-menu-icon" aria-hidden="true">
+                  {themePreview === 'Escuro' ? (
+                    // Lua (clique muda para Escuro)
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+                    </svg>
+                  ) : (
+                    // Sol (clique muda para Branco)
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                    </svg>
+                  )}
+                </span>
                 {themePreview}
               </button>
             </div>
@@ -1722,6 +1794,9 @@ type DispatchRow = {
   status: string
   sent_count: number
   failed_count: number
+  recipients_log?: DispatchRecipientLog[] | null
+  extra_emails?: string[] | null
+  excluded_emails?: string[] | null
   created_at: string
 }
 
@@ -1738,6 +1813,9 @@ function mapDispatchRow(row: DispatchRow): DispatchCampaign {
     status: row.status as DispatchStatus,
     sentCount: row.sent_count,
     failedCount: row.failed_count,
+    recipientsLog: Array.isArray(row.recipients_log) ? row.recipients_log : undefined,
+    extraEmails: Array.isArray(row.extra_emails) ? row.extra_emails : undefined,
+    excludedEmails: Array.isArray(row.excluded_emails) ? row.excluded_emails : undefined,
     recipientCount: 0,
     validRecipientCount: 0,
     createdAt: row.created_at,
@@ -1750,6 +1828,31 @@ function DispatchesModule() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ campaign: DispatchCampaign; x: number; y: number } | null>(null)
+  const [detailCampaign, setDetailCampaign] = useState<DispatchCampaign | null>(null)
+  const [editingCampaign, setEditingCampaign] = useState<DispatchCampaign | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
+  const ctxMenuRef = useRef<HTMLDivElement | null>(null)
+
+  // Fecha o menu de contexto ao clicar fora ou pressionar Esc
+  useEffect(() => {
+    if (!contextMenu) return
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as globalThis.Node | null
+      if (target && ctxMenuRef.current && !ctxMenuRef.current.contains(target)) {
+        setContextMenu(null)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null)
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [contextMenu])
 
   useEffect(() => {
     const loadData = async () => {
@@ -1801,22 +1904,70 @@ function DispatchesModule() {
     setIsCreateModalOpen(false)
   }
 
-  const updateCampaignInDb = async (id: string, fields: Partial<{ status: string; sent_count: number; failed_count: number }>) => {
+  const updateCampaignInDb = async (
+    id: string,
+    fields: Partial<{
+      status: string
+      sent_count: number
+      failed_count: number
+      name: string
+      channel: string
+      subject: string
+      message: string
+      stage_filter: string
+      attempt_filter: string
+      qualification_filter: string
+      recipients_log: DispatchRecipientLog[]
+      extra_emails: string[]
+      excluded_emails: string[]
+    }>,
+  ) => {
     await supabase.from(DISPATCHES_TABLE).update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id)
   }
 
   const handleSendCampaign = async (campaign: DispatchCampaign) => {
     if (campaign.channel !== 'E-mail') {
-      alert('Envio via WhatsApp ainda não disponível.')
+      setConfirmDialog({
+        title: 'Canal indisponível',
+        message: 'Envio via WhatsApp ainda não está disponível. Em breve.',
+        confirmLabel: 'Entendi',
+        cancelLabel: null,
+        variant: 'info',
+      })
       return
     }
 
     // Monta lista de destinatários válidos com base nos filtros da campanha
     const audience = getDispatchAudience(leads, campaign.stageFilter, campaign.attemptFilter, campaign.qualificationFilter)
-    const validLeads = getDispatchValidRecipients(audience, campaign.channel)
+    const validLeadsFromFilter = getDispatchValidRecipients(audience, campaign.channel)
+
+    // Remove leads cujo email está na lista de excluídos
+    const excludedSet = new Set((campaign.excludedEmails ?? []).map(e => e.toLowerCase()))
+    const filteredLeads = validLeadsFromFilter.filter(lead => !excludedSet.has(lead.email.toLowerCase()))
+
+    // Monta destinatários finais: leads do filtro + emails extras manuais
+    const filterRecipients = filteredLeads.map(lead => ({
+      email: lead.email,
+      nome: lead.name,
+      empresa: lead.company,
+    }))
+
+    // Evita duplicar email extra que já está em algum lead
+    const filterEmailSet = new Set(filterRecipients.map(r => r.email.toLowerCase()))
+    const extraRecipients = (campaign.extraEmails ?? [])
+      .filter(email => email && !filterEmailSet.has(email.toLowerCase()))
+      .map(email => ({ email, nome: '', empresa: '' }))
+
+    const validLeads = [...filterRecipients, ...extraRecipients]
 
     if (validLeads.length === 0) {
-      alert('Nenhum destinatário válido encontrado.')
+      setConfirmDialog({
+        title: 'Sem destinatários',
+        message: 'Nenhum destinatário válido encontrado com os filtros atuais.',
+        confirmLabel: 'OK',
+        cancelLabel: null,
+        variant: 'info',
+      })
       return
     }
 
@@ -1834,39 +1985,147 @@ function DispatchesModule() {
           channel: campaign.channel,
           subject: campaign.subject,
           message: campaign.message,
-          recipients: validLeads.map(lead => ({
-            email: lead.email,
-            nome: lead.name,
-            empresa: lead.company,
-          })),
+          recipients: validLeads,
         }),
       })
 
-      const result = await res.json() as { sent?: number; failed?: number; error?: string }
+      const result = await res.json() as {
+        sent?: number
+        failed?: number
+        results?: DispatchRecipientLog[]
+        error?: string
+      }
 
       if (!res.ok || result.error) {
+        const fallbackLog: DispatchRecipientLog[] = validLeads.map(r => ({
+          email: r.email,
+          nome: r.nome,
+          empresa: r.empresa,
+          status: 'failed',
+          error: result.error ?? 'Falha desconhecida',
+        }))
         setCampaigns(prev => prev.map(c =>
           c.id === campaign.id
-            ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length }
+            ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length, recipientsLog: fallbackLog }
             : c
         ))
-        void updateCampaignInDb(campaign.id, { status: 'Erro', sent_count: 0, failed_count: validLeads.length })
+        void updateCampaignInDb(campaign.id, {
+          status: 'Erro',
+          sent_count: 0,
+          failed_count: validLeads.length,
+          recipients_log: fallbackLog,
+        })
         return
       }
 
+      const log = result.results ?? []
       const finalStatus: DispatchStatus = (result.failed ?? 0) > 0 && (result.sent ?? 0) === 0 ? 'Erro' : 'Enviado'
       setCampaigns(prev => prev.map(c =>
         c.id === campaign.id
-          ? { ...c, status: finalStatus, sentCount: result.sent ?? 0, failedCount: result.failed ?? 0 }
+          ? { ...c, status: finalStatus, sentCount: result.sent ?? 0, failedCount: result.failed ?? 0, recipientsLog: log }
           : c
       ))
-      void updateCampaignInDb(campaign.id, { status: finalStatus, sent_count: result.sent ?? 0, failed_count: result.failed ?? 0 })
-    } catch {
+      void updateCampaignInDb(campaign.id, {
+        status: finalStatus,
+        sent_count: result.sent ?? 0,
+        failed_count: result.failed ?? 0,
+        recipients_log: log,
+      })
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Erro de rede'
+      const fallbackLog: DispatchRecipientLog[] = validLeads.map(r => ({
+        email: r.email,
+        nome: r.nome,
+        empresa: r.empresa,
+        status: 'failed',
+        error: errorMsg,
+      }))
       setCampaigns(prev => prev.map(c =>
-        c.id === campaign.id ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length } : c
+        c.id === campaign.id ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length, recipientsLog: fallbackLog } : c
       ))
-      void updateCampaignInDb(campaign.id, { status: 'Erro', sent_count: 0, failed_count: validLeads.length })
+      void updateCampaignInDb(campaign.id, {
+        status: 'Erro',
+        sent_count: 0,
+        failed_count: validLeads.length,
+        recipients_log: fallbackLog,
+      })
     }
+  }
+
+  const handleDeleteCampaign = (campaign: DispatchCampaign) => {
+    setConfirmDialog({
+      title: 'Excluir campanha',
+      message: `Excluir "${campaign.name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: async () => {
+        await supabase.from(DISPATCHES_TABLE).delete().eq('id', campaign.id)
+        setCampaigns(prev => prev.filter(c => c.id !== campaign.id))
+        setDetailCampaign(cur => (cur && cur.id === campaign.id ? null : cur))
+      },
+    })
+  }
+
+  const handleRenameCampaign = async (campaign: DispatchCampaign) => {
+    const next = window.prompt('Novo nome da campanha:', campaign.name)
+    if (!next) return
+    const trimmed = next.trim()
+    if (!trimmed || trimmed === campaign.name) return
+    await updateCampaignInDb(campaign.id, { name: trimmed })
+    setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, name: trimmed } : c))
+  }
+
+  const handleDuplicateCampaign = async (campaign: DispatchCampaign) => {
+    const { data, error: insertError } = await supabase
+      .from(DISPATCHES_TABLE)
+      .insert({
+        name: `${campaign.name} (cópia)`,
+        channel: campaign.channel,
+        subject: campaign.subject,
+        message: campaign.message,
+        stage_filter: campaign.stageFilter,
+        attempt_filter: campaign.attemptFilter,
+        qualification_filter: campaign.qualificationFilter,
+        status: 'Rascunho',
+        sent_count: 0,
+        failed_count: 0,
+      })
+      .select()
+      .single()
+    if (insertError || !data) return
+    setCampaigns(prev => [mapDispatchRow(data as DispatchRow), ...prev])
+  }
+
+  const handleResendCampaign = (campaign: DispatchCampaign) => {
+    setConfirmDialog({
+      title: 'Reenviar campanha',
+      message: `Reenviar "${campaign.name}" para os destinatários atuais? O log do envio anterior será sobrescrito.`,
+      confirmLabel: 'Reenviar',
+      cancelLabel: 'Cancelar',
+      variant: 'primary',
+      onConfirm: () => {
+        void handleSendCampaign(campaign)
+      },
+    })
+  }
+
+  const handleUpdateCampaign = async (updated: DispatchCampaign) => {
+    await updateCampaignInDb(updated.id, {
+      name: updated.name,
+      channel: updated.channel,
+      subject: updated.subject,
+      message: updated.message,
+      stage_filter: updated.stageFilter,
+      attempt_filter: updated.attemptFilter,
+      qualification_filter: updated.qualificationFilter,
+      extra_emails: updated.extraEmails ?? [],
+      excluded_emails: updated.excludedEmails ?? [],
+    })
+    setCampaigns(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))
+    setEditingCampaign(null)
+    // Se o detail modal estava aberto na mesma campanha, atualiza ele também
+    setDetailCampaign(cur => (cur && cur.id === updated.id ? { ...cur, ...updated } : cur))
   }
 
   return (
@@ -1906,7 +2165,24 @@ function DispatchesModule() {
         ) : campaigns.length > 0 ? (
           <div className="links-sheet-body">
             {campaigns.map(campaign => (
-              <div className="dispatches-sheet-row" key={campaign.id}>
+              <div
+                className="dispatches-sheet-row"
+                key={campaign.id}
+                onClick={(event) => {
+                  // ignora cliques dentro da coluna de ação (botão Enviar/Reenviar)
+                  const target = event.target as globalThis.Element | null
+                  if (target && target.closest('.dispatches-sheet-action')) return
+                  setDetailCampaign(campaign)
+                }}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  const menuWidth = 200
+                  const menuHeight = 200
+                  const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8)
+                  const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
+                  setContextMenu({ campaign, x, y })
+                }}
+              >
                 <strong>{campaign.name}</strong>
                 <span>{campaign.channel}</span>
                 <span>{getDispatchAudienceLabel(campaign)}</span>
@@ -1960,6 +2236,688 @@ function DispatchesModule() {
           onCreate={handleCreateCampaign}
         />
       )}
+
+      {contextMenu && (
+        <div
+          ref={ctxMenuRef}
+          className="board-card-ctx-menu dispatch-ctx-menu"
+          style={{
+            position: 'fixed',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 200,
+          }}
+        >
+          <button
+            type="button"
+            disabled={contextMenu.campaign.status === 'Enviando'}
+            onClick={() => {
+              const c = contextMenu.campaign
+              setContextMenu(null)
+              handleResendCampaign(c)
+            }}
+          >
+            Reenviar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const c = contextMenu.campaign
+              setContextMenu(null)
+              setEditingCampaign(c)
+            }}
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const c = contextMenu.campaign
+              setContextMenu(null)
+              void handleDuplicateCampaign(c)
+            }}
+          >
+            Duplicar
+          </button>
+          <button
+            type="button"
+            className="board-card-ctx-delete"
+            onClick={() => {
+              const c = contextMenu.campaign
+              setContextMenu(null)
+              void handleDeleteCampaign(c)
+            }}
+          >
+            Excluir
+          </button>
+        </div>
+      )}
+
+      {detailCampaign && (
+        <DispatchDetailModal
+          campaign={detailCampaign}
+          leads={leads}
+          onClose={() => setDetailCampaign(null)}
+          onResend={(c) => {
+            setDetailCampaign(null)
+            handleResendCampaign(c)
+          }}
+          onEdit={(c) => {
+            setEditingCampaign(c)
+          }}
+          onDuplicate={async (c) => {
+            await handleDuplicateCampaign(c)
+            setDetailCampaign(null)
+          }}
+          onDelete={(c) => {
+            handleDeleteCampaign(c)
+          }}
+        />
+      )}
+
+      {editingCampaign && (
+        <DispatchEditModal
+          campaign={editingCampaign}
+          leads={leads}
+          onClose={() => setEditingCampaign(null)}
+          onSave={handleUpdateCampaign}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function DispatchDetailModal({
+  campaign,
+  leads,
+  onClose,
+  onResend,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: {
+  campaign: DispatchCampaign
+  leads: CrmLead[]
+  onClose: () => void
+  onResend: (campaign: DispatchCampaign) => void
+  onEdit: (campaign: DispatchCampaign) => void
+  onDuplicate: (campaign: DispatchCampaign) => void | Promise<void>
+  onDelete: (campaign: DispatchCampaign) => void | Promise<void>
+}) {
+  const audience = getDispatchAudience(
+    leads,
+    campaign.stageFilter,
+    campaign.attemptFilter,
+    campaign.qualificationFilter,
+  )
+  const validNow = getDispatchValidRecipients(audience, campaign.channel)
+  const log = campaign.recipientsLog ?? []
+  const sentInLog = log.filter(r => r.status === 'sent').length
+  const failedInLog = log.filter(r => r.status === 'failed').length
+  const hasLog = log.length > 0
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal dispatches-modal dispatch-detail-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header dispatch-detail-header">
+          <h3>{campaign.name}</h3>
+          <div className="dispatch-detail-actions">
+            <button
+              type="button"
+              className="dispatch-action-btn"
+              disabled={campaign.status === 'Enviando'}
+              onClick={() => onResend(campaign)}
+              title="Reenviar"
+              aria-label="Reenviar"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m22 2-7 20-4-9-9-4Z" />
+                <path d="M22 2 11 13" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="dispatch-action-btn"
+              onClick={() => onEdit(campaign)}
+              title="Editar"
+              aria-label="Editar"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="dispatch-action-btn"
+              onClick={() => void onDuplicate(campaign)}
+              title="Duplicar"
+              aria-label="Duplicar"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="dispatch-action-btn dispatch-action-btn--danger"
+              onClick={() => void onDelete(campaign)}
+              title="Excluir"
+              aria-label="Excluir"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </button>
+            <span className="dispatch-detail-divider" aria-hidden="true" />
+            <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
+
+        <div className="dispatch-detail-body">
+          <div className="dispatch-detail-meta">
+            <div className="dispatch-detail-meta-item">
+              <span>Canal</span>
+              <strong>{campaign.channel}</strong>
+            </div>
+            <div className="dispatch-detail-meta-item">
+              <span>Status</span>
+              <strong>{campaign.status}</strong>
+            </div>
+            <div className="dispatch-detail-meta-item">
+              <span>Público</span>
+              <strong>{getDispatchAudienceLabel(campaign)}</strong>
+            </div>
+            <div className="dispatch-detail-meta-item">
+              <span>Criado em</span>
+              <strong>{new Date(campaign.createdAt).toLocaleString('pt-BR')}</strong>
+            </div>
+          </div>
+
+          {campaign.subject && (
+            <div className="dispatch-detail-section">
+              <span className="dispatch-detail-label">Assunto</span>
+              <p className="dispatch-detail-subject">{campaign.subject}</p>
+            </div>
+          )}
+
+          <div className="dispatch-detail-section">
+            <span className="dispatch-detail-label">Mensagem</span>
+            <pre className="dispatch-detail-message">{campaign.message}</pre>
+          </div>
+
+          <div className="dispatch-detail-stats">
+            <div className="dispatch-stat">
+              <strong>{hasLog ? sentInLog : (campaign.sentCount ?? 0)}</strong>
+              <span>enviados</span>
+            </div>
+            <div className="dispatch-stat dispatch-stat--failed">
+              <strong>{hasLog ? failedInLog : (campaign.failedCount ?? 0)}</strong>
+              <span>falhas</span>
+            </div>
+            <div className="dispatch-stat">
+              <strong>{validNow.length}</strong>
+              <span>elegíveis agora</span>
+            </div>
+          </div>
+
+          {hasLog ? (
+            <div className="dispatch-detail-section">
+              <span className="dispatch-detail-label">
+                Destinatários do último envio ({log.length})
+              </span>
+              <div className="dispatch-recipients-list">
+                {log.map((r, i) => (
+                  <div key={`${r.email}-${i}`} className={`dispatch-recipient dispatch-recipient--${r.status}`}>
+                    <div className="dispatch-recipient-info">
+                      <strong>{r.nome || r.email}</strong>
+                      <span className="dispatch-recipient-meta">
+                        {r.empresa && <>{r.empresa} · </>}
+                        {r.email}
+                      </span>
+                      {r.status === 'failed' && r.error && (
+                        <span className="dispatch-recipient-error">{r.error}</span>
+                      )}
+                    </div>
+                    <span className={`dispatch-recipient-badge dispatch-recipient-badge--${r.status}`}>
+                      {r.status === 'sent' ? 'Enviado' : 'Falha'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="dispatch-detail-section">
+              <span className="dispatch-detail-label">
+                Vai enviar para ({validNow.length})
+              </span>
+              {validNow.length > 0 ? (
+                <div className="dispatch-recipients-list">
+                  {validNow.map(lead => (
+                    <div key={lead.id} className="dispatch-recipient">
+                      <div className="dispatch-recipient-info">
+                        <strong>{lead.name}</strong>
+                        <span className="dispatch-recipient-meta">
+                          {lead.company && <>{lead.company} · </>}
+                          {campaign.channel === 'E-mail' ? lead.email : lead.phone}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="dispatch-recipients-empty">
+                  Nenhum lead elegível com os filtros atuais.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DispatchEditModal({
+  campaign,
+  leads,
+  onClose,
+  onSave,
+}: {
+  campaign: DispatchCampaign
+  leads: CrmLead[]
+  onClose: () => void
+  onSave: (campaign: DispatchCampaign) => Promise<void>
+}) {
+  const [name, setName] = useState(campaign.name)
+  const [channel, setChannel] = useState<DispatchChannel>(campaign.channel)
+  const [stageFilter, setStageFilter] = useState<DispatchStageFilter>(campaign.stageFilter)
+  const [attemptFilter, setAttemptFilter] = useState<DispatchAttemptFilter>(campaign.attemptFilter)
+  const [qualificationFilter, setQualificationFilter] = useState<DispatchQualificationFilter>(campaign.qualificationFilter)
+  const [subject, setSubject] = useState(campaign.subject)
+  const [message, setMessage] = useState(campaign.message)
+  const [extraEmails, setExtraEmails] = useState<string[]>(campaign.extraEmails ?? [])
+  const [excludedEmails, setExcludedEmails] = useState<string[]>(campaign.excludedEmails ?? [])
+  const [extraInput, setExtraInput] = useState('')
+  const [error, setError] = useState('')
+
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  // Audiência atualizada conforme filtros mudam
+  const audience = getDispatchAudience(leads, stageFilter, attemptFilter, qualificationFilter)
+  const validInAudience = getDispatchValidRecipients(audience, channel)
+
+  const excludedSet = new Set(excludedEmails.map(e => e.toLowerCase()))
+  const activeFromFilter = validInAudience.filter(l => !excludedSet.has(l.email.toLowerCase()))
+  const excludedFromFilter = validInAudience.filter(l => excludedSet.has(l.email.toLowerCase()))
+  const totalFinal = activeFromFilter.length + extraEmails.length
+
+  const addExtra = () => {
+    const e = extraInput.trim().toLowerCase()
+    if (!e) return
+    if (!isValidEmail(e)) {
+      setError('E-mail inválido.')
+      return
+    }
+    if (extraEmails.some(x => x.toLowerCase() === e)) {
+      setError('E-mail já adicionado.')
+      return
+    }
+    setExtraEmails(prev => [...prev, e])
+    setExtraInput('')
+    setError('')
+  }
+
+  const removeExtra = (email: string) => {
+    setExtraEmails(prev => prev.filter(e => e.toLowerCase() !== email.toLowerCase()))
+  }
+
+  const excludeLead = (email: string) => {
+    setExcludedEmails(prev => [...prev, email])
+  }
+
+  const restoreLead = (email: string) => {
+    setExcludedEmails(prev => prev.filter(e => e.toLowerCase() !== email.toLowerCase()))
+  }
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const cleanName = name.trim()
+    const cleanSubject = subject.trim()
+    const cleanMessage = message.trim()
+
+    if (!cleanName) {
+      setError('Informe o nome da campanha.')
+      return
+    }
+    if (channel === 'E-mail' && !cleanSubject) {
+      setError('Informe o assunto do e-mail.')
+      return
+    }
+    if (!cleanMessage) {
+      setError('Escreva a mensagem do disparo.')
+      return
+    }
+
+    void onSave({
+      ...campaign,
+      name: cleanName,
+      channel,
+      stageFilter,
+      attemptFilter,
+      qualificationFilter,
+      subject: cleanSubject,
+      message: cleanMessage,
+      extraEmails,
+      excludedEmails,
+    })
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal dispatches-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>Editar campanha</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <form className="crm-modal-form dispatches-modal-form" onSubmit={handleSubmit}>
+          <section className="dispatches-modal-section">
+            <span>Canal</span>
+            <div className="dispatch-channel-options">
+              {(['WhatsApp', 'E-mail'] as DispatchChannel[]).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  className={channel === option ? 'active' : ''}
+                  onClick={() => {
+                    setChannel(option)
+                    setError('')
+                  }}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="dispatches-modal-section">
+            <span>Público do CRM</span>
+            <label>
+              Nome da campanha
+              <input value={name} onChange={event => setName(event.target.value)} placeholder="Prospecção - Leads novos" />
+            </label>
+            <div className="crm-modal-row">
+              <label>
+                Estágio
+                <select value={stageFilter} onChange={event => setStageFilter(event.target.value as DispatchStageFilter)}>
+                  <option value="Todos">Todos</option>
+                  {CRM_STAGES.map(stage => <option key={stage} value={stage}>{stage}</option>)}
+                </select>
+              </label>
+              <label>
+                Tentativas
+                <select value={attemptFilter} onChange={event => setAttemptFilter(event.target.value as DispatchAttemptFilter)}>
+                  <option value="Todos">Todos</option>
+                  <option value="Sem tentativa">Sem tentativa</option>
+                  <option value="1 tentativa">1 tentativa</option>
+                  <option value="2 tentativas">2 tentativas</option>
+                  <option value="3 tentativas">3 tentativas</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Qualificação
+              <select value={qualificationFilter} onChange={event => setQualificationFilter(event.target.value as DispatchQualificationFilter)}>
+                <option value="Todos">Todos</option>
+                <option value="Qualificados">Qualificados</option>
+                <option value="Nao qualificados">Não qualificados</option>
+              </select>
+            </label>
+          </section>
+
+          <section className="dispatches-modal-section">
+            <span>Mensagem</span>
+            {channel === 'E-mail' && (
+              <label>
+                Assunto
+                <input value={subject} onChange={event => setSubject(event.target.value)} placeholder="Próximo passo para a {empresa}" />
+              </label>
+            )}
+            <label>
+              Mensagem
+              <textarea
+                value={message}
+                onChange={event => setMessage(event.target.value)}
+                placeholder={channel === 'E-mail' ? 'Olá {nome}, tudo bem?' : 'Oi {nome}, tudo bem?'}
+                rows={5}
+              />
+            </label>
+            <p className="dispatches-modal-hint">Variáveis disponíveis: {'{nome}'} e {'{empresa}'}</p>
+          </section>
+
+          {channel === 'E-mail' && (
+            <section className="dispatches-modal-section">
+              <span>Destinatários ({totalFinal})</span>
+
+              {/* Adicionar extra */}
+              <div className="dispatch-extras-add">
+                <input
+                  type="email"
+                  value={extraInput}
+                  onChange={event => {
+                    setExtraInput(event.target.value)
+                    if (error) setError('')
+                  }}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addExtra()
+                    }
+                  }}
+                  placeholder="adicionar@email.com"
+                />
+                <button type="button" onClick={addExtra}>+ Adicionar</button>
+              </div>
+
+              {extraEmails.length > 0 && (
+                <div className="dispatch-recipients-block">
+                  <span className="dispatch-recipients-block-label">Extras ({extraEmails.length})</span>
+                  <div className="dispatch-recipients-mini-list">
+                    {extraEmails.map(email => (
+                      <div key={email} className="dispatch-recipient-chip">
+                        <span>{email}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remover ${email}`}
+                          onClick={() => removeExtra(email)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="dispatch-recipients-block">
+                <span className="dispatch-recipients-block-label">
+                  Da audiência ({activeFromFilter.length} ativos · {excludedFromFilter.length} excluídos)
+                </span>
+                {validInAudience.length === 0 ? (
+                  <p className="dispatch-recipients-empty">
+                    Nenhum lead elegível com os filtros atuais.
+                  </p>
+                ) : (
+                  <div className="dispatch-recipients-mini-list">
+                    {validInAudience.map(lead => {
+                      const isExcluded = excludedSet.has(lead.email.toLowerCase())
+                      return (
+                        <div
+                          key={lead.id}
+                          className={`dispatch-recipient-chip${isExcluded ? ' dispatch-recipient-chip--excluded' : ''}`}
+                        >
+                          <span>
+                            <strong>{lead.name}</strong>
+                            {lead.company && <> · {lead.company}</>}
+                            {' · '}
+                            {lead.email}
+                          </span>
+                          {isExcluded ? (
+                            <button
+                              type="button"
+                              className="dispatch-recipient-chip-restore"
+                              onClick={() => restoreLead(lead.email)}
+                            >
+                              Restaurar
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              aria-label={`Excluir ${lead.email}`}
+                              onClick={() => excludeLead(lead.email)}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <section className="dispatches-review">
+            <div>
+              <span>Filtro</span>
+              <strong>{activeFromFilter.length}</strong>
+            </div>
+            <div>
+              <span>Extras</span>
+              <strong>{extraEmails.length}</strong>
+            </div>
+            <div>
+              <span>Excluídos</span>
+              <strong>{excludedFromFilter.length}</strong>
+            </div>
+            <div>
+              <span>Total final</span>
+              <strong>{totalFinal}</strong>
+            </div>
+          </section>
+
+          {error && <p className="crm-modal-error">{error}</p>}
+
+          <div className="crm-modal-footer">
+            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+            <button type="submit" className="crm-modal-submit">Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+  variant = 'primary',
+  onConfirm,
+  onClose,
+}: ConfirmDialogState & { onClose: () => void }) {
+  // Esc fecha; Enter confirma
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        onConfirm?.()
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose, onConfirm])
+
+  const showCancel = cancelLabel !== null
+
+  return (
+    <div className="crm-modal-backdrop confirm-dialog-backdrop" onClick={onClose}>
+      <div
+        className={`confirm-dialog confirm-dialog--${variant}`}
+        role="alertdialog"
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-message"
+        onClick={event => event.stopPropagation()}
+      >
+        <div className="confirm-dialog-icon" aria-hidden="true">
+          {variant === 'danger' ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          ) : variant === 'info' ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          )}
+        </div>
+
+        <h3 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h3>
+        <p id="confirm-dialog-message" className="confirm-dialog-message">{message}</p>
+
+        <div className="confirm-dialog-footer">
+          {showCancel && (
+            <button
+              type="button"
+              className="confirm-dialog-cancel"
+              onClick={onClose}
+            >
+              {cancelLabel}
+            </button>
+          )}
+          <button
+            type="button"
+            className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
+            autoFocus
+            onClick={() => {
+              onConfirm?.()
+              onClose()
+            }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -4657,7 +5615,33 @@ const CALENDAR_STATUS_COLORS: Record<CalendarStatus, string> = {
 const CALENDAR_FORMATS = ['Reels', 'Carrossel', 'Stories', 'Feed foto', 'Live', 'Post texto']
 const ACCESS_PLATFORMS = ['Instagram', 'Facebook', 'Google Ads', 'Google Analytics', 'TikTok', 'YouTube', 'LinkedIn', 'Site / WordPress', 'E-mail Marketing', 'WhatsApp Business', 'Outro']
 
-type CalendarPiece = { id: string; title: string; format: string; date: string; status: CalendarStatus; notes: string }
+type CalendarPiece = {
+  id: string
+  title: string
+  format: string
+  date: string
+  status: CalendarStatus
+  notes: string
+  pilar?: string
+  hook?: string
+  copy?: string
+  cta?: string
+}
+
+const CALENDAR_PILARES = ['Educacional', 'Vendas', 'Prova Social', 'Bastidores', 'Entretenimento', 'Dúvidas Frequentes', 'Autoridade', 'Motivacional', 'Cases', 'Tendências']
+
+const CALENDAR_PILAR_COLORS: Record<string, string> = {
+  'Educacional':         '#3b82f6',
+  'Vendas':              '#10b981',
+  'Prova Social':        '#f59e0b',
+  'Bastidores':          '#8b5cf6',
+  'Entretenimento':      '#ec4899',
+  'Dúvidas Frequentes':  '#06b6d4',
+  'Autoridade':          '#6366f1',
+  'Motivacional':        '#f43f5e',
+  'Cases':               '#14b8a6',
+  'Tendências':          '#a855f7',
+}
 type AccessEntry = { id: string; platform: string; login: string; password: string; notes: string }
 type ResultMonth = { id: string; month: string; metrics: Record<string, string>; notes: string }
 
@@ -5835,119 +6819,332 @@ function CalendárioTab({ pieces, onSave }: {
   onSave: (p: CalendarPiece[]) => Promise<void>
 }) {
   const [draft, setDraft] = useState(pieces)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<CalendarPiece | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<CalendarStatus | null>(null)
   const [filterMonth, setFilterMonth] = useState('')
+  const [filterPilar, setFilterPilar] = useState('')
+  const [confirmRemove, setConfirmRemove] = useState<CalendarPiece | null>(null)
 
-  const add = () => {
-    const today = new Date().toISOString().slice(0, 10)
-    const newPiece: CalendarPiece = { id: genId(), title: '', format: 'Reels', date: today, status: 'Briefing', notes: '' }
-    setDraft(d => [...d, newPiece])
-    setExpandedId(newPiece.id)
+  // Sincroniza com props quando vier nova base
+  useEffect(() => { setDraft(pieces) }, [pieces])
+
+  // Auto-save em qualquer mudança (debounced via state, simples)
+  const persist = (next: CalendarPiece[]) => {
+    setDraft(next)
+    void onSave(next)
   }
-  const remove = (id: string) => setDraft(d => d.filter(p => p.id !== id))
-  const update = (id: string, updates: Partial<CalendarPiece>) =>
-    setDraft(d => d.map(p => p.id === id ? { ...p, ...updates } : p))
-  const handleSave = async () => { setSaving(true); await onSave(draft); setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000) }
 
-  const months = Array.from(new Set(draft.map(p => p.date.slice(0, 7)))).sort()
-  const filtered = filterMonth ? draft.filter(p => p.date.startsWith(filterMonth)) : draft
-  const sorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date))
+  const handleAdd = (status: CalendarStatus) => {
+    const today = new Date().toISOString().slice(0, 10)
+    const newPiece: CalendarPiece = {
+      id: genId(), title: '', format: 'Reels', date: today, status, notes: '',
+      pilar: '', hook: '', copy: '', cta: '',
+    }
+    persist([...draft, newPiece])
+    setEditing(newPiece)
+  }
 
-  const statusCounts = CALENDAR_STATUSES.reduce<Record<string, number>>((acc, s) => {
-    acc[s] = draft.filter(p => p.status === s).length; return acc
-  }, {})
+  const handleUpdate = (updated: CalendarPiece) => {
+    persist(draft.map(p => p.id === updated.id ? updated : p))
+    setEditing(null)
+  }
+
+  const handleRemove = (id: string) => {
+    persist(draft.filter(p => p.id !== id))
+    setConfirmRemove(null)
+  }
+
+  const handleDropOnColumn = (status: CalendarStatus) => {
+    if (!draggingId) return
+    persist(draft.map(p => p.id === draggingId ? { ...p, status } : p))
+    setDraggingId(null)
+    setDragOverCol(null)
+  }
+
+  // Filtros
+  const months = Array.from(new Set(draft.map(p => p.date?.slice(0, 7) || ''))).filter(Boolean).sort()
+  const visiblePieces = draft.filter(p => {
+    if (filterMonth && !p.date?.startsWith(filterMonth)) return false
+    if (filterPilar && (p.pilar ?? '') !== filterPilar) return false
+    return true
+  })
+  const usedPilares = Array.from(new Set(draft.map(p => p.pilar).filter((x): x is string => Boolean(x))))
 
   return (
-    <div className="extras-tab-wrap">
+    <div className="extras-tab-wrap cal-kanban-wrap">
       <div className="extras-tab-header">
         <div>
-          <h3 className="extras-tab-title">Calendário de Conteúdo</h3>
-          <p className="extras-tab-desc">{draft.length} peça{draft.length !== 1 ? 's' : ''} cadastrada{draft.length !== 1 ? 's' : ''}</p>
+          <h3 className="extras-tab-title">Calendário Editorial</h3>
+          <p className="extras-tab-desc">
+            {draft.length} peça{draft.length !== 1 ? 's' : ''} · Arraste pra mudar status
+          </p>
         </div>
         <div className="extras-header-actions">
-          <button className="extras-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-            {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-          </button>
-          <button className="crm-add-btn" onClick={add} type="button">+ Conteúdo</button>
+          <button className="crm-add-btn" onClick={() => handleAdd('Briefing')} type="button">+ Conteúdo</button>
         </div>
       </div>
 
-      {/* Status summary */}
-      <div className="cal-status-bar">
-        {CALENDAR_STATUSES.map(s => (
-          <div key={s} className="cal-status-pill" style={{ borderColor: CALENDAR_STATUS_COLORS[s] }}>
-            <span className="cal-status-dot" style={{ background: CALENDAR_STATUS_COLORS[s] }} />
-            <span>{s}</span>
-            <span className="cal-status-count">{statusCounts[s]}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Month filter */}
-      {months.length > 1 && (
-        <div className="cal-month-filter">
-          <button className={`cal-month-btn${filterMonth === '' ? ' active' : ''}`} type="button" onClick={() => setFilterMonth('')}>Todos</button>
-          {months.map(m => (
-            <button key={m} className={`cal-month-btn${filterMonth === m ? ' active' : ''}`} type="button" onClick={() => setFilterMonth(m)}>
-              {new Date(m + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {sorted.length === 0 ? (
-        <div className="clients-empty"><p>Nenhuma peça cadastrada ainda.</p></div>
-      ) : (
-        <div className="cal-list">
-          {sorted.map(piece => (
-            <div key={piece.id} className="cal-item">
-              <div className="cal-item-row" onClick={() => setExpandedId(expandedId === piece.id ? null : piece.id)}>
-                <span className="cal-item-status-dot" style={{ background: CALENDAR_STATUS_COLORS[piece.status] }} />
-                <span className="cal-item-date">{piece.date ? new Date(piece.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '—'}</span>
-                <span className="cal-item-format">{piece.format}</span>
-                <span className="cal-item-title">{piece.title || '(sem título)'}</span>
-                <span className="cal-item-status-badge" style={{ color: CALENDAR_STATUS_COLORS[piece.status] }}>{piece.status}</span>
-                <svg className={`cal-item-arrow${expandedId === piece.id ? ' open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
+      {/* Filtros */}
+      {(months.length > 1 || usedPilares.length > 0) && (
+        <div className="cal-filters">
+          {months.length > 1 && (
+            <div className="cal-filter-group">
+              <span className="cal-filter-label">Mês</span>
+              <div className="cal-filter-chips">
+                <button className={`cal-chip${filterMonth === '' ? ' active' : ''}`} type="button" onClick={() => setFilterMonth('')}>Todos</button>
+                {months.map(m => (
+                  <button key={m} className={`cal-chip${filterMonth === m ? ' active' : ''}`} type="button" onClick={() => setFilterMonth(m)}>
+                    {new Date(m + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}
+                  </button>
+                ))}
               </div>
-              {expandedId === piece.id && (
-                <div className="cal-item-body">
-                  <div className="cal-item-fields">
-                    <div className="extras-field">
-                      <label>Título</label>
-                      <input placeholder="Ex: 3 erros que sabotam suas vendas" value={piece.title} onChange={e => update(piece.id, { title: e.target.value })} />
-                    </div>
-                    <div className="cal-item-row-fields">
-                      <div className="extras-field">
-                        <label>Formato</label>
-                        <select value={piece.format} onChange={e => update(piece.id, { format: e.target.value })}>
-                          {CALENDAR_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-                        </select>
-                      </div>
-                      <div className="extras-field">
-                        <label>Data</label>
-                        <input type="date" value={piece.date} onChange={e => update(piece.id, { date: e.target.value })} />
-                      </div>
-                      <div className="extras-field">
-                        <label>Status</label>
-                        <select value={piece.status} onChange={e => update(piece.id, { status: e.target.value as CalendarStatus })} style={{ color: CALENDAR_STATUS_COLORS[piece.status] }}>
-                          {CALENDAR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="extras-field">
-                      <label>Observações / Briefing da peça</label>
-                      <textarea rows={3} placeholder="Hook, roteiro, referências..." value={piece.notes} onChange={e => update(piece.id, { notes: e.target.value })} />
-                    </div>
-                  </div>
-                  <button className="cal-item-remove" type="button" onClick={() => remove(piece.id)}>Remover peça</button>
-                </div>
-              )}
             </div>
-          ))}
+          )}
+          {usedPilares.length > 0 && (
+            <div className="cal-filter-group">
+              <span className="cal-filter-label">Pilar</span>
+              <div className="cal-filter-chips">
+                <button className={`cal-chip${filterPilar === '' ? ' active' : ''}`} type="button" onClick={() => setFilterPilar('')}>Todos</button>
+                {usedPilares.map(p => (
+                  <button
+                    key={p}
+                    className={`cal-chip${filterPilar === p ? ' active' : ''}`}
+                    style={filterPilar === p && CALENDAR_PILAR_COLORS[p] ? { borderColor: CALENDAR_PILAR_COLORS[p], color: CALENDAR_PILAR_COLORS[p] } : undefined}
+                    type="button"
+                    onClick={() => setFilterPilar(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Kanban */}
+      <div className="cal-kanban">
+        {CALENDAR_STATUSES.map(status => {
+          const colorPieces = visiblePieces.filter(p => p.status === status)
+          return (
+            <div
+              key={status}
+              className={`cal-kanban-column${dragOverCol === status ? ' is-drop-target' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDragOverCol(status) }}
+              onDragLeave={() => setDragOverCol(cur => cur === status ? null : cur)}
+              onDrop={e => { e.preventDefault(); handleDropOnColumn(status) }}
+            >
+              <div className="cal-kanban-col-head">
+                <span className="cal-kanban-col-dot" style={{ background: CALENDAR_STATUS_COLORS[status] }} />
+                <span className="cal-kanban-col-title">{status}</span>
+                <span className="cal-kanban-col-count">{colorPieces.length}</span>
+                <button
+                  className="cal-kanban-col-add"
+                  type="button"
+                  onClick={() => handleAdd(status)}
+                  aria-label={`Adicionar em ${status}`}
+                  title="Adicionar"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="cal-kanban-col-body">
+                {colorPieces.length === 0 ? (
+                  <div className="cal-kanban-col-empty">Vazio</div>
+                ) : colorPieces.map(piece => (
+                  <article
+                    key={piece.id}
+                    className={`cal-kanban-card${draggingId === piece.id ? ' is-dragging' : ''}`}
+                    draggable
+                    onDragStart={e => {
+                      e.dataTransfer.setData('pieceId', piece.id)
+                      e.dataTransfer.effectAllowed = 'move'
+                      setDraggingId(piece.id)
+                    }}
+                    onDragEnd={() => { setDraggingId(null); setDragOverCol(null) }}
+                    onClick={() => setEditing(piece)}
+                  >
+                    {piece.pilar && (
+                      <span
+                        className="cal-kanban-card-pilar"
+                        style={CALENDAR_PILAR_COLORS[piece.pilar]
+                          ? { background: `${CALENDAR_PILAR_COLORS[piece.pilar]}22`, color: CALENDAR_PILAR_COLORS[piece.pilar] }
+                          : undefined
+                        }
+                      >
+                        {piece.pilar}
+                      </span>
+                    )}
+                    <h4 className="cal-kanban-card-title">
+                      {piece.title || <span className="cal-kanban-card-title-empty">(sem título)</span>}
+                    </h4>
+                    <div className="cal-kanban-card-meta">
+                      <span className="cal-kanban-card-format">{piece.format}</span>
+                      {piece.date && (
+                        <span className="cal-kanban-card-date">
+                          {new Date(piece.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                        </span>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Modal de edição */}
+      {editing && (
+        <CalendarPieceModal
+          piece={editing}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          onDelete={() => { setEditing(null); setConfirmRemove(editing) }}
+        />
+      )}
+
+      {/* Confirm de remoção */}
+      {confirmRemove && (
+        <ConfirmDialog
+          title="Excluir peça"
+          message={`Excluir "${confirmRemove.title || '(sem título)'}" do calendário?`}
+          confirmLabel="Excluir"
+          cancelLabel="Cancelar"
+          variant="danger"
+          onConfirm={() => handleRemove(confirmRemove.id)}
+          onClose={() => setConfirmRemove(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function CalendarPieceModal({
+  piece,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  piece: CalendarPiece
+  onClose: () => void
+  onSave: (p: CalendarPiece) => void
+  onDelete: () => void
+}) {
+  const [draft, setDraft] = useState<CalendarPiece>(piece)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const set = <K extends keyof CalendarPiece>(field: K, value: CalendarPiece[K]) => {
+    setDraft(d => ({ ...d, [field]: value }))
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal cal-piece-modal" onClick={e => e.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>Editar conteúdo</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div className="cal-piece-modal-body">
+          <div className="extras-field">
+            <label>Título</label>
+            <input
+              autoFocus
+              placeholder="Ex: 3 erros que sabotam suas vendas"
+              value={draft.title}
+              onChange={e => set('title', e.target.value)}
+            />
+          </div>
+
+          <div className="cal-piece-row">
+            <div className="extras-field">
+              <label>Pilar</label>
+              <select value={draft.pilar ?? ''} onChange={e => set('pilar', e.target.value)}>
+                <option value="">— Sem pilar</option>
+                {CALENDAR_PILARES.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="extras-field">
+              <label>Formato</label>
+              <select value={draft.format} onChange={e => set('format', e.target.value)}>
+                {CALENDAR_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div className="extras-field">
+              <label>Data</label>
+              <input type="date" value={draft.date} onChange={e => set('date', e.target.value)} />
+            </div>
+            <div className="extras-field">
+              <label>Status</label>
+              <select
+                value={draft.status}
+                onChange={e => set('status', e.target.value as CalendarStatus)}
+                style={{ color: CALENDAR_STATUS_COLORS[draft.status] }}
+              >
+                {CALENDAR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="extras-field">
+            <label>Hook / Gancho de abertura</label>
+            <input
+              placeholder="Primeira linha que prende. Ex: Você ainda faz isso nas suas vendas?"
+              value={draft.hook ?? ''}
+              onChange={e => set('hook', e.target.value)}
+            />
+          </div>
+
+          <div className="extras-field">
+            <label>Copy / Roteiro</label>
+            <textarea
+              rows={6}
+              placeholder="Estrutura completa do conteúdo — pode colar roteiro de vídeo, legenda do post, etc."
+              value={draft.copy ?? ''}
+              onChange={e => set('copy', e.target.value)}
+            />
+          </div>
+
+          <div className="extras-field">
+            <label>CTA / Chamada</label>
+            <input
+              placeholder="Ex: Comenta DICA pra eu te mandar o passo a passo"
+              value={draft.cta ?? ''}
+              onChange={e => set('cta', e.target.value)}
+            />
+          </div>
+
+          <div className="extras-field">
+            <label>Anotações internas</label>
+            <textarea
+              rows={3}
+              placeholder="Referências, observações de aprovação, links..."
+              value={draft.notes ?? ''}
+              onChange={e => set('notes', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="crm-modal-footer cal-piece-modal-footer">
+          <button type="button" onClick={onDelete} className="cal-piece-delete">Excluir</button>
+          <div className="cal-piece-footer-right">
+            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+            <button type="button" onClick={() => onSave(draft)} className="crm-modal-submit">Salvar</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
