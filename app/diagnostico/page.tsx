@@ -1,5 +1,5 @@
 import DiagnosticLanding from '@/components/diagnostic-landing'
 
-export default function HomePage() {
+export default function DiagnosticoPage() {
   return <DiagnosticLanding />
 }

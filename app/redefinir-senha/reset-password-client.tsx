@@ -66,7 +66,7 @@ export default function ResetPasswordClient() {
     setPassword('')
     setConfirmPassword('')
     setMessage('Senha redefinida com sucesso.')
-    router.replace('/dashboard')
+    router.replace('/disparos')
   }
 
   return (

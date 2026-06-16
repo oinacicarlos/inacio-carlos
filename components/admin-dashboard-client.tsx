@@ -1,6 +1,6 @@
 'use client'
 
-import { type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Node, Edge } from '@xyflow/react'
 import {
@@ -11,6 +11,7 @@ import {
   Controls,
   Handle,
   MarkerType,
+  NodeResizer,
   Panel,
   Position,
   ReactFlow,
@@ -32,7 +33,6 @@ type AdminModule =
   | 'Financeiro'
   | 'Links'
   | 'Quadros'
-  | 'Clientes'
 
 type AdminDashboardClientProps = {
   initialModule?: AdminModule
@@ -65,6 +65,37 @@ type TrackedClickRow = {
   source: string | null
 }
 
+type FinanceTab = 'Visão geral' | 'Entradas' | 'Saídas' | 'Relatórios'
+type FinanceKind = 'entrada' | 'saida'
+type FinanceStatus = 'Pendente' | 'Parcial' | 'Pago' | 'Cancelado'
+type FinanceRecordType = 'Fixa' | 'Variável' | 'Rendimento' | 'Dívida'
+
+type FinanceRecord = {
+  id: string
+  kind: FinanceKind
+  name: string
+  category: string
+  account: string
+  value: number
+  date: string
+  status: FinanceStatus
+  type: FinanceRecordType
+  note?: string
+}
+
+type FinanceRecordRow = {
+  id: string
+  kind: string
+  name: string
+  category: string
+  account: string
+  value: number | string
+  record_date: string
+  status: string
+  type: string
+  note: string | null
+}
+
 type BoardType = 'Funil de vendas' | 'Fluxo de processo' | 'Quadro'
 
 type BoardNodeKind =
@@ -90,12 +121,15 @@ type BoardNodeKind =
   | 'Formulário' | 'Documento' | 'Integração' | 'Notificação'
   // Anotação
   | 'Anotação'
+  // Personalizado (logo via URL)
+  | 'Custom'
 
 const SOURCE_KINDS = new Set<BoardNodeKind>([
   'Meta', 'Google', 'TikTok', 'Instagram', 'LinkedIn', 'YouTube', 'Orgânico',
   'Lista', 'Afiliado', 'Indicação',
   'Monnetize', 'Ticto', 'Kirvano', 'Hotmart', 'Kiwify', 'Hubla',
   'Nome', 'Email', 'Telefone', 'CPF', 'Endereço', 'Nascimento', 'Empresa', 'Sexo',
+  'Custom',
 ])
 
 // Nodes rendered as browser-window cards
@@ -106,6 +140,7 @@ const PAGE_KINDS = new Set<BoardNodeKind>([
 ])
 
 function nodeTypeForKind(kind: BoardNodeKind): string {
+  if (kind === 'Anotação') return 'noteNode'
   if (SOURCE_KINDS.has(kind)) return 'sourceNode'
   return 'circleNode'
 }
@@ -121,6 +156,9 @@ type BoardNodeData = {
   label: string
   kind: BoardNodeKind
   metric?: string
+  logoUrl?: string  // só usado quando kind === 'Custom'
+  note?: string
+  groupId?: string
 }
 
 type Board = {
@@ -203,6 +241,27 @@ type CrmLeadRow = {
   notes: string
   created_at: string
   updated_at: string
+}
+
+type CrmLeadImportInsert = {
+  name: string
+  company: string
+  email: string
+  phone: string
+  source: string
+  stage: CrmStage
+  attempt1: boolean
+  attempt2: boolean
+  attempt3: boolean
+  has_team: boolean | null
+  above_simples: boolean | null
+  ads_budget: boolean | null
+  qualified_flag: boolean
+  meeting_done: boolean
+  proposal_done: boolean
+  contract_done: boolean
+  is_closed: boolean
+  notes: string
 }
 
 type CrmActivityRow = {
@@ -306,6 +365,26 @@ const CRM_CHECKLIST: Array<{ key: keyof CrmLead; label: string }> = [
 const CRM_LEADS_TABLE     = 'crm_leads'
 const CRM_ACTIVITIES_TABLE = 'crm_activities'
 
+type CrmLeadImportColumn = 'name' | 'company' | 'email' | 'phone' | 'source' | 'stage'
+
+const CRM_IMPORT_COLUMNS: Array<{ key: CrmLeadImportColumn; label: string; aliases: string[] }> = [
+  { key: 'name',    label: 'Nome *',              aliases: ['name', 'nome', 'nome *'] },
+  { key: 'company', label: 'Empresa',             aliases: ['company', 'empresa'] },
+  { key: 'email',   label: 'E-mail',              aliases: ['email', 'e-mail'] },
+  { key: 'phone',   label: 'WhatsApp / Telefone', aliases: ['phone', 'telefone', 'whatsapp', 'whatsapp / telefone', 'whatsapp/telefone'] },
+  { key: 'source',  label: 'Fonte',               aliases: ['source', 'fonte', 'origem'] },
+  { key: 'stage',   label: 'Estágio',             aliases: ['stage', 'estagio', 'estágio'] },
+]
+
+const CRM_IMPORT_SAMPLE: Record<CrmLeadImportColumn, string> = {
+  name: 'João Silva',
+  company: 'Silva & Associados',
+  email: 'joao@empresa.com',
+  phone: '(11) 99999-0000',
+  source: 'LinkedIn',
+  stage: 'Novos',
+}
+
 function mapCrmLead(row: CrmLeadRow): CrmLead {
   return {
     id: row.id, name: row.name, company: row.company,
@@ -336,6 +415,93 @@ function daysAgo(iso: string) {
   if (days === 0) return 'hoje'
   if (days === 1) return '1 dia'
   return `${days} dias`
+}
+
+function normalizeImportCell(value: unknown) {
+  return value === null || value === undefined ? '' : String(value).trim()
+}
+
+function normalizeImportHeader(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function getImportField(rawRow: Record<string, unknown>, key: CrmLeadImportColumn) {
+  const field = CRM_IMPORT_COLUMNS.find(column => column.key === key)
+
+  if (!field) return ''
+
+  const normalizedEntries = Object.entries(rawRow).map(([header, value]) => ({
+    header: normalizeImportHeader(header),
+    value,
+  }))
+
+  const match = normalizedEntries.find(entry =>
+    field.aliases.some(alias => normalizeImportHeader(alias) === entry.header)
+  )
+
+  return normalizeImportCell(match?.value)
+}
+
+function parseImportStage(value: unknown) {
+  const stage = normalizeImportCell(value)
+  const normalizedStage = normalizeImportHeader(stage)
+  const matchedStage = CRM_STAGES.find(candidate => normalizeImportHeader(candidate) === normalizedStage)
+  return matchedStage ?? 'Novos'
+}
+
+function buildCrmImportRows(rawRows: Record<string, unknown>[]) {
+  const warnings: string[] = []
+  const skipped: number[] = []
+  const rows: CrmLeadImportInsert[] = []
+
+  rawRows.forEach((rawRow, index) => {
+    const rowNumber = index + 2
+    const name = getImportField(rawRow, 'name')
+
+    if (!name) {
+      skipped.push(rowNumber)
+      return
+    }
+
+    const stageValue = getImportField(rawRow, 'stage')
+    const stage = parseImportStage(stageValue)
+
+    if (stageValue && normalizeImportHeader(stage) !== normalizeImportHeader(stageValue)) {
+      warnings.push(`Linha ${rowNumber}: estágio inválido. Usei "Novos".`)
+    }
+
+    rows.push({
+      name,
+      company: getImportField(rawRow, 'company'),
+      email: getImportField(rawRow, 'email'),
+      phone: getImportField(rawRow, 'phone'),
+      source: getImportField(rawRow, 'source'),
+      stage,
+      attempt1: false,
+      attempt2: false,
+      attempt3: false,
+      has_team: null,
+      above_simples: null,
+      ads_budget: null,
+      qualified_flag: false,
+      meeting_done: false,
+      proposal_done: false,
+      contract_done: false,
+      is_closed: false,
+      notes: '',
+    })
+  })
+
+  if (skipped.length) {
+    warnings.push(`${skipped.length} linha(s) ignorada(s) por não terem name preenchido.`)
+  }
+
+  return { rows, warnings }
 }
 
 // Retorna o status visual do lead baseado nas qualificações e tentativas
@@ -369,11 +535,10 @@ function getNextAttempt(lead: CrmLead): 1 | 2 | 3 | null {
 
 const MODULES: Array<{
   name: AdminModule
-  icon: 'dispatches' | 'crm' | 'finance' | 'links' | 'boards' | 'clients'
+  icon: 'dispatches' | 'crm' | 'finance' | 'links' | 'boards'
 }> = [
   { name: 'Disparos', icon: 'dispatches' },
   { name: 'CRM', icon: 'crm' },
-  { name: 'Clientes', icon: 'clients' },
   { name: 'Links', icon: 'links' },
   { name: 'Quadros', icon: 'boards' },
   { name: 'Financeiro', icon: 'finance' },
@@ -381,16 +546,33 @@ const MODULES: Array<{
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
   Disparos: '/disparos',
+  Financeiro: '/financeiro',
   Links: '/links',
   Quadros: '/quadros',
 }
 
+function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
+
 const LINKS_TABLE_NAME = 'tracked_links'
 const LINK_CLICKS_TABLE_NAME = 'tracked_link_clicks'
+const FINANCE_RECORDS_TABLE = 'finance_records'
 const BOARD_NODE_TYPES = {
   boardNode: BoardCircleNode,
   sourceNode: BoardSourceNode,
   circleNode: BoardCircleNode,
+  noteNode: BoardNoteNode,
+}
+
+const BOARD_NOTE_DEFAULT_SIZE = {
+  width: 220,
+  height: 150,
+}
+
+const BOARD_DEFAULT_EDGE_OPTIONS = {
+  animated: true,
+  type: 'straight',
+  markerEnd: { type: MarkerType.ArrowClosed },
+  style: { stroke: '#ffffff', strokeWidth: 2 },
 }
 
 function getProfileInitials(name: string) {
@@ -485,7 +667,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
   const [checkingSession, setCheckingSession] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeModule, setActiveModule] = useState<AdminModule>(initialModule)
-  const [pendingClientFromCrm, setPendingClientFromCrm] = useState<{ name: string; company: string; email: string; phone: string; crmLeadId: string } | null>(null)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [profileName, setProfileName] = useState('Inácio')
@@ -817,9 +998,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
             >
               <span className="module-icon-wrap">
                 <ModuleIcon type={module.icon} />
-                {module.name === 'Clientes' && pendingClientFromCrm && (
-                  <span className="clients-pending-dot" aria-label="Conversão pendente" />
-                )}
               </span>
               {sidebarOpen && <span>{module.name}</span>}
             </button>
@@ -1022,24 +1200,19 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
       )}
 
       <section
-        className={activeModule === 'Disparos' || activeModule === 'CRM' || activeModule === 'Links' || activeModule === 'Quadros' || activeModule === 'Clientes' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
+        className={activeModule === 'Disparos' || activeModule === 'CRM' || activeModule === 'Financeiro' || activeModule === 'Links' || activeModule === 'Quadros' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
         aria-labelledby="active-module-title"
       >
         {activeModule === 'Disparos' ? (
           <DispatchesModule />
+        ) : activeModule === 'Financeiro' ? (
+          <FinanceiroModule />
         ) : activeModule === 'Links' ? (
           <LinksModule />
         ) : activeModule === 'CRM' ? (
-          <CrmModule
-            onLeadClosed={(lead) => setPendingClientFromCrm(lead)}
-          />
+          <CrmModule />
         ) : activeModule === 'Quadros' ? (
           <BoardsModule />
-        ) : activeModule === 'Clientes' ? (
-          <ClientsModule
-            pendingFromCrm={pendingClientFromCrm}
-            onPendingConsumed={() => setPendingClientFromCrm(null)}
-          />
         ) : (
           <div className="admin-module-empty">
             <h2 id="active-module-title">{activeModule}</h2>
@@ -1086,13 +1259,14 @@ function CrmNoteIcon() {
 }
 
 // ─── CRM Module ───────────────────────────────────────────────────────────────
-function CrmModule({ onLeadClosed }: { onLeadClosed?: (lead: { name: string; company: string; email: string; phone: string; crmLeadId: string }) => void }) {
+function CrmModule() {
   const [leads, setLeads] = useState<CrmLead[]>([])
   const [activities, setActivities] = useState<CrmActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(''  )
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [draggingLeadId, setDraggingLeadId] = useState<string | null>(null)
   const [resolutionModal, setResolutionModal] = useState<{ leadId: string } | null>(null)
 
@@ -1142,10 +1316,6 @@ function CrmModule({ onLeadClosed }: { onLeadClosed?: (lead: { name: string; com
     setResolutionModal(null)
     setLeads(cur => cur.map(l => l.id === leadId ? { ...l, stage: choice } : l))
     await supabase.from(CRM_LEADS_TABLE).update({ stage: choice, updated_at: new Date().toISOString() }).eq('id', leadId)
-    if (choice === 'Fechado' && onLeadClosed) {
-      const lead = leads.find(l => l.id === leadId)
-      if (lead) onLeadClosed({ name: lead.name, company: lead.company, email: lead.email, phone: lead.phone, crmLeadId: lead.id })
-    }
   }
 
   const handleLeadUpdate = async (leadId: string, updates: Partial<CrmLead>) => {
@@ -1189,6 +1359,21 @@ function CrmModule({ onLeadClosed }: { onLeadClosed?: (lead: { name: string; com
     setIsAddModalOpen(false)
   }
 
+  const handleImportLeads = async (rows: CrmLeadImportInsert[]) => {
+    const { data, error: importError } = await supabase
+      .from(CRM_LEADS_TABLE)
+      .insert(rows)
+      .select('*')
+
+    if (importError) {
+      throw new Error('Não consegui importar os leads no Supabase.')
+    }
+
+    const importedLeads = (data ?? []).map(row => mapCrmLead(row as CrmLeadRow))
+    setLeads(currentLeads => [...importedLeads, ...currentLeads])
+    return importedLeads.length
+  }
+
   return (
     <div className={`crm-module${selectedLead ? ' crm-module-panel-open' : ''}`}>
       <div className="crm-module-inner">
@@ -1198,6 +1383,15 @@ function CrmModule({ onLeadClosed }: { onLeadClosed?: (lead: { name: string; com
           </div>
           <div className="crm-header-right">
             {error && <span className="crm-global-error">{error}</span>}
+            <button
+              className="crm-add-btn crm-add-icon-btn"
+              onClick={() => setIsImportModalOpen(true)}
+              type="button"
+              aria-label="Importar leads por Excel"
+              title="Importar leads por Excel"
+            >
+              <ImportLeadsIcon />
+            </button>
             <button
               className="crm-add-btn crm-add-icon-btn"
               onClick={() => setIsAddModalOpen(true)}
@@ -1244,6 +1438,13 @@ function CrmModule({ onLeadClosed }: { onLeadClosed?: (lead: { name: string; com
 
       {isAddModalOpen && (
         <CrmAddLeadModal onClose={() => setIsAddModalOpen(false)} onAdd={handleAddLead} />
+      )}
+
+      {isImportModalOpen && (
+        <CrmImportLeadsModal
+          onClose={() => setIsImportModalOpen(false)}
+          onImport={handleImportLeads}
+        />
       )}
 
       {resolutionModal && (
@@ -1723,6 +1924,181 @@ function CrmAddLeadModal({ onClose, onAdd }: {
             <button type="submit" disabled={saving} className="crm-modal-submit">{saving ? 'Salvando...' : 'Adicionar lead'}</button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function CrmImportLeadsModal({ onClose, onImport }: {
+  onClose: () => void
+  onImport: (rows: CrmLeadImportInsert[]) => Promise<number>
+}) {
+  const [fileName, setFileName] = useState('')
+  const [preparedRows, setPreparedRows] = useState<CrmLeadImportInsert[]>([])
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [importing, setImporting] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx')
+    const header = CRM_IMPORT_COLUMNS.map(column => column.label)
+    const sampleRow = CRM_IMPORT_COLUMNS.map(column => CRM_IMPORT_SAMPLE[column.key] ?? '')
+    const worksheet = XLSX.utils.aoa_to_sheet([header, sampleRow])
+
+    worksheet['!cols'] = header.map(column => ({ wch: Math.max(16, column.length + 4) }))
+
+    const guideRows = [
+      ['Campo', 'Obrigatório', 'Como preencher'],
+      ['Nome *', 'Sim', 'Mesmo campo Nome do cadastro manual. Linhas sem nome são ignoradas.'],
+      ['Empresa', 'Não', 'Mesmo campo Empresa do cadastro manual.'],
+      ['E-mail', 'Não', 'Mesmo campo E-mail do cadastro manual.'],
+      ['WhatsApp / Telefone', 'Não', 'Mesmo campo WhatsApp / Telefone do cadastro manual.'],
+      ['Fonte', 'Não', 'Mesmo campo Fonte do cadastro manual: LinkedIn, indicação etc.'],
+      ['Estágio', 'Não', `Use: ${CRM_STAGES.join(', ')}. Se ficar vazio, entra como Novos.`],
+    ]
+    const guideWorksheet = XLSX.utils.aoa_to_sheet(guideRows)
+    guideWorksheet['!cols'] = [{ wch: 34 }, { wch: 14 }, { wch: 72 }]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads')
+    XLSX.utils.book_append_sheet(workbook, guideWorksheet, 'Como preencher')
+    XLSX.writeFile(workbook, 'modelo-importacao-crm.xlsx')
+  }
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setFileName(file.name)
+    setPreparedRows([])
+    setWarnings([])
+    setError('')
+    setSuccess('')
+
+    try {
+      const XLSX = await import('xlsx')
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+      const firstSheetName = workbook.SheetNames[0]
+      const worksheet = firstSheetName ? workbook.Sheets[firstSheetName] : null
+
+      if (!worksheet) {
+        setError('Não consegui encontrar uma aba válida nessa planilha.')
+        return
+      }
+
+      const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' })
+
+      if (!rawRows.length) {
+        setError('A planilha não tem leads para importar.')
+        return
+      }
+
+      const hasNameColumn = rawRows.some(row => getImportField(row, 'name') !== '')
+
+      if (!hasNameColumn) {
+        setError('A planilha precisa ter a coluna "Nome *" preenchida. Baixe o modelo para seguir os campos corretos.')
+        return
+      }
+
+      const result = buildCrmImportRows(rawRows)
+
+      if (!result.rows.length) {
+        setError('Nenhum lead válido encontrado. Preencha a coluna "name".')
+        setWarnings(result.warnings)
+        return
+      }
+
+      setPreparedRows(result.rows)
+      setWarnings(result.warnings)
+    } catch {
+      setError('Não consegui ler esse arquivo. Use o modelo .xlsx do CRM.')
+    }
+  }
+
+  const handleImport = async () => {
+    if (!preparedRows.length) {
+      setError('Escolha uma planilha válida antes de importar.')
+      return
+    }
+
+    setImporting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const count = await onImport(preparedRows)
+      setPreparedRows([])
+      setFileName('')
+      setSuccess(`${count} lead(s) importado(s) para o CRM.`)
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : 'Não consegui importar os leads.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal crm-import-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>Importar leads</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close"><CloseIcon /></button>
+        </div>
+
+        <div className="crm-modal-form crm-import-form">
+          <div className="crm-import-template">
+            <div>
+              <strong>Modelo da planilha</strong>
+              <span>Baixe o arquivo e mantenha os nomes das colunas para bater com a base do CRM.</span>
+            </div>
+            <button type="button" onClick={() => void handleDownloadTemplate()}>
+              <DownloadTemplateIcon /> Baixar modelo
+            </button>
+          </div>
+
+          <div className="crm-import-file">
+            <span className="crm-import-file-label">Planilha Excel</span>
+            <div className="crm-import-upload">
+              <button type="button" onClick={() => fileInputRef.current?.click()}>
+                Escolher arquivo
+              </button>
+              <span>{fileName || 'Nenhum arquivo escolhido'}</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={event => void handleFileChange(event)}
+              />
+            </div>
+          </div>
+
+          {fileName && (
+            <div className="crm-import-summary">
+              <span>Arquivo</span>
+              <strong>{fileName}</strong>
+              <p>{preparedRows.length} lead(s) pronto(s) para importar.</p>
+            </div>
+          )}
+
+          {warnings.length > 0 && (
+            <div className="crm-import-warnings">
+              {warnings.slice(0, 4).map(warning => <span key={warning}>{warning}</span>)}
+              {warnings.length > 4 && <span>+ {warnings.length - 4} aviso(s)</span>}
+            </div>
+          )}
+
+          {error && <p className="crm-modal-error">{error}</p>}
+          {success && <p className="admin-profile-message">{success}</p>}
+        </div>
+
+        <div className="crm-modal-footer">
+          <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+          <button type="button" disabled={importing || preparedRows.length === 0} onClick={() => void handleImport()} className="crm-modal-submit">
+            {importing ? 'Importando...' : 'Importar leads'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -3105,6 +3481,489 @@ function DispatchCreateModal({
   )
 }
 
+const FINANCE_TABS: FinanceTab[] = ['Visão geral', 'Entradas', 'Saídas', 'Relatórios']
+const FINANCE_STATUSES: FinanceStatus[] = ['Pendente', 'Parcial', 'Pago', 'Cancelado']
+const FINANCE_TYPES: FinanceRecordType[] = ['Fixa', 'Variável', 'Rendimento', 'Dívida']
+
+function formatFinanceCurrency(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
+function formatFinanceDate(value: string) {
+  if (!value) return '-'
+  const [year, month, day] = value.split('-')
+  return year && month && day ? `${day}/${month}/${year}` : value
+}
+
+function getFinanceStatusTone(status: FinanceStatus) {
+  if (status === 'Pago') return 'paid'
+  if (status === 'Parcial') return 'partial'
+  if (status === 'Cancelado') return 'cancelled'
+  return 'pending'
+}
+
+function mapFinanceRecord(row: FinanceRecordRow): FinanceRecord {
+  const kind = row.kind === 'saida' ? 'saida' : 'entrada'
+  const status = FINANCE_STATUSES.includes(row.status as FinanceStatus) ? row.status as FinanceStatus : 'Pendente'
+  const type = FINANCE_TYPES.includes(row.type as FinanceRecordType) ? row.type as FinanceRecordType : 'Fixa'
+
+  return {
+    id: row.id,
+    kind,
+    name: row.name ?? '',
+    category: row.category ?? '',
+    account: row.account ?? 'Principal',
+    value: Number(row.value ?? 0),
+    date: row.record_date ?? '',
+    status,
+    type,
+    note: row.note ?? '',
+  }
+}
+
+function FinanceiroModule() {
+  const [activeTab, setActiveTab] = useState<FinanceTab>('Visão geral')
+  const [records, setRecords] = useState<FinanceRecord[]>([])
+  const [createKind, setCreateKind] = useState<FinanceKind | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [financeError, setFinanceError] = useState('')
+
+  const loadFinanceRecords = async () => {
+    setLoading(true)
+    setFinanceError('')
+
+    const { data, error } = await supabase
+      .from(FINANCE_RECORDS_TABLE)
+      .select('id, kind, name, category, account, value, record_date, status, type, note')
+      .order('record_date', { ascending: false })
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setRecords([])
+      setFinanceError('Não consegui carregar o financeiro. Execute o SQL de criação da tabela.')
+      setLoading(false)
+      return
+    }
+
+    setRecords((data ?? []).map(row => mapFinanceRecord(row as FinanceRecordRow)))
+    setLoading(false)
+  }
+
+  useEffect(() => { void loadFinanceRecords() }, [])
+
+  const entries = records.filter(record => record.kind === 'entrada')
+  const expenses = records.filter(record => record.kind === 'saida')
+  const totalEntries = entries.filter(record => record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
+  const totalExpenses = expenses.filter(record => record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
+  const pendingEntries = entries.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
+  const pendingExpenses = expenses.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
+  const balance = totalEntries - totalExpenses
+  const sortedRecords = [...records].sort((a, b) => a.date.localeCompare(b.date))
+  const nextEntries = sortedRecords.filter(record => record.kind === 'entrada' && record.status !== 'Pago' && record.status !== 'Cancelado').slice(0, 4)
+  const nextExpenses = sortedRecords.filter(record => record.kind === 'saida' && record.status !== 'Pago' && record.status !== 'Cancelado').slice(0, 4)
+
+  const handleCreateRecord = async (record: Omit<FinanceRecord, 'id'>) => {
+    setFinanceError('')
+
+    const { data, error } = await supabase
+      .from(FINANCE_RECORDS_TABLE)
+      .insert({
+        kind: record.kind,
+        name: record.name,
+        category: record.category,
+        account: record.account,
+        value: record.value,
+        record_date: record.date,
+        status: record.status,
+        type: record.type,
+        note: record.note ?? '',
+      })
+      .select('id, kind, name, category, account, value, record_date, status, type, note')
+      .single()
+
+    if (error || !data) {
+      setFinanceError('Não consegui salvar esse lançamento no Supabase.')
+      throw new Error('Não consegui salvar esse lançamento no Supabase.')
+    }
+
+    setRecords(current => [mapFinanceRecord(data as FinanceRecordRow), ...current])
+    setCreateKind(null)
+  }
+
+  const handleStatusChange = async (recordId: string, status: FinanceStatus) => {
+    const previousRecords = records
+    setRecords(current => current.map(record => record.id === recordId ? { ...record, status } : record))
+
+    const { error } = await supabase
+      .from(FINANCE_RECORDS_TABLE)
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', recordId)
+
+    if (error) {
+      setRecords(previousRecords)
+      setFinanceError('Não consegui atualizar o status no Supabase.')
+    }
+  }
+
+  const handleDeleteRecord = async (recordId: string) => {
+    const previousRecords = records
+    setRecords(current => current.filter(record => record.id !== recordId))
+
+    const { error } = await supabase
+      .from(FINANCE_RECORDS_TABLE)
+      .delete()
+      .eq('id', recordId)
+
+    if (error) {
+      setRecords(previousRecords)
+      setFinanceError('Não consegui excluir esse lançamento no Supabase.')
+    }
+  }
+
+  return (
+    <div className="finance-module">
+      <header className="finance-module-header">
+        <div>
+          <h2 id="active-module-title">Financeiro</h2>
+        </div>
+        <div className="finance-header-actions">
+          {financeError && <span className="crm-global-error">{financeError}</span>}
+          <button
+            className="crm-add-btn crm-add-icon-btn"
+            onClick={() => setCreateKind(activeTab === 'Saídas' ? 'saida' : 'entrada')}
+            type="button"
+            aria-label={activeTab === 'Saídas' ? 'Nova saída' : 'Nova entrada'}
+            title={activeTab === 'Saídas' ? 'Nova saída' : 'Nova entrada'}
+          >
+            <FinancePlusIcon />
+          </button>
+        </div>
+      </header>
+
+      <nav className="finance-tabs" aria-label="Navegação do financeiro">
+        {FINANCE_TABS.map(tab => (
+          <button
+            key={tab}
+            className={activeTab === tab ? 'finance-tab active' : 'finance-tab'}
+            onClick={() => setActiveTab(tab)}
+            type="button"
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      {loading ? (
+        <div className="crm-loading">Carregando financeiro...</div>
+      ) : activeTab === 'Visão geral' ? (
+        <div className="finance-overview">
+          <section className="finance-summary-grid">
+            <FinanceSummaryCard label="Entradas" value={formatFinanceCurrency(totalEntries)} helper={`${formatFinanceCurrency(pendingEntries)} a receber`} />
+            <FinanceSummaryCard label="Saídas" value={formatFinanceCurrency(totalExpenses)} helper={`${formatFinanceCurrency(pendingExpenses)} a pagar`} />
+            <FinanceSummaryCard label="Balanço" value={formatFinanceCurrency(balance)} helper="Resultado previsto do período" tone={balance >= 0 ? 'positive' : 'negative'} />
+          </section>
+
+          <section className="finance-daily-grid">
+            <FinanceMiniList title="Próximas entradas" items={nextEntries} empty="Nenhuma entrada pendente." />
+            <FinanceMiniList title="Próximas saídas" items={nextExpenses} empty="Nenhuma saída pendente." />
+          </section>
+        </div>
+      ) : activeTab === 'Entradas' ? (
+        <FinanceRecordsTable kind="entrada" records={entries} onCreate={() => setCreateKind('entrada')} onDelete={handleDeleteRecord} onStatusChange={handleStatusChange} />
+      ) : activeTab === 'Saídas' ? (
+        <FinanceRecordsTable kind="saida" records={expenses} onCreate={() => setCreateKind('saida')} onDelete={handleDeleteRecord} onStatusChange={handleStatusChange} />
+      ) : (
+        <FinanceReports records={records} />
+      )}
+
+      {createKind && (
+        <FinanceCreateModal kind={createKind} onClose={() => setCreateKind(null)} onCreate={handleCreateRecord} />
+      )}
+    </div>
+  )
+}
+
+function FinanceSummaryCard({ label, value, helper, tone = 'neutral' }: { label: string; value: string; helper: string; tone?: 'neutral' | 'positive' | 'negative' }) {
+  return (
+    <article className={`finance-summary-card finance-summary-card--${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{helper}</p>
+    </article>
+  )
+}
+
+function FinanceMiniList({ title, items, empty }: { title: string; items: FinanceRecord[]; empty: string }) {
+  return (
+    <article className="finance-list-card">
+      <header>
+        <h3>{title}</h3>
+      </header>
+      {items.length > 0 ? (
+        <div className="finance-mini-list">
+          {items.map(item => (
+            <div className="finance-mini-row" key={item.id}>
+              <div>
+                <strong>{item.name}</strong>
+                <span>{item.category} · {formatFinanceDate(item.date)}</span>
+              </div>
+              <b>{formatFinanceCurrency(item.value)}</b>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="finance-empty-text">{empty}</p>
+      )}
+    </article>
+  )
+}
+
+function FinanceRecordsTable({
+  kind,
+  records,
+  onCreate,
+  onDelete,
+  onStatusChange,
+}: {
+  kind: FinanceKind
+  records: FinanceRecord[]
+  onCreate: () => void
+  onDelete: (id: string) => void
+  onStatusChange: (id: string, status: FinanceStatus) => void
+}) {
+  return (
+    <section className="finance-sheet" aria-label={kind === 'entrada' ? 'Entradas' : 'Saídas'}>
+      <div className="finance-sheet-top">
+        <h3>{kind === 'entrada' ? 'Entradas' : 'Saídas'}</h3>
+        <button className="crm-add-btn crm-add-icon-btn" onClick={onCreate} type="button" aria-label={kind === 'entrada' ? 'Nova entrada' : 'Nova saída'} title={kind === 'entrada' ? 'Nova entrada' : 'Nova saída'}>
+          <FinancePlusIcon />
+        </button>
+      </div>
+
+      <div className="finance-sheet-header">
+        <span>Nome</span>
+        <span>Data</span>
+        <span>Categoria</span>
+        <span>Valor</span>
+        <span>Status</span>
+        <span />
+      </div>
+
+      {records.length > 0 ? (
+        <div className="finance-sheet-body">
+          {records.map(record => (
+            <div className="finance-sheet-row" key={record.id}>
+              <strong>{record.name}</strong>
+              <span>{formatFinanceDate(record.date)}</span>
+              <span>{record.category}</span>
+              <span>{formatFinanceCurrency(record.value)}</span>
+              <select
+                className={`finance-status-select finance-status-select--${getFinanceStatusTone(record.status)}`}
+                value={record.status}
+                onChange={event => onStatusChange(record.id, event.target.value as FinanceStatus)}
+                aria-label={`Status de ${record.name}`}
+              >
+                <option value="Pendente">Pendente</option>
+                <option value="Parcial">Parcial</option>
+                <option value="Pago">Pago</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+              <div className="finance-row-actions">
+                <button onClick={() => onDelete(record.id)} type="button" aria-label={`Excluir ${record.name}`} title="Excluir">
+                  <TrashIcon />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="finance-sheet-empty">Nenhum lançamento criado ainda.</div>
+      )}
+    </section>
+  )
+}
+
+function FinanceReports({ records }: { records: FinanceRecord[] }) {
+  const totalEntries = records.filter(record => record.kind === 'entrada' && record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
+  const totalExpenses = records.filter(record => record.kind === 'saida' && record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
+  const balance = totalEntries - totalExpenses
+  const totalPending = records.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
+  const categoryKeys = Array.from(new Set(records.map(record => `${record.kind}:${record.category}`)))
+
+  return (
+    <div className="finance-reports">
+      <section className="finance-summary-grid">
+        <FinanceSummaryCard label="Entradas" value={formatFinanceCurrency(totalEntries)} helper="Total consolidado" />
+        <FinanceSummaryCard label="Saídas" value={formatFinanceCurrency(totalExpenses)} helper="Total consolidado" />
+        <FinanceSummaryCard label="Saldo" value={formatFinanceCurrency(balance)} helper={`${formatFinanceCurrency(totalPending)} pendente`} tone={balance >= 0 ? 'positive' : 'negative'} />
+      </section>
+
+      <section className="finance-sheet">
+        <div className="finance-sheet-top">
+          <h3>Resumo por categoria</h3>
+        </div>
+        <div className="finance-sheet-header finance-sheet-header--report">
+          <span>Categoria</span>
+          <span>Tipo</span>
+          <span>Total</span>
+        </div>
+        <div className="finance-sheet-body">
+          {categoryKeys.map(key => {
+            const [kind, category] = key.split(':') as [FinanceKind, string]
+            const total = records
+              .filter(record => record.kind === kind && record.category === category && record.status !== 'Cancelado')
+              .reduce((sum, record) => sum + record.value, 0)
+
+            return (
+              <div className="finance-sheet-row finance-sheet-row--report" key={key}>
+                <strong>{category}</strong>
+                <span>{kind === 'entrada' ? 'Entrada' : 'Saída'}</span>
+                <span>{formatFinanceCurrency(total)}</span>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function FinanceCreateModal({
+  kind,
+  onClose,
+  onCreate,
+}: {
+  kind: FinanceKind
+  onClose: () => void
+  onCreate: (record: Omit<FinanceRecord, 'id'>) => Promise<void>
+}) {
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
+  const [account, setAccount] = useState('Principal')
+  const [value, setValue] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [status, setStatus] = useState<FinanceStatus>('Pendente')
+  const [type, setType] = useState<FinanceRecordType>(kind === 'entrada' ? 'Fixa' : 'Variável')
+  const [note, setNote] = useState('')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const parsedValue = Number(value)
+
+    if (!name.trim() || !category.trim() || !date || !Number.isFinite(parsedValue) || parsedValue <= 0) {
+      setError('Preencha nome, categoria, data e valor para salvar.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await onCreate({
+        kind,
+        name: name.trim(),
+        category: category.trim(),
+        account: account.trim() || 'Principal',
+        value: parsedValue,
+        date,
+        status,
+        type,
+        note: note.trim(),
+      })
+    } catch {
+      setError('Não consegui salvar esse lançamento agora.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal finance-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>{kind === 'entrada' ? 'Nova entrada' : 'Nova saída'}</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <form className="crm-modal-form" onSubmit={handleSubmit}>
+          <label>
+            Nome
+            <input value={name} onChange={event => setName(event.target.value)} placeholder={kind === 'entrada' ? 'Mensalidade cliente' : 'Ferramenta ou despesa'} autoFocus />
+          </label>
+
+          <div className="crm-modal-row">
+            <label>
+              Categoria
+              <input value={category} onChange={event => setCategory(event.target.value)} placeholder={kind === 'entrada' ? 'Contrato' : 'Software'} />
+            </label>
+            <label>
+              Conta
+              <input value={account} onChange={event => setAccount(event.target.value)} placeholder="Principal" />
+            </label>
+          </div>
+
+          <div className="crm-modal-row">
+            <label>
+              Valor
+              <input type="number" min="0" step="0.01" value={value} onChange={event => setValue(event.target.value)} placeholder="0,00" />
+            </label>
+            <label>
+              Data
+              <input type="date" value={date} onChange={event => setDate(event.target.value)} />
+            </label>
+          </div>
+
+          <div className="crm-modal-row">
+            <label>
+              Tipo
+              <select value={type} onChange={event => setType(event.target.value as FinanceRecordType)}>
+                {kind === 'entrada' ? (
+                  <>
+                    <option value="Fixa">Fixa</option>
+                    <option value="Variável">Variável</option>
+                    <option value="Rendimento">Rendimento</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Fixa">Fixa</option>
+                    <option value="Variável">Variável</option>
+                    <option value="Dívida">Dívida</option>
+                  </>
+                )}
+              </select>
+            </label>
+            <label>
+              Status
+              <select value={status} onChange={event => setStatus(event.target.value as FinanceStatus)}>
+                <option value="Pendente">Pendente</option>
+                <option value="Parcial">Parcial</option>
+                <option value="Pago">Pago</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Observação
+            <textarea value={note} onChange={event => setNote(event.target.value)} placeholder="Detalhes internos..." rows={3} />
+          </label>
+
+          {error && <p className="crm-modal-error">{error}</p>}
+
+          <div className="crm-modal-footer">
+            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+            <button type="submit" disabled={saving} className="crm-modal-submit">
+              {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function LinksModule() {
   const [links, setLinks] = useState<TrackedLink[]>([])
   const [title, setTitle] = useState('')
@@ -3716,6 +4575,9 @@ function CanvasWithContextMenu({
   onNodeDragStop,
   onNodeDuplicate,
   onNodeUpdate,
+  onAlignNodes,
+  onGroupNodes,
+  onUngroupNodes,
   onNodesChange,
   onNodesDelete,
   onPaneClick,
@@ -3728,7 +4590,7 @@ function CanvasWithContextMenu({
   nodes: Node<BoardNodeData>[]
   selectedEdge: Edge | null
   selectedNode: Node<BoardNodeData> | null
-  onAddNode: (kind: BoardNodeKind, position: { x: number; y: number }) => void
+  onAddNode: (kind: BoardNodeKind, position: { x: number; y: number }, logoUrl?: string) => void
   onConnect: (connection: Connection) => void
   onReconnect: (oldEdge: Edge, newConnection: Connection) => void
   onContextMenuClose: () => void
@@ -3742,6 +4604,9 @@ function CanvasWithContextMenu({
   onNodeDragStop: (event: React.MouseEvent, node: Node<BoardNodeData>) => void
   onNodeDuplicate: (id: string) => void
   onNodeUpdate: (node: Node<BoardNodeData>) => void
+  onAlignNodes: (updates: { id: string; position: { x: number; y: number } }[]) => void
+  onGroupNodes: (ids: string[]) => void
+  onUngroupNodes: (ids: string[]) => void
   onNodesChange: (changes: NodeChange<Node<BoardNodeData>>[]) => void
   onNodesDelete: (deleted: Node<BoardNodeData>[]) => void
   onPaneClick: () => void
@@ -3750,6 +4615,8 @@ function CanvasWithContextMenu({
 }) {
   const { screenToFlowPosition } = useReactFlow()
   const [tool, setTool] = useState<'select' | 'hand'>('select')
+  const reactFlowNodeTypes = useMemo(() => BOARD_NODE_TYPES, [])
+  const reactFlowDefaultEdgeOptions = useMemo(() => BOARD_DEFAULT_EDGE_OPTIONS, [])
 
   /* ⌘ (Mac) → toggle entre select e hand */
   useEffect(() => {
@@ -3768,12 +4635,137 @@ function CanvasWithContextMenu({
     onContextMenuOpen({ screenX: event.clientX, screenY: event.clientY, flowX: flowPos.x, flowY: flowPos.y })
   }
 
+  const [pendingCustom, setPendingCustom] = useState<{ x: number; y: number } | null>(null)
+
   const handleMenuSelect = (kind: BoardNodeKind) => {
     if (!contextMenu) return
     const isSource = SOURCE_KINDS.has(kind)
     const offset = isSource ? 30 : 28
-    onAddNode(kind, { x: contextMenu.flowX - offset, y: contextMenu.flowY - offset })
+    const pos = { x: contextMenu.flowX - offset, y: contextMenu.flowY - offset }
+
+    if (kind === 'Custom') {
+      // Intercepta: abre modal de URL antes de criar o node
+      setPendingCustom(pos)
+      onContextMenuClose()
+      return
+    }
+
+    onAddNode(kind, pos)
     onContextMenuClose()
+  }
+
+  const handleCustomConfirm = (logoUrl: string) => {
+    if (!pendingCustom) return
+    onAddNode('Custom', pendingCustom, logoUrl)
+    setPendingCustom(null)
+  }
+
+  // ── Alignment helpers ───────────────────────────────────
+  // Alinhamento usa como referência o CENTRO VISUAL do ícone (parte de 60x60
+  // no topo do nó, sempre centralizada horizontalmente no bbox). Isso evita
+  // que rótulos/observações de comprimentos diferentes desalinhem visualmente.
+  const ICON_SIZE = 60
+  const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes])
+
+  const iconAnchor = (n: Node<BoardNodeData>) => {
+    const bboxW = n.measured?.width ?? n.width ?? ICON_SIZE
+    // Centro horizontal do ícone = centro horizontal do bbox (ícone é centralizado)
+    const cx = n.position.x + bboxW / 2
+    // Centro vertical do ícone = topo do bbox + metade do ícone (ícone fica no topo)
+    const cy = n.position.y + ICON_SIZE / 2
+    return { id: n.id, x: n.position.x, y: n.position.y, bboxW, cx, cy }
+  }
+
+  // Dado um novo centro de ícone, recalcula a position (canto superior esquerdo do bbox)
+  const posFromAnchor = (a: { bboxW: number; x: number; y: number }, newCx?: number, newCy?: number) => ({
+    x: newCx !== undefined ? newCx - a.bboxW / 2 : a.x,
+    y: newCy !== undefined ? newCy - ICON_SIZE / 2 : a.y,
+  })
+  void posFromAnchor // mantido caso de uso futuro
+
+  const clusterCount = useMemo(() => {
+    const keys = new Set<string>()
+    selectedNodes.forEach(n => keys.add(n.data.groupId ?? `__solo_${n.id}`))
+    return keys.size
+  }, [selectedNodes])
+
+  const applyAlign = (kind: 'left' | 'centerH' | 'right' | 'top' | 'centerV' | 'bottom' | 'distH' | 'distV') => {
+    if (selectedNodes.length < 2) return
+
+    // Agrupa nós selecionados em clusters: nós com mesmo groupId formam 1 cluster;
+    // nós sem groupId ficam cada um em seu próprio cluster. Alinhamento opera sobre clusters.
+    const clusterMap = new Map<string, Node<BoardNodeData>[]>()
+    selectedNodes.forEach(n => {
+      const key = n.data.groupId ?? `__solo_${n.id}`
+      const arr = clusterMap.get(key) ?? []
+      arr.push(n)
+      clusterMap.set(key, arr)
+    })
+
+    // Computa caixa-âncora de cada cluster (envolve os ícones de todos os membros)
+    type Cluster = {
+      key: string
+      members: Node<BoardNodeData>[]
+      left: number; right: number; top: number; bottom: number
+      cx: number; cy: number
+    }
+    const clusters: Cluster[] = Array.from(clusterMap.entries()).map(([key, members]) => {
+      const anchors = members.map(iconAnchor)
+      const left = Math.min(...anchors.map(a => a.cx - ICON_SIZE / 2))
+      const right = Math.max(...anchors.map(a => a.cx + ICON_SIZE / 2))
+      const top = Math.min(...anchors.map(a => a.cy - ICON_SIZE / 2))
+      const bottom = Math.max(...anchors.map(a => a.cy + ICON_SIZE / 2))
+      return {
+        key, members,
+        left, right, top, bottom,
+        cx: (left + right) / 2,
+        cy: (top + bottom) / 2,
+      }
+    })
+
+    if (clusters.length < 2) return
+    if ((kind === 'distH' || kind === 'distV') && clusters.length < 3) return
+
+    // Para cada cluster, calcula (deltaX, deltaY) e aplica a todos os membros mantendo o offset relativo
+    const applyClusterDelta = (results: { c: Cluster; dx: number; dy: number }[]) => {
+      const updates: { id: string; position: { x: number; y: number } }[] = []
+      results.forEach(({ c, dx, dy }) => {
+        c.members.forEach(m => {
+          updates.push({ id: m.id, position: { x: m.position.x + dx, y: m.position.y + dy } })
+        })
+      })
+      onAlignNodes(updates)
+    }
+
+    if (kind === 'left') {
+      const target = Math.min(...clusters.map(c => c.left))
+      applyClusterDelta(clusters.map(c => ({ c, dx: target - c.left, dy: 0 })))
+    } else if (kind === 'right') {
+      const target = Math.max(...clusters.map(c => c.right))
+      applyClusterDelta(clusters.map(c => ({ c, dx: target - c.right, dy: 0 })))
+    } else if (kind === 'centerH') {
+      const avgCx = clusters.reduce((s, c) => s + c.cx, 0) / clusters.length
+      applyClusterDelta(clusters.map(c => ({ c, dx: avgCx - c.cx, dy: 0 })))
+    } else if (kind === 'top') {
+      const target = Math.min(...clusters.map(c => c.top))
+      applyClusterDelta(clusters.map(c => ({ c, dx: 0, dy: target - c.top })))
+    } else if (kind === 'bottom') {
+      const target = Math.max(...clusters.map(c => c.bottom))
+      applyClusterDelta(clusters.map(c => ({ c, dx: 0, dy: target - c.bottom })))
+    } else if (kind === 'centerV') {
+      const avgCy = clusters.reduce((s, c) => s + c.cy, 0) / clusters.length
+      applyClusterDelta(clusters.map(c => ({ c, dx: 0, dy: avgCy - c.cy })))
+    } else if (kind === 'distH') {
+      const sorted = [...clusters].sort((a, b) => a.cx - b.cx)
+      const first = sorted[0], last = sorted[sorted.length - 1]
+      const step = (last.cx - first.cx) / (sorted.length - 1)
+      applyClusterDelta(sorted.map((c, idx) => ({ c, dx: (first.cx + step * idx) - c.cx, dy: 0 })))
+    } else if (kind === 'distV') {
+      const sorted = [...clusters].sort((a, b) => a.cy - b.cy)
+      const first = sorted[0], last = sorted[sorted.length - 1]
+      const step = (last.cy - first.cy) / (sorted.length - 1)
+      applyClusterDelta(sorted.map((c, idx) => ({ c, dx: 0, dy: (first.cy + step * idx) - c.cy })))
+    }
   }
 
   return (
@@ -3781,13 +4773,13 @@ function CanvasWithContextMenu({
       <ReactFlow
         colorMode="dark"
         connectionMode={ConnectionMode.Loose}
-        defaultEdgeOptions={{ animated: true, type: 'straight', markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: '#ffffff', strokeWidth: 2 } }}
+        defaultEdgeOptions={reactFlowDefaultEdgeOptions}
         deleteKeyCode={['Delete', 'Backspace']}
         snapToGrid
         snapGrid={[20, 20]}
         edges={edges}
         fitView
-        nodeTypes={BOARD_NODE_TYPES}
+        nodeTypes={reactFlowNodeTypes}
         nodes={nodes}
         onConnect={onConnect}
         onReconnect={onReconnect}
@@ -3823,6 +4815,31 @@ function CanvasWithContextMenu({
             </button>
           </div>
         </Panel>
+        {selectedNodes.length >= 2 && (
+          <Panel position="top-center">
+            <div className="board-align-bar" role="toolbar" aria-label="Alinhamento">
+              <span className="board-align-count">{selectedNodes.length} selecionados</span>
+              <div className="board-align-group">
+                <button type="button" className="board-align-btn" title="Alinhar à esquerda" onClick={() => applyAlign('left')}><AlignLeftIcon /></button>
+                <button type="button" className="board-align-btn" title="Centralizar horizontal" onClick={() => applyAlign('centerH')}><AlignCenterHIcon /></button>
+                <button type="button" className="board-align-btn" title="Alinhar à direita" onClick={() => applyAlign('right')}><AlignRightIcon /></button>
+              </div>
+              <div className="board-align-group">
+                <button type="button" className="board-align-btn" title="Alinhar ao topo" onClick={() => applyAlign('top')}><AlignTopIcon /></button>
+                <button type="button" className="board-align-btn" title="Centralizar vertical" onClick={() => applyAlign('centerV')}><AlignCenterVIcon /></button>
+                <button type="button" className="board-align-btn" title="Alinhar abaixo" onClick={() => applyAlign('bottom')}><AlignBottomIcon /></button>
+              </div>
+              <div className="board-align-group">
+                <button type="button" className="board-align-btn" title="Distribuir horizontal (3+)" onClick={() => applyAlign('distH')} disabled={clusterCount < 3}><DistributeHIcon /></button>
+                <button type="button" className="board-align-btn" title="Distribuir vertical (3+)" onClick={() => applyAlign('distV')} disabled={clusterCount < 3}><DistributeVIcon /></button>
+              </div>
+              <div className="board-align-group">
+                <button type="button" className="board-align-btn" title="Agrupar" onClick={() => onGroupNodes(selectedNodes.map(n => n.id))}><GroupIcon /></button>
+                <button type="button" className="board-align-btn" title="Desagrupar" onClick={() => onUngroupNodes(selectedNodes.map(n => n.id))} disabled={!selectedNodes.some(n => n.data.groupId)}><UngroupIcon /></button>
+              </div>
+            </div>
+          </Panel>
+        )}
         {selectedNode && (
           <Panel position="top-right">
             <NodeEditPanel
@@ -3855,6 +4872,115 @@ function CanvasWithContextMenu({
           onSelect={handleMenuSelect}
         />
       )}
+      {pendingCustom && (
+        <BoardCustomLogoModal
+          onClose={() => setPendingCustom(null)}
+          onConfirm={handleCustomConfirm}
+        />
+      )}
+    </div>
+  )
+}
+
+function BoardCustomLogoModal({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void
+  onConfirm: (url: string) => void
+}) {
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+  const [previewError, setPreviewError] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const isValidUrl = (s: string) => {
+    try {
+      const u = new URL(s)
+      return u.protocol === 'http:' || u.protocol === 'https:'
+    } catch { return false }
+  }
+
+  const handleSubmit = () => {
+    const trimmed = url.trim()
+    if (!trimmed) { setError('Cole o link da imagem.'); return }
+    if (!isValidUrl(trimmed)) { setError('URL inválida (precisa começar com https://).'); return }
+    onConfirm(trimmed)
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div
+        className="crm-modal board-custom-logo-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-labelledby="custom-logo-title"
+      >
+        <div className="crm-modal-header">
+          <h3 id="custom-logo-title">Logo personalizado</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div className="board-custom-logo-body">
+          <div className="extras-field">
+            <label>URL da imagem</label>
+            <input
+              autoFocus
+              type="url"
+              placeholder="https://exemplo.com/logo.png"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setError(''); setPreviewError(false) }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleSubmit()
+                }
+              }}
+            />
+          </div>
+
+          {url && isValidUrl(url) && !previewError && (
+            <div className="board-custom-logo-preview">
+              <span className="board-custom-logo-preview-label">Prévia</span>
+              <div className="board-custom-logo-preview-circle">
+                <img
+                  src={url}
+                  alt=""
+                  onError={() => setPreviewError(true)}
+                />
+              </div>
+            </div>
+          )}
+
+          {previewError && (
+            <p className="board-custom-logo-error">
+              Não consegui carregar a imagem desse link. Verifique se a URL é direta pra uma imagem (.png, .jpg, .svg) e se o site permite hot-linking.
+            </p>
+          )}
+
+          {error && <p className="board-custom-logo-error">{error}</p>}
+
+          <p className="board-custom-logo-hint">
+            Cole a URL direta de uma imagem. Funciona melhor com PNG/SVG transparentes em quadrado.
+          </p>
+        </div>
+
+        <div className="crm-modal-footer">
+          <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+          <button type="button" onClick={handleSubmit} className="crm-modal-submit" disabled={!url.trim() || previewError}>
+            Adicionar
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -3976,6 +5102,13 @@ function BoardEditor({
   const headerRenameCancelledRef = useRef(false)
   const historyRef = useRef<Array<{ nodes: Node<BoardNodeData>[]; edges: Edge[] }>>([])
   const historyIndexRef = useRef(0)
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false })
+  const syncHistoryState = () => {
+    setHistoryState({
+      canUndo: historyIndexRef.current > 0,
+      canRedo: historyIndexRef.current < historyRef.current.length - 1,
+    })
+  }
   const nodesRef = useRef(nodes)
   const edgesRef = useRef(edges)
   const selectedNodeIdRef = useRef(selectedNodeId)
@@ -3987,20 +5120,44 @@ function BoardEditor({
   const selectedEdge = edges.find(e => e.id === selectedEdgeId) ?? null
 
   useEffect(() => {
-    setNodes(board.nodes)
+    const normalizedNodes = normalizeBoardNodes(board.nodes)
+    setNodes(normalizedNodes)
     setEdges(board.edges)
     setSelectedNodeId(null)
     setSelectedEdgeId(null)
     setIsDirty(false)
-    historyRef.current = [{ nodes: board.nodes, edges: board.edges }]
+    historyRef.current = [{ nodes: normalizedNodes, edges: board.edges }]
     historyIndexRef.current = 0
+    syncHistoryState()
   }, [board.id, setEdges, setNodes])
 
+  const HISTORY_LIMIT = 21 // até 10 desfazer + estado atual + 10 refazer (pré-push)
   const pushHistory = (newNodes: Node<BoardNodeData>[], newEdges: Edge[]) => {
     historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
     historyRef.current.push({ nodes: newNodes, edges: newEdges })
-    if (historyRef.current.length > 30) historyRef.current.shift()
+    while (historyRef.current.length > HISTORY_LIMIT) historyRef.current.shift()
     historyIndexRef.current = historyRef.current.length - 1
+    syncHistoryState()
+  }
+
+  const handleUndo = () => {
+    if (historyIndexRef.current <= 0) return
+    historyIndexRef.current -= 1
+    const snap = historyRef.current[historyIndexRef.current]
+    setNodes(snap.nodes)
+    setEdges(snap.edges)
+    setIsDirty(historyIndexRef.current > 0)
+    syncHistoryState()
+  }
+
+  const handleRedo = () => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return
+    historyIndexRef.current += 1
+    const snap = historyRef.current[historyIndexRef.current]
+    setNodes(snap.nodes)
+    setEdges(snap.edges)
+    setIsDirty(true)
+    syncHistoryState()
   }
 
   useEffect(() => {
@@ -4011,22 +5168,10 @@ function BoardEditor({
 
       if (event.key === 'z' && !event.shiftKey) {
         event.preventDefault()
-        if (historyIndexRef.current > 0) {
-          historyIndexRef.current -= 1
-          const snap = historyRef.current[historyIndexRef.current]
-          setNodes(snap.nodes)
-          setEdges(snap.edges)
-          setIsDirty(historyIndexRef.current > 0)
-        }
+        handleUndo()
       } else if ((event.key === 'z' && event.shiftKey) || event.key === 'y') {
         event.preventDefault()
-        if (historyIndexRef.current < historyRef.current.length - 1) {
-          historyIndexRef.current += 1
-          const snap = historyRef.current[historyIndexRef.current]
-          setNodes(snap.nodes)
-          setEdges(snap.edges)
-          setIsDirty(true)
-        }
+        handleRedo()
       } else if (event.key === 'd') {
         event.preventDefault()
         const id = selectedNodeIdRef.current
@@ -4052,6 +5197,9 @@ function BoardEditor({
 
   const handleNodesChange = (changes: NodeChange<Node<BoardNodeData>>[]) => {
     onNodesChange(changes)
+    if (changes.some(c => c.type === 'dimensions')) {
+      setIsDirty(true)
+    }
     const removes = changes.filter(c => c.type === 'remove') as Array<{ type: 'remove'; id: string }>
     if (removes.length > 0) {
       const removedIds = new Set(removes.map(c => c.id))
@@ -4137,8 +5285,9 @@ function BoardEditor({
     setIsDirty(true)
   }
 
-  const handleAddNode = (kind: BoardNodeKind, position?: { x: number; y: number }) => {
+  const handleAddNode = (kind: BoardNodeKind, position?: { x: number; y: number }, logoUrl?: string) => {
     const totalNodes = nodes.length + 1
+    const isCustom = kind === 'Custom'
     const newNode: Node<BoardNodeData> = {
       id: createLocalBoardId(),
       type: nodeTypeForKind(kind),
@@ -4146,7 +5295,12 @@ function BoardEditor({
         x: 120 + (totalNodes % 4) * 180,
         y: 120 + Math.floor(totalNodes / 4) * 130,
       },
-      data: { label: kind, kind },
+      data: {
+        label: isCustom ? 'Logo' : kind,
+        kind,
+        ...(logoUrl ? { logoUrl } : {}),
+      },
+      ...(kind === 'Anotação' ? { style: { ...BOARD_NOTE_DEFAULT_SIZE } } : {}),
     }
     const newNodes = [...nodes, newNode]
     setNodes(newNodes)
@@ -4212,8 +5366,51 @@ function BoardEditor({
   }
 
   const handleNodeUpdate = (updatedNode: Node<BoardNodeData>) => {
-    const nodeType = nodeTypeForKind(updatedNode.data.kind)
-    const newNodes = nodes.map(n => n.id === updatedNode.id ? { ...updatedNode, type: nodeType } : n)
+    const normalizedNode = normalizeBoardNode(updatedNode)
+    const newNodes = nodes.map(n => n.id === updatedNode.id ? normalizedNode : n)
+    setNodes(newNodes)
+    pushHistory(newNodes, edges)
+    setIsDirty(true)
+  }
+
+  const handleAlignNodes = (updates: { id: string; position: { x: number; y: number } }[]) => {
+    if (!updates.length) return
+    const map = new Map(updates.map(u => [u.id, u.position]))
+    const newNodes = nodes.map(n => map.has(n.id) ? { ...n, position: map.get(n.id)! } : n)
+    setNodes(newNodes)
+    pushHistory(newNodes, edges)
+    setIsDirty(true)
+  }
+
+  const handleGroupNodes = (ids: string[]) => {
+    if (ids.length < 2) return
+    const idSet = new Set(ids)
+    // Se algum nó selecionado já tem groupId, reaproveita; senão cria novo
+    const existing = nodes.find(n => idSet.has(n.id) && n.data.groupId)?.data.groupId
+    const groupId = existing ?? genId()
+    const newNodes = nodes.map(n =>
+      idSet.has(n.id) ? { ...n, data: { ...n.data, groupId } } : n
+    )
+    setNodes(newNodes)
+    pushHistory(newNodes, edges)
+    setIsDirty(true)
+  }
+
+  const handleUngroupNodes = (ids: string[]) => {
+    if (!ids.length) return
+    const idSet = new Set(ids)
+    // Desagrupa todos os nós que compartilham qualquer groupId presente na seleção
+    const groupIds = new Set(
+      nodes.filter(n => idSet.has(n.id) && n.data.groupId).map(n => n.data.groupId!)
+    )
+    if (!groupIds.size) return
+    const newNodes = nodes.map(n => {
+      if (n.data.groupId && groupIds.has(n.data.groupId)) {
+        const { groupId: _gid, ...rest } = n.data
+        return { ...n, data: rest }
+      }
+      return n
+    })
     setNodes(newNodes)
     pushHistory(newNodes, edges)
     setIsDirty(true)
@@ -4245,8 +5442,14 @@ function BoardEditor({
       // Y alignment: top-top
       if      (Math.abs(y - oy) < THRESHOLD)                           y = oy
     }
-    if (x !== draggedNode.position.x || y !== draggedNode.position.y) {
-      setNodes(nds => nds.map(n => n.id === draggedNode.id ? { ...n, position: { x, y } } : n))
+    const finalNodes = nodesRef.current.map(n =>
+      n.id === draggedNode.id ? { ...n, position: { x, y } } : n
+    )
+    const prev = historyRef.current[historyIndexRef.current]
+    const prevPos = prev?.nodes.find(n => n.id === draggedNode.id)?.position
+    if (!prevPos || prevPos.x !== x || prevPos.y !== y) {
+      setNodes(finalNodes)
+      pushHistory(finalNodes, edgesRef.current)
       setIsDirty(true)
     }
   }
@@ -4346,6 +5549,13 @@ function BoardEditor({
             </>
           ) : (
             <>
+              <button className="board-hdr-btn" disabled={!historyState.canUndo || saving} onClick={handleUndo} type="button" title="Desfazer (⌘Z)">
+                <UndoIcon />
+              </button>
+              <button className="board-hdr-btn" disabled={!historyState.canRedo || saving} onClick={handleRedo} type="button" title="Refazer (⌘⇧Z)">
+                <RedoIcon />
+              </button>
+              <span className="board-hdr-sep" aria-hidden />
               <button className="board-hdr-btn" disabled={saving} onClick={handleBack} type="button" title="Voltar">
                 <ArrowLeftIcon />
               </button>
@@ -4377,11 +5587,22 @@ function BoardEditor({
           onEdgeDoubleClick={(_, edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(null) }}
           onEdgeUpdate={handleEdgeUpdate}
           onEdgesChange={handleEdgesChange}
-          onNodeClick={(_, node) => { setSelectedNodeId(node.id); setSelectedEdgeId(null) }}
+          onNodeClick={(event, node) => {
+            setSelectedNodeId(node.id)
+            setSelectedEdgeId(null)
+            const groupId = node.data.groupId
+            if (groupId && !(event.shiftKey || event.metaKey || event.ctrlKey)) {
+              // Expande seleção para todos os membros do grupo
+              setNodes(curr => curr.map(n => ({ ...n, selected: n.data.groupId === groupId })))
+            }
+          }}
           onNodeDelete={handleNodeDelete}
           onNodeDragStop={handleNodeDragStop}
           onNodeDuplicate={handleDuplicateNode}
           onNodeUpdate={handleNodeUpdate}
+          onAlignNodes={handleAlignNodes}
+          onGroupNodes={handleGroupNodes}
+          onUngroupNodes={handleUngroupNodes}
           onNodesChange={handleNodesChange}
           onNodesDelete={deleted => { if (selectedNodeId && deleted.some(n => n.id === selectedNodeId)) setSelectedNodeId(null) }}
           onPaneClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null) }}
@@ -4411,21 +5632,31 @@ function NodeEditPanel({
   const [label, setLabel] = useState(String(node.data.label))
   const [metric, setMetric] = useState(node.data.metric ?? '')
   const [kind, setKind] = useState<BoardNodeKind>(node.data.kind)
+  const [logoUrl, setLogoUrl] = useState(node.data.logoUrl ?? '')
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [note, setNote] = useState(node.data.note ?? '')
 
   useEffect(() => {
     setLabel(String(node.data.label))
     setMetric(node.data.metric ?? '')
     setKind(node.data.kind)
+    setLogoUrl(node.data.logoUrl ?? '')
+    setLogoError(null)
+    setNote(node.data.note ?? '')
   }, [node.id])
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
+    const trimmedUrl = logoUrl.trim()
+    const trimmedNote = note.trim()
     onUpdate({
       ...node,
       data: {
-        label: label.trim() || kind,
+        label: label.trim() || (kind === 'Custom' ? 'Logo' : kind),
         kind,
         metric: metric.trim() || undefined,
+        ...(trimmedUrl ? { logoUrl: trimmedUrl } : {}),
+        ...(trimmedNote ? { note: trimmedNote } : {}),
       },
     })
   }
@@ -4443,12 +5674,35 @@ function NodeEditPanel({
 
       {isSource && (
         <div className="board-node-panel-source-preview" data-kind={kind}>
-          <BoardSourceIcon kind={kind} />
-          <span>{kind}</span>
+          <BoardSourceIcon kind={kind} logoUrl={kind === 'Custom' ? (logoError ? undefined : logoUrl.trim() || undefined) : node.data.logoUrl} />
+          <span>{kind === 'Custom' ? 'Logo personalizada' : kind}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
+        {kind === 'Custom' && (
+          <label className="board-node-panel-field">
+            URL do logo
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={event => { setLogoUrl(event.target.value); setLogoError(null) }}
+              placeholder="https://exemplo.com/logo.png"
+            />
+            {logoError && <span style={{ color: '#f87171', fontSize: 11, marginTop: 4 }}>{logoError}</span>}
+            {logoUrl.trim() && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl.trim()}
+                alt=""
+                style={{ display: 'none' }}
+                onError={() => setLogoError('Não foi possível carregar a imagem desta URL.')}
+                onLoad={() => setLogoError(null)}
+              />
+            )}
+          </label>
+        )}
+
         <label className="board-node-panel-field">
           Nome
           <input
@@ -4498,6 +5752,16 @@ function NodeEditPanel({
             />
           </label>
         )}
+
+        <label className="board-node-panel-field">
+          Observação
+          <input
+            value={note}
+            onChange={event => setNote(event.target.value)}
+            placeholder="ex: domínio, mensal, R$ 49..."
+            maxLength={40}
+          />
+        </label>
 
         <div className="board-node-panel-actions">
           <button className="board-node-panel-save" type="submit">Aplicar</button>
@@ -4803,17 +6067,43 @@ function createBoardNode(
 ): Node<BoardNodeData> {
   return {
     id,
-    type: 'boardNode',
+    type: nodeTypeForKind(kind),
     position: {
       x,
       y,
     },
+    ...(kind === 'Anotação' ? { style: { ...BOARD_NOTE_DEFAULT_SIZE } } : {}),
     data: {
       label,
       kind,
       metric,
     },
   }
+}
+
+function normalizeBoardNode(node: Node<BoardNodeData>): Node<BoardNodeData> {
+  const type = nodeTypeForKind(node.data.kind)
+
+  if (node.data.kind !== 'Anotação') {
+    return { ...node, type }
+  }
+
+  const width = typeof node.width === 'number' ? node.width : node.style?.width ?? BOARD_NOTE_DEFAULT_SIZE.width
+  const height = typeof node.height === 'number' ? node.height : node.style?.height ?? BOARD_NOTE_DEFAULT_SIZE.height
+
+  return {
+    ...node,
+    type,
+    style: {
+      ...node.style,
+      width,
+      height,
+    },
+  }
+}
+
+function normalizeBoardNodes(nodes: Node<BoardNodeData>[] = []): Node<BoardNodeData>[] {
+  return nodes.map(normalizeBoardNode)
 }
 
 function createBoardEdge(id: string, source: string, target: string, type = 'default'): Edge {
@@ -4839,7 +6129,7 @@ const BOARD_CATEGORIES: ContextCategory[] = [
   { label: 'Vendas', kinds: ['Reunião', 'Ligação', 'Anúncio', 'Venda'] },
   { label: 'Fluxo', kinds: ['Início', 'Etapa', 'Decisão', 'Aprovação', 'Aguardar', 'Final'] },
   { label: 'Ação', kinds: ['Formulário', 'Documento', 'Integração', 'Notificação'] },
-  { label: 'Outros', kinds: ['Anotação'] },
+  { label: 'Outros', kinds: ['Anotação', 'Custom'] },
 ]
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -4856,7 +6146,7 @@ function mapBoardRow(row: BoardRow): Board {
     id: row.id,
     name: row.name,
     type: row.type as BoardType,
-    nodes: row.nodes ?? [],
+    nodes: normalizeBoardNodes(row.nodes ?? []),
     edges: row.edges ?? [],
     updatedAt: new Intl.DateTimeFormat('pt-BR').format(new Date(row.updated_at)),
   }
@@ -4882,6 +6172,30 @@ function BoardCircleNode({ data, selected }: NodeProps<Node<BoardNodeData>>) {
       </div>
       <span className="board-circle-node-label">{data.label}</span>
       {data.metric && <span className="board-circle-node-metric">{data.metric}</span>}
+      {data.note && <span className="board-node-note">{data.note}</span>}
+    </div>
+  )
+}
+
+function BoardNoteNode({ data, selected }: NodeProps<Node<BoardNodeData>>) {
+  return (
+    <div className={selected ? 'board-note-node selected' : 'board-note-node'}>
+      <NodeResizer
+        isVisible={selected}
+        minWidth={180}
+        minHeight={110}
+        color="#facc15"
+        handleClassName="board-note-resize-handle"
+        lineClassName="board-note-resize-line"
+      />
+      <Handle className="board-node-handle" id="top" position={Position.Top} type="source" />
+      <Handle className="board-node-handle" id="left" position={Position.Left} type="source" />
+      <div className="board-note-node-inner">
+        <p className="board-note-title">{data.label}</p>
+        {data.metric && <p className="board-note-body">{data.metric}</p>}
+      </div>
+      <Handle className="board-node-handle" id="right" position={Position.Right} type="source" />
+      <Handle className="board-node-handle" id="bottom" position={Position.Bottom} type="source" />
     </div>
   )
 }
@@ -4897,14 +6211,39 @@ function BoardSourceNode({ data, selected }: NodeProps<Node<BoardNodeData>>) {
         <Handle className="board-node-handle" id="left" position={Position.Left} type="source" />
         <Handle className="board-node-handle" id="right" position={Position.Right} type="source" />
         <Handle className="board-node-handle" id="bottom" position={Position.Bottom} type="source" />
-        <BoardSourceIcon kind={data.kind} />
+        <BoardSourceIcon kind={data.kind} logoUrl={data.logoUrl} />
       </div>
       <span className="board-source-node-label">{data.label}</span>
+      {data.note && <span className="board-node-note">{data.note}</span>}
     </div>
   )
 }
 
-function BoardSourceIcon({ kind, compact = false }: { kind: BoardNodeKind, compact?: boolean }) {
+function BoardSourceIcon({ kind, compact = false, logoUrl }: { kind: BoardNodeKind, compact?: boolean, logoUrl?: string }) {
+  // Custom: renderiza imagem da URL ou placeholder
+  if (kind === 'Custom') {
+    const size = compact
+      ? { width: 30, height: 30 }
+      : { width: 42, height: 42 }
+    if (logoUrl) {
+      return (
+        <div className="board-custom-logo-wrap" style={{ ...size, flexShrink: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl} alt="Logo" />
+        </div>
+      )
+    }
+    return (
+      <div className="board-custom-logo-placeholder" style={{ ...size, flexShrink: 0 }} aria-hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+      </div>
+    )
+  }
+
   if (kind === 'Meta') {
     if (compact) return (
       <div style={{ width: 36, height: 22, flexShrink: 0 }}>
@@ -5452,1919 +6791,6 @@ function BoardNodeIcon({ kind }: { kind: BoardNodeKind }) {
   )
 }
 
-// ─── Clients Types & Constants ───────────────────────────────────────────────
-type ClientStatus = 'Onboarding' | 'Ativo' | 'Pausado' | 'Encerrado'
-type ClientService = 'Tráfego Pago' | 'Social Media' | 'Trainer Salles' | 'Combo'
-type ClientBriefingStatus = 'Pendente' | 'Em Preenchimento' | 'Em Revisão' | 'Aprovado'
-const CLIENT_SERVICES: ClientService[] = ['Tráfego Pago', 'Social Media', 'Trainer Salles', 'Combo']
-const CLIENT_TABS = ['Briefing', 'Estratégia', 'Editorial', 'Calendário', 'Acessos', 'Resultados'] as const
-type ClientTab = typeof CLIENT_TABS[number]
-const ANTI_PERSONA_OPTIONS = ['Só busca preço baixo','Não valoriza o serviço','Atrasa pagamento','Não responde','Quer tudo urgente','Não envia informações','Não segue processo','Não tem orçamento','Quer algo fora do escopo','Dá muito retrabalho']
-const PERCEPTION_OPTIONS = ['Premium','Acessível','Moderna','Tradicional','Sofisticada','Popular','Técnica','Humana','Rápida','Confiável','Criativa','Minimalista','Próxima','Exclusiva','Especialista','Forte','Simples','Luxuosa','Segura']
-const DIFFERENTIAL_OPTIONS = ['Atendimento melhor','Preço melhor','Mais velocidade','Mais qualidade','Mais tecnologia','Mais proximidade','Mais segurança','Mais experiência','Mais simplicidade','Visual mais premium','Processo mais organizado','Especialização em um nicho','Entrega mais completa']
-const ATTRACTION_CHANNELS = ['Instagram','TikTok','Facebook','YouTube','Google','LinkedIn','Google Ads','Meta Ads','Indicação / Parceria / Eventos','Prospecção Ativa','Panfleto']
-const CONVERSION_CHANNELS = ['WhatsApp','Site','Landing Page','Formulário','Ligação','Reunião','E-mail','Direct']
-const VISUAL_IDENTITY_OPTIONS = ['Minimalista','Luxuoso','Moderno','Corporativo','Popular','Tecnológico','Criativo','Elegante','Clean','Forte','Discreto','Chamativo']
-const DESIRED_COLORS_OPTIONS = ['Claras','Escuras','Neutras']
-const VISUAL_FEELING_OPTIONS = ['Desejo','Confiança','Modernidade','Clareza','Exclusividade','Profissionalidade']
-const KPIS_TRAFFIC = ['CPC — custo por clique','CPM — custo por mil impressões','CPL — custo por lead','CPA — custo por aquisição','CTR — taxa de clique','Taxa de conversão da landing page']
-const KPIS_SALES = ['Leads gerados','Conversas no WhatsApp','Reuniões agendadas','Propostas enviadas','Clientes fechados','Taxa de fechamento','Custo por cliente','Ticket médio','Faturamento gerado']
-const KPIS_FOLLOWUP = ['Crescimento de seguidores','Alcance','Engajamento','Cliques no perfil','Cliques no WhatsApp','Retenção de cliente','Satisfação do cliente']
-
-type ClientRecord = {
-  id: string; name: string; company: string; email: string; phone: string
-  service: ClientService; status: ClientStatus; crmLeadId: string | null
-  notes: string; startDate: string | null; createdAt: string
-}
-
-type BriefingRecord = {
-  id: string; clientId: string; briefingStatus: ClientBriefingStatus; briefingToken: string
-  market: string; niche: string; product: string; mainProblem: string
-  consequences: string; differential: string; centralPromise: string
-  anchorPhrase: string; objectionPhrase: string
-  productsJson: Array<{ name: string; description: string }>
-  deliveriesJson: Array<{ name: string; description: string }>
-  mainOffer: string; offerIncludes: string
-  icpSize: string; icpReach: string; icpBuyingPower: string; icpAwareness: string
-  antiPersonaJson: string[]; publicPerceptionJson: string[]
-  mainDifferentialsJson: string[]; commercialProcess: string; deliveryProcess: string
-  attractionChannelsJson: string[]; conversionChannelsJson: string[]
-  companyName: string; visualIdentityJson: string[]; desiredColorsJson: string[]
-  referenceBrands: string; visualFeelingJson: string[]
-  kpisTrafficJson: string[]; kpisSalesJson: string[]; kpisFollowupJson: string[]
-}
-
-function mapClient(row: Record<string, unknown>): ClientRecord {
-  return {
-    id: row.id as string, name: row.name as string,
-    company: (row.company as string) ?? '', email: (row.email as string) ?? '',
-    phone: (row.phone as string) ?? '', service: (row.service as ClientService) ?? 'Social Media',
-    status: (row.status as ClientStatus) ?? 'Onboarding', crmLeadId: (row.crm_lead_id as string) ?? null,
-    notes: (row.notes as string) ?? '', startDate: (row.start_date as string) ?? null,
-    createdAt: row.created_at as string,
-  }
-}
-
-function mapBriefing(row: Record<string, unknown>): BriefingRecord {
-  return {
-    id: row.id as string, clientId: row.client_id as string,
-    briefingStatus: (row.briefing_status as ClientBriefingStatus) ?? 'Pendente',
-    briefingToken: (row.briefing_token as string) ?? '',
-    market: (row.market as string) ?? '', niche: (row.niche as string) ?? '',
-    product: (row.product as string) ?? '', mainProblem: (row.main_problem as string) ?? '',
-    consequences: (row.consequences as string) ?? '', differential: (row.differential as string) ?? '',
-    centralPromise: (row.central_promise as string) ?? '',
-    anchorPhrase: (row.anchor_phrase as string) ?? '', objectionPhrase: (row.objection_phrase as string) ?? '',
-    productsJson: (row.products_json as Array<{ name: string; description: string }>) ?? [],
-    deliveriesJson: (row.deliveries_json as Array<{ name: string; description: string }>) ?? [],
-    mainOffer: (row.main_offer as string) ?? '', offerIncludes: (row.offer_includes as string) ?? '',
-    icpSize: (row.icp_size as string) ?? '', icpReach: (row.icp_reach as string) ?? '',
-    icpBuyingPower: (row.icp_buying_power as string) ?? '', icpAwareness: (row.icp_awareness as string) ?? '',
-    antiPersonaJson: (row.anti_persona_json as string[]) ?? [],
-    publicPerceptionJson: (row.public_perception_json as string[]) ?? [],
-    mainDifferentialsJson: (row.main_differentials_json as string[]) ?? [],
-    commercialProcess: (row.commercial_process as string) ?? '', deliveryProcess: (row.delivery_process as string) ?? '',
-    attractionChannelsJson: (row.attraction_channels_json as string[]) ?? [],
-    conversionChannelsJson: (row.conversion_channels_json as string[]) ?? [],
-    companyName: (row.company_name as string) ?? '',
-    visualIdentityJson: (row.visual_identity_json as string[]) ?? [],
-    desiredColorsJson: (row.desired_colors_json as string[]) ?? [],
-    referenceBrands: (row.reference_brands as string) ?? '',
-    visualFeelingJson: (row.visual_feeling_json as string[]) ?? [],
-    kpisTrafficJson: (row.kpis_traffic_json as string[]) ?? [],
-    kpisSalesJson: (row.kpis_sales_json as string[]) ?? [],
-    kpisFollowupJson: (row.kpis_followup_json as string[]) ?? [],
-  }
-}
-
-const emptyBriefing = (): Omit<BriefingRecord, 'id' | 'clientId' | 'briefingToken'> => ({
-  briefingStatus: 'Pendente',
-  market: '', niche: '', product: '', mainProblem: '', consequences: '', differential: '', centralPromise: '',
-  anchorPhrase: '', objectionPhrase: '',
-  productsJson: [], deliveriesJson: [], mainOffer: '', offerIncludes: '',
-  icpSize: '', icpReach: '', icpBuyingPower: '', icpAwareness: '', antiPersonaJson: [],
-  publicPerceptionJson: [], mainDifferentialsJson: [], commercialProcess: '', deliveryProcess: '',
-  attractionChannelsJson: [], conversionChannelsJson: [],
-  companyName: '', visualIdentityJson: [], desiredColorsJson: [], referenceBrands: '', visualFeelingJson: [],
-  kpisTrafficJson: [], kpisSalesJson: [], kpisFollowupJson: [],
-})
-
-// ─── Editorial Types & Constants ─────────────────────────────────────────────
-const EDITORIAL_CHANNELS = ['Instagram', 'TikTok', 'YouTube', 'LinkedIn', 'Facebook', 'Pinterest', 'Blog', 'Podcast']
-const EDITORIAL_AWARENESS = ['Sem problema', 'Com problema', 'Buscando solução', 'Comparando opções', 'Pronto para comprar']
-const EDITORIAL_FORMATS = ['Reels', 'Carrossel', 'Stories', 'Feed foto', 'Live', 'Post texto'] as const
-type EditorialFormat = typeof EDITORIAL_FORMATS[number]
-type EditorialStatus = 'Rascunho' | 'Em Aprovação' | 'Aprovado' | 'Recusado'
-const EDITORIAL_STATUSES: EditorialStatus[] = ['Rascunho', 'Em Aprovação', 'Aprovado', 'Recusado']
-const QUICK_MACROTEMAS = ['Educacional', 'Vendas', 'Prova Social', 'Bastidores', 'Entretenimento', 'Dúvidas Frequentes', 'Autoridade', 'Motivacional', 'Cases de Sucesso', 'Tendências']
-const EDITORIAL_STATUS_COLORS: Record<EditorialStatus, string> = {
-  'Rascunho': '#6b7280', 'Em Aprovação': '#f59e0b', 'Aprovado': '#10b981', 'Recusado': '#ef4444',
-}
-const EDITORIAL_STEPS = ['Persona', 'Produtos', 'Macrotemas', 'Microtemas', 'Ideias & Copy', 'Aprovação'] as const
-type EditorialStep = typeof EDITORIAL_STEPS[number]
-
-type EditorialPersona = {
-  name: string; ageRange: string; occupation: string
-  pains: string; desires: string; channels: string[]; awarenessLevel: string
-}
-type EditorialProductItem = { id: string; name: string; description: string }
-type EditorialMacrotema = { id: string; name: string; description: string; productId: string }
-type EditorialMicrotema = { id: string; macrotemaId: string; name: string }
-type EditorialIdeia = {
-  id: string; microtemaId: string; format: EditorialFormat
-  hook: string; copy: string; cta: string; status: EditorialStatus
-}
-type EditorialRecord = {
-  id: string; clientId: string
-  persona: EditorialPersona
-  products: EditorialProductItem[]
-  macrotemas: EditorialMacrotema[]
-  microtemas: EditorialMicrotema[]
-  ideias: EditorialIdeia[]
-}
-
-function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
-
-function emptyEditorialPersona(): EditorialPersona {
-  return { name: '', ageRange: '', occupation: '', pains: '', desires: '', channels: [], awarenessLevel: '' }
-}
-function emptyEditorial(): Omit<EditorialRecord, 'id' | 'clientId'> {
-  return { persona: emptyEditorialPersona(), products: [], macrotemas: [], microtemas: [], ideias: [] }
-}
-function mapEditorial(row: Record<string, unknown>): EditorialRecord {
-  const rawPersona = (row.persona_json as Partial<EditorialPersona> | null) ?? {}
-  return {
-    id: row.id as string, clientId: row.client_id as string,
-    persona: { ...emptyEditorialPersona(), ...rawPersona },
-    products: (row.content_products_json as EditorialProductItem[]) ?? [],
-    macrotemas: (row.macrotemas_json as EditorialMacrotema[]) ?? [],
-    microtemas: (row.microtemas_json as EditorialMicrotema[]) ?? [],
-    ideias: (row.ideias_json as EditorialIdeia[]) ?? [],
-  }
-}
-
-// ─── Client Extras (Estratégia / Calendário / Acessos / Resultados) ──────────
-type StrategyRecord = { mainGoal: string; monthlyTarget: string; reviewPeriod: string; actionPlan: string }
-
-type CalendarStatus = 'Briefing' | 'Em Criação' | 'Em Aprovação' | 'Aprovado' | 'Agendado' | 'Publicado'
-const CALENDAR_STATUSES: CalendarStatus[] = ['Briefing', 'Em Criação', 'Em Aprovação', 'Aprovado', 'Agendado', 'Publicado']
-const CALENDAR_STATUS_COLORS: Record<CalendarStatus, string> = {
-  'Briefing': '#6b7280', 'Em Criação': '#3b82f6', 'Em Aprovação': '#f59e0b',
-  'Aprovado': '#10b981', 'Agendado': '#8b5cf6', 'Publicado': '#059669',
-}
-const CALENDAR_FORMATS = ['Reels', 'Carrossel', 'Stories', 'Feed foto', 'Live', 'Post texto']
-const ACCESS_PLATFORMS = ['Instagram', 'Facebook', 'Google Ads', 'Google Analytics', 'TikTok', 'YouTube', 'LinkedIn', 'Site / WordPress', 'E-mail Marketing', 'WhatsApp Business', 'Outro']
-
-type CalendarPiece = {
-  id: string
-  title: string
-  format: string
-  date: string
-  status: CalendarStatus
-  notes: string
-  pilar?: string
-  hook?: string
-  copy?: string
-  cta?: string
-}
-
-const CALENDAR_PILARES = ['Educacional', 'Vendas', 'Prova Social', 'Bastidores', 'Entretenimento', 'Dúvidas Frequentes', 'Autoridade', 'Motivacional', 'Cases', 'Tendências']
-
-const CALENDAR_PILAR_COLORS: Record<string, string> = {
-  'Educacional':         '#3b82f6',
-  'Vendas':              '#10b981',
-  'Prova Social':        '#f59e0b',
-  'Bastidores':          '#8b5cf6',
-  'Entretenimento':      '#ec4899',
-  'Dúvidas Frequentes':  '#06b6d4',
-  'Autoridade':          '#6366f1',
-  'Motivacional':        '#f43f5e',
-  'Cases':               '#14b8a6',
-  'Tendências':          '#a855f7',
-}
-type AccessEntry = { id: string; platform: string; login: string; password: string; notes: string }
-type ResultMonth = { id: string; month: string; metrics: Record<string, string>; notes: string }
-
-type ClientExtras = {
-  id: string; clientId: string
-  strategy: StrategyRecord
-  calendar: CalendarPiece[]
-  accesses: AccessEntry[]
-  results: ResultMonth[]
-}
-
-function emptyStrategy(): StrategyRecord {
-  return { mainGoal: '', monthlyTarget: '', reviewPeriod: '', actionPlan: '' }
-}
-function emptyExtras(): Omit<ClientExtras, 'id' | 'clientId'> {
-  return { strategy: emptyStrategy(), calendar: [], accesses: [], results: [] }
-}
-function mapExtras(row: Record<string, unknown>): ClientExtras {
-  return {
-    id: row.id as string, clientId: row.client_id as string,
-    strategy: (row.strategy_json as StrategyRecord) ?? emptyStrategy(),
-    calendar: (row.calendar_json as CalendarPiece[]) ?? [],
-    accesses: (row.accesses_json as AccessEntry[]) ?? [],
-    results: (row.results_json as ResultMonth[]) ?? [],
-  }
-}
-
-async function duplicateClientRelatedRow(table: string, sourceClientId: string, targetClientId: string, omittedColumns: string[] = []) {
-  const { data: rows, error: selectError } = await supabase
-    .from(table)
-    .select('*')
-    .eq('client_id', sourceClientId)
-    .limit(1)
-
-  if (selectError) return selectError
-
-  const sourceRow = (rows?.[0] ?? null) as Record<string, unknown> | null
-  const insertRow: Record<string, unknown> = sourceRow ? { ...sourceRow } : {}
-
-  for (const key of ['id', 'client_id', 'created_at', 'updated_at', ...omittedColumns]) {
-    delete insertRow[key]
-  }
-
-  insertRow.client_id = targetClientId
-
-  const { error } = await supabase.from(table).insert(insertRow)
-  return error
-}
-
-// ─── Clients Module ───────────────────────────────────────────────────────────
-function ClientsModule({
-  pendingFromCrm,
-  onPendingConsumed,
-}: {
-  pendingFromCrm: { name: string; company: string; email: string; phone: string; crmLeadId: string } | null
-  onPendingConsumed: () => void
-}) {
-  const [clients, setClients] = useState<ClientRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [error, setError] = useState('')
-  const [duplicatingClientId, setDuplicatingClientId] = useState('')
-  const [clientCardMenu, setClientCardMenu] = useState<{ client: ClientRecord; x: number; y: number } | null>(null)
-
-  useEffect(() => { void loadClients() }, [])
-
-  // Auto-open add modal when coming from CRM
-  useEffect(() => {
-    if (pendingFromCrm) setIsAddModalOpen(true)
-  }, [pendingFromCrm])
-
-  const loadClients = async () => {
-    setLoading(true)
-    const { data, error: err } = await supabase.from('clients').select('*').order('created_at', { ascending: false })
-    setLoading(false)
-    if (err) { setError('Erro ao carregar clientes.'); return }
-    if (data) setClients(data.map(r => mapClient(r as Record<string, unknown>)))
-  }
-
-  const handleAddClient = async (data: { name: string; company: string; email: string; phone: string; service: ClientService; startDate: string; crmLeadId: string | null }) => {
-    const { data: row, error: err } = await supabase.from('clients').insert({
-      name: data.name, company: data.company, email: data.email, phone: data.phone,
-      service: data.service, start_date: data.startDate || null, crm_lead_id: data.crmLeadId,
-    }).select('*').single()
-    if (err || !row) { setError('Erro ao criar cliente.'); return }
-    const client = mapClient(row as Record<string, unknown>)
-    await Promise.all([
-      supabase.from('client_briefings').insert({ client_id: client.id }),
-      supabase.from('client_editorial').insert({ client_id: client.id }),
-      supabase.from('client_extras').insert({ client_id: client.id }),
-    ])
-    setClients(cur => [client, ...cur])
-    setIsAddModalOpen(false)
-    onPendingConsumed()
-    setSelectedClientId(client.id)
-  }
-
-  const handleDuplicateClient = async (client: ClientRecord) => {
-    setError('')
-    setDuplicatingClientId(client.id)
-
-    const { data: row, error: err } = await supabase.from('clients').insert({
-      name: `${client.name} (cópia)`,
-      company: client.company,
-      email: client.email,
-      phone: client.phone,
-      service: client.service,
-      status: client.status,
-      notes: client.notes,
-      start_date: client.startDate,
-      crm_lead_id: null,
-    }).select('*').single()
-
-    if (err || !row) {
-      setDuplicatingClientId('')
-      setError('Erro ao duplicar cliente.')
-      return
-    }
-
-    const duplicatedClient = mapClient(row as Record<string, unknown>)
-    const relatedErrors = await Promise.all([
-      duplicateClientRelatedRow('client_briefings', client.id, duplicatedClient.id, ['briefing_token']),
-      duplicateClientRelatedRow('client_editorial', client.id, duplicatedClient.id),
-      duplicateClientRelatedRow('client_extras', client.id, duplicatedClient.id),
-    ])
-
-    setDuplicatingClientId('')
-    setClients(current => [duplicatedClient, ...current])
-
-    if (relatedErrors.some(Boolean)) {
-      setError('Cliente duplicado, mas alguns dados internos não foram copiados.')
-    }
-  }
-
-  const handleClientDelete = async (clientId: string) => {
-    setError('')
-
-    const relatedDeletes = await Promise.all([
-      supabase.from('client_briefings').delete().eq('client_id', clientId),
-      supabase.from('client_editorial').delete().eq('client_id', clientId),
-      supabase.from('client_extras').delete().eq('client_id', clientId),
-    ])
-
-    if (relatedDeletes.some(result => result.error)) {
-      setError('Erro ao excluir dados internos do cliente.')
-      return
-    }
-
-    const { error: deleteError } = await supabase.from('clients').delete().eq('id', clientId)
-
-    if (deleteError) {
-      setError('Erro ao excluir cliente.')
-      return
-    }
-
-    setClients(current => current.filter(client => client.id !== clientId))
-    if (selectedClientId === clientId) setSelectedClientId(null)
-  }
-
-  const selectedClient = selectedClientId ? clients.find(c => c.id === selectedClientId) ?? null : null
-
-  if (selectedClient) {
-    return (
-      <ClientFolder
-        client={selectedClient}
-        onBack={() => setSelectedClientId(null)}
-        onClientUpdate={(updates) => setClients(cur => cur.map(c => c.id === selectedClient.id ? { ...c, ...updates } : c))}
-      />
-    )
-  }
-
-  return (
-    <div className="forms-module clients-module">
-      <header className="forms-module-header">
-        <div>
-          <h2 id="active-module-title">Clientes</h2>
-        </div>
-        <button
-          className="crm-add-btn crm-add-icon-btn"
-          onClick={() => setIsAddModalOpen(true)}
-          type="button"
-          aria-label="Novo cliente"
-          title="Novo cliente"
-        >
-          <UserPlusIcon />
-        </button>
-      </header>
-
-      {error && <p className="clients-error">{error}</p>}
-
-      {loading ? (
-        <div className="crm-loading">Carregando clientes...</div>
-      ) : clients.length === 0 ? (
-        <div className="clients-empty">
-          <p>Nenhum cliente ainda.</p>
-        </div>
-      ) : (
-        <div className="clients-grid">
-          {clients.map(client => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onClick={() => setSelectedClientId(client.id)}
-              onContextMenu={event => {
-                event.preventDefault()
-                setClientCardMenu({ client, x: event.clientX, y: event.clientY })
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {clientCardMenu && (
-        <>
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 999 }}
-            onClick={() => setClientCardMenu(null)}
-            onContextMenu={event => { event.preventDefault(); setClientCardMenu(null) }}
-          />
-          <div
-            className="board-card-ctx-menu"
-            style={{ position: 'fixed', left: clientCardMenu.x, top: clientCardMenu.y, zIndex: 1000 }}
-            onClick={event => event.stopPropagation()}
-          >
-            <button type="button" onClick={() => { setSelectedClientId(clientCardMenu.client.id); setClientCardMenu(null) }}>
-              Abrir
-            </button>
-            <button
-              type="button"
-              disabled={duplicatingClientId === clientCardMenu.client.id}
-              onClick={() => { void handleDuplicateClient(clientCardMenu.client); setClientCardMenu(null) }}
-            >
-              {duplicatingClientId === clientCardMenu.client.id ? 'Duplicando...' : 'Duplicar'}
-            </button>
-            <button
-              type="button"
-              className="board-card-ctx-delete"
-              onClick={() => {
-                if (window.confirm(`Excluir "${clientCardMenu.client.name}"?`)) {
-                  void handleClientDelete(clientCardMenu.client.id)
-                }
-                setClientCardMenu(null)
-              }}
-            >
-              Excluir
-            </button>
-          </div>
-        </>
-      )}
-
-      {isAddModalOpen && (
-        <AddClientModal
-          prefill={pendingFromCrm ?? undefined}
-          onClose={() => { setIsAddModalOpen(false); if (pendingFromCrm) onPendingConsumed() }}
-          onAdd={(data) => void handleAddClient({ ...data, crmLeadId: pendingFromCrm?.crmLeadId ?? null })}
-        />
-      )}
-    </div>
-  )
-}
-
-// ─── Client Card ─────────────────────────────────────────────────────────────
-const SERVICE_COLORS: Record<ClientService, string> = {
-  'Tráfego Pago': '#3b82f6', 'Social Media': '#8b5cf6', 'Trainer Salles': '#f59e0b', 'Combo': '#10b981',
-}
-const STATUS_COLORS: Record<ClientStatus, string> = {
-  'Onboarding': '#f59e0b', 'Ativo': '#10b981', 'Pausado': '#ef4444', 'Encerrado': '#6b7280',
-}
-
-function ClientCard({
-  client,
-  onClick,
-  onContextMenu,
-}: {
-  client: ClientRecord
-  onClick: () => void
-  onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => void
-}) {
-  return (
-    <button className="client-card" onClick={onClick} onContextMenu={onContextMenu} type="button">
-      <div className="client-card-top">
-        <div className="client-card-avatar">{client.name.charAt(0).toUpperCase()}</div>
-        <div className="client-card-info">
-          <p className="client-card-name">{client.name}</p>
-          <p className="client-card-company">{client.company}</p>
-        </div>
-      </div>
-      <div className="client-card-badges">
-        <span className="client-badge" style={{ background: `${SERVICE_COLORS[client.service]}22`, color: SERVICE_COLORS[client.service] }}>{client.service}</span>
-        <span className="client-badge" style={{ background: `${STATUS_COLORS[client.status]}22`, color: STATUS_COLORS[client.status] }}>{client.status}</span>
-      </div>
-    </button>
-  )
-}
-
-// ─── Client Folder ────────────────────────────────────────────────────────────
-function ClientFolder({ client, onBack, onClientUpdate }: {
-  client: ClientRecord
-  onBack: () => void
-  onClientUpdate: (updates: Partial<ClientRecord>) => void
-}) {
-  const [activeTab, setActiveTab] = useState<ClientTab | null>(null)
-  const [briefing, setBriefing] = useState<BriefingRecord | null>(null)
-  const [loadingBriefing, setLoadingBriefing] = useState(false)
-  const [editorial, setEditorial] = useState<EditorialRecord | null>(null)
-  const [loadingEditorial, setLoadingEditorial] = useState(false)
-  const [extras, setExtras] = useState<ClientExtras | null>(null)
-  const [loadingExtras, setLoadingExtras] = useState(false)
-
-  const EXTRAS_TABS: ClientTab[] = ['Estratégia', 'Calendário', 'Acessos', 'Resultados']
-
-  useEffect(() => {
-    if (activeTab === 'Briefing' && !briefing) void loadBriefing()
-    if (activeTab === 'Editorial' && !editorial) void loadEditorial()
-    if (activeTab && EXTRAS_TABS.includes(activeTab) && !extras) void loadExtras()
-  }, [activeTab])
-
-  const loadBriefing = async () => {
-    setLoadingBriefing(true)
-    const { data } = await supabase.from('client_briefings').select('*').eq('client_id', client.id).single()
-    setLoadingBriefing(false)
-    if (data) setBriefing(mapBriefing(data as Record<string, unknown>))
-  }
-
-  const loadEditorial = async () => {
-    setLoadingEditorial(true)
-    const { data } = await supabase.from('client_editorial').select('*').eq('client_id', client.id).single()
-    setLoadingEditorial(false)
-    if (data) setEditorial(mapEditorial(data as Record<string, unknown>))
-    else {
-      // record may not exist for older clients — create it on the fly
-      const { data: created } = await supabase.from('client_editorial').insert({ client_id: client.id }).select('*').single()
-      if (created) setEditorial(mapEditorial(created as Record<string, unknown>))
-    }
-  }
-
-  const loadExtras = async () => {
-    setLoadingExtras(true)
-    const { data } = await supabase.from('client_extras').select('*').eq('client_id', client.id).single()
-    setLoadingExtras(false)
-    if (data) setExtras(mapExtras(data as Record<string, unknown>))
-    else {
-      const { data: created } = await supabase.from('client_extras').insert({ client_id: client.id }).select('*').single()
-      if (created) setExtras(mapExtras(created as Record<string, unknown>))
-    }
-  }
-
-  const handleExtrasSave = async (updates: Partial<Omit<ClientExtras, 'id' | 'clientId'>>) => {
-    if (!extras) return
-    const merged = { ...extras, ...updates }
-    const dbRow: Record<string, unknown> = { updated_at: new Date().toISOString() }
-    if (updates.strategy !== undefined) dbRow.strategy_json = updates.strategy
-    if (updates.calendar !== undefined) dbRow.calendar_json = updates.calendar
-    if (updates.accesses !== undefined) dbRow.accesses_json = updates.accesses
-    if (updates.results  !== undefined) dbRow.results_json  = updates.results
-    await supabase.from('client_extras').update(dbRow).eq('id', extras.id)
-    setExtras(merged)
-  }
-
-  const handleEditorialSave = async (updated: EditorialRecord) => {
-    const dbRow = {
-      persona_json: updated.persona,
-      content_products_json: updated.products,
-      macrotemas_json: updated.macrotemas,
-      microtemas_json: updated.microtemas,
-      ideias_json: updated.ideias,
-      updated_at: new Date().toISOString(),
-    }
-    await supabase.from('client_editorial').update(dbRow).eq('id', updated.id)
-    setEditorial(updated)
-  }
-
-  const handleBriefingSave = async (updated: BriefingRecord) => {
-    const dbRow = {
-      briefing_status: updated.briefingStatus,
-      market: updated.market, niche: updated.niche, product: updated.product,
-      main_problem: updated.mainProblem, consequences: updated.consequences,
-      differential: updated.differential, central_promise: updated.centralPromise,
-      anchor_phrase: updated.anchorPhrase, objection_phrase: updated.objectionPhrase,
-      products_json: updated.productsJson, deliveries_json: updated.deliveriesJson,
-      main_offer: updated.mainOffer, offer_includes: updated.offerIncludes,
-      icp_size: updated.icpSize, icp_reach: updated.icpReach,
-      icp_buying_power: updated.icpBuyingPower, icp_awareness: updated.icpAwareness,
-      anti_persona_json: updated.antiPersonaJson,
-      public_perception_json: updated.publicPerceptionJson,
-      main_differentials_json: updated.mainDifferentialsJson,
-      commercial_process: updated.commercialProcess, delivery_process: updated.deliveryProcess,
-      attraction_channels_json: updated.attractionChannelsJson,
-      conversion_channels_json: updated.conversionChannelsJson,
-      company_name: updated.companyName,
-      visual_identity_json: updated.visualIdentityJson,
-      desired_colors_json: updated.desiredColorsJson,
-      reference_brands: updated.referenceBrands,
-      visual_feeling_json: updated.visualFeelingJson,
-      kpis_traffic_json: updated.kpisTrafficJson,
-      kpis_sales_json: updated.kpisSalesJson,
-      kpis_followup_json: updated.kpisFollowupJson,
-      updated_at: new Date().toISOString(),
-    }
-    await supabase.from('client_briefings').update(dbRow).eq('id', updated.id)
-    setBriefing(updated)
-  }
-
-  const FOLDER_META: { tab: ClientTab; desc: string }[] = [
-    { tab: 'Briefing',   desc: 'Posicionamento e identidade da marca' },
-    { tab: 'Estratégia', desc: 'Metas, planos e indicadores' },
-    { tab: 'Editorial',  desc: 'Persona, pautas e aprovação de conteúdo' },
-    { tab: 'Calendário', desc: 'Programação e status das peças' },
-    { tab: 'Acessos',    desc: 'Logins e senhas das plataformas' },
-    { tab: 'Resultados', desc: 'Métricas mensais e desempenho' },
-  ]
-
-  return (
-    <div className="forms-module clients-module">
-      <header className="forms-module-header">
-        <div className="client-folder-header-left">
-          <div className="client-folder-breadcrumb">
-            {activeTab === null ? (
-              <button className="client-breadcrumb-link" onClick={onBack} type="button">Clientes</button>
-            ) : (
-              <>
-                <button className="client-breadcrumb-link" onClick={onBack} type="button">Clientes</button>
-                <span className="client-breadcrumb-sep">/</span>
-                <button className="client-breadcrumb-link" onClick={() => setActiveTab(null)} type="button">{client.name}</button>
-                <span className="client-breadcrumb-sep">/</span>
-                <span className="client-breadcrumb-current">{activeTab}</span>
-              </>
-            )}
-          </div>
-          <h2 id="active-module-title">
-            {activeTab === null ? client.name : activeTab}
-          </h2>
-        </div>
-        <div className="client-card-badges">
-          <span className="client-badge" style={{ background: `${SERVICE_COLORS[client.service]}22`, color: SERVICE_COLORS[client.service] }}>{client.service}</span>
-          <span className="client-badge" style={{ background: `${STATUS_COLORS[client.status]}22`, color: STATUS_COLORS[client.status] }}>{client.status}</span>
-        </div>
-      </header>
-
-      {activeTab === null ? (
-        <div className="client-folders-overview">
-          <div className="client-folders-grid">
-            {FOLDER_META.map(({ tab, desc }) => (
-              <button
-                key={tab}
-                className="client-folder-card"
-                onClick={() => setActiveTab(tab)}
-                type="button"
-              >
-                <div className="client-folder-card-icon">
-                  <FolderTabIcon tab={tab} />
-                </div>
-                <div className="client-folder-card-body">
-                  <span className="client-folder-card-name">{tab}</span>
-                  <span className="client-folder-card-desc">{desc}</span>
-                </div>
-                <svg className="client-folder-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="client-folder-content">
-          {activeTab === 'Briefing' && (
-            loadingBriefing ? <div className="crm-loading">Carregando briefing...</div> :
-            briefing ? <BriefingTab briefing={briefing} clientName={client.name} onSave={handleBriefingSave} /> :
-            <div className="clients-empty"><p>Briefing não encontrado.</p></div>
-          )}
-          {activeTab === 'Editorial' && (
-            loadingEditorial ? <div className="crm-loading">Carregando editorial...</div> :
-            editorial ? <EditorialTab editorial={editorial} onSave={handleEditorialSave} /> :
-            <div className="clients-empty"><p>Erro ao carregar editorial.</p></div>
-          )}
-          {activeTab === 'Estratégia' && (
-            loadingExtras ? <div className="crm-loading">Carregando...</div> :
-            extras ? <EstratégiaTab strategy={extras.strategy} onSave={s => handleExtrasSave({ strategy: s })} /> :
-            <div className="clients-empty"><p>Erro ao carregar.</p></div>
-          )}
-          {activeTab === 'Calendário' && (
-            loadingExtras ? <div className="crm-loading">Carregando...</div> :
-            extras ? <CalendárioTab pieces={extras.calendar} onSave={c => handleExtrasSave({ calendar: c })} /> :
-            <div className="clients-empty"><p>Erro ao carregar.</p></div>
-          )}
-          {activeTab === 'Acessos' && (
-            loadingExtras ? <div className="crm-loading">Carregando...</div> :
-            extras ? <AcessosTab accesses={extras.accesses} onSave={a => handleExtrasSave({ accesses: a })} /> :
-            <div className="clients-empty"><p>Erro ao carregar.</p></div>
-          )}
-          {activeTab === 'Resultados' && (
-            loadingExtras ? <div className="crm-loading">Carregando...</div> :
-            extras ? <ResultadosTab results={extras.results} onSave={r => handleExtrasSave({ results: r })} /> :
-            <div className="clients-empty"><p>Erro ao carregar.</p></div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Folder Tab Icon ───────────────────────────────────────────────────────────
-function FolderTabIcon({ tab }: { tab: ClientTab }) {
-  switch (tab) {
-    case 'Briefing':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-        </svg>
-      )
-    case 'Estratégia':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-      )
-    case 'Editorial':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>
-        </svg>
-      )
-    case 'Calendário':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-      )
-    case 'Acessos':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      )
-    case 'Resultados':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-      )
-    default:
-      return null
-  }
-}
-
-// ─── Briefing Tab ─────────────────────────────────────────────────────────────
-function BriefingTab({ briefing, clientName, onSave }: {
-  briefing: BriefingRecord
-  clientName: string
-  onSave: (updated: BriefingRecord) => Promise<void>
-}) {
-  const [draft, setDraft] = useState<BriefingRecord>(briefing)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    marca: true, frases: false, produtos: false, icp: false,
-    percepcao: false, processo: false, canais: false, visual: false, kpis: false,
-  })
-
-  const set = (field: keyof BriefingRecord, value: unknown) =>
-    setDraft(d => ({ ...d, [field]: value }))
-
-  const toggleCheck = (field: keyof BriefingRecord, option: string) => {
-    const arr = draft[field] as string[]
-    set(field, arr.includes(option) ? arr.filter(x => x !== option) : [...arr, option])
-  }
-
-  const toggleSection = (key: string) =>
-    setOpenSections(s => ({ ...s, [key]: !s[key] }))
-
-  const handleSave = async () => {
-    setSaving(true)
-    await onSave(draft)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const copyBriefingLink = () => {
-    const url = `${window.location.origin}/briefing/${draft.briefingToken}`
-    void navigator.clipboard.writeText(url)
-  }
-
-  const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
-    <div className="briefing-section">
-      <button className="briefing-section-header" onClick={() => toggleSection(id)} type="button">
-        <span>{title}</span>
-        <svg className={`briefing-section-arrow${openSections[id] ? ' open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-      </button>
-      {openSections[id] && <div className="briefing-section-body">{children}</div>}
-    </div>
-  )
-
-  const Field = ({ label, field, multiline }: { label: string; field: keyof BriefingRecord; multiline?: boolean }) => (
-    <div className="briefing-field">
-      <label className="briefing-label">{label}</label>
-      {multiline ? (
-        <textarea className="briefing-textarea" value={draft[field] as string} onChange={e => set(field, e.target.value)} rows={3} />
-      ) : (
-        <input className="briefing-input" type="text" value={draft[field] as string} onChange={e => set(field, e.target.value)} />
-      )}
-    </div>
-  )
-
-  const CheckGroup = ({ label, field, options }: { label: string; field: keyof BriefingRecord; options: string[] }) => (
-    <div className="briefing-field">
-      <label className="briefing-label">{label}</label>
-      <div className="briefing-checks">
-        {options.map(opt => (
-          <label key={opt} className="briefing-check">
-            <input type="checkbox" checked={(draft[field] as string[]).includes(opt)} onChange={() => toggleCheck(field, opt)} />
-            <span>{opt}</span>
-          </label>
-        ))}
-      </div>
-    </div>
-  )
-
-  const DynamicList = ({ label, field }: { label: string; field: 'productsJson' | 'deliveriesJson' }) => {
-    const items = draft[field]
-    return (
-      <div className="briefing-field">
-        <label className="briefing-label">{label}</label>
-        {items.map((item, i) => (
-          <div key={i} className="briefing-dynamic-row">
-            <input className="briefing-input" placeholder="Nome" value={item.name} onChange={e => {
-              const next = items.map((it, j) => j === i ? { ...it, name: e.target.value } : it)
-              set(field, next)
-            }} />
-            <input className="briefing-input" placeholder="Descrição" value={item.description} onChange={e => {
-              const next = items.map((it, j) => j === i ? { ...it, description: e.target.value } : it)
-              set(field, next)
-            }} />
-            <button className="briefing-remove-btn" type="button" onClick={() => set(field, items.filter((_, j) => j !== i))}>×</button>
-          </div>
-        ))}
-        <button className="briefing-add-row-btn" type="button" onClick={() => set(field, [...items, { name: '', description: '' }])}>+ Adicionar</button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="briefing-wrap">
-      <div className="briefing-top-bar">
-        <div className="briefing-status-row">
-          <span className="briefing-label">Status</span>
-          <select className="briefing-select" value={draft.briefingStatus} onChange={e => set('briefingStatus', e.target.value as ClientBriefingStatus)}>
-            {(['Pendente','Em Preenchimento','Em Revisão','Aprovado'] as ClientBriefingStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="briefing-top-actions">
-          <button className="briefing-link-btn" onClick={copyBriefingLink} type="button">🔗 Copiar link do cliente</button>
-          <button className="briefing-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-            {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-          </button>
-        </div>
-      </div>
-
-      <Section id="marca" title="Construção de Marca">
-        <div className="briefing-field-row">
-          <Field label="Mercado" field="market" />
-          <Field label="Nicho" field="niche" />
-        </div>
-        <Field label="Produto / Solução" field="product" multiline />
-        <Field label="Problema Principal" field="mainProblem" multiline />
-        <Field label="Consequências" field="consequences" multiline />
-        <Field label="Diferencial" field="differential" multiline />
-        <Field label="Promessa Central" field="centralPromise" multiline />
-      </Section>
-
-      <Section id="frases" title="Frases de Marca">
-        <Field label="Frase Âncora" field="anchorPhrase" multiline />
-        <Field label="Frase de Quebra de Objeção" field="objectionPhrase" multiline />
-      </Section>
-
-      <Section id="produtos" title="Produtos & Oferta">
-        <DynamicList label="Produtos" field="productsJson" />
-        <DynamicList label="Entregas" field="deliveriesJson" />
-        <Field label="Oferta Principal" field="mainOffer" multiline />
-        <Field label="Inclui" field="offerIncludes" multiline />
-      </Section>
-
-      <Section id="icp" title="Perfil de Cliente">
-        <div className="briefing-field-row">
-          <Field label="Porte / Cargo" field="icpSize" />
-          <Field label="Abrangência" field="icpReach" />
-        </div>
-        <div className="briefing-field-row">
-          <Field label="Poder de Compra" field="icpBuyingPower" />
-          <Field label="Nível de Consciência" field="icpAwareness" />
-        </div>
-        <CheckGroup label="Anti-Persona" field="antiPersonaJson" options={ANTI_PERSONA_OPTIONS} />
-      </Section>
-
-      <Section id="percepcao" title="Percepção Pública & Diferencial">
-        <CheckGroup label="Percepção Pública (mín. 5)" field="publicPerceptionJson" options={PERCEPTION_OPTIONS} />
-        <CheckGroup label="Diferencial Principal" field="mainDifferentialsJson" options={DIFFERENTIAL_OPTIONS} />
-      </Section>
-
-      <Section id="processo" title="Processo Comercial e de Entrega">
-        <Field label="Processo Comercial" field="commercialProcess" multiline />
-        <Field label="Processo de Entrega" field="deliveryProcess" multiline />
-      </Section>
-
-      <Section id="canais" title="Canais de Atração e Conversão">
-        <CheckGroup label="Atração" field="attractionChannelsJson" options={ATTRACTION_CHANNELS} />
-        <CheckGroup label="Conversão" field="conversionChannelsJson" options={CONVERSION_CHANNELS} />
-      </Section>
-
-      <Section id="visual" title="Visual da Empresa">
-        <Field label="Nome da Empresa" field="companyName" />
-        <CheckGroup label="Identidade Visual" field="visualIdentityJson" options={VISUAL_IDENTITY_OPTIONS} />
-        <CheckGroup label="Cores Desejadas" field="desiredColorsJson" options={DESIRED_COLORS_OPTIONS} />
-        <Field label="Marcas de Referência" field="referenceBrands" multiline />
-        <CheckGroup label="Sentimento Visual" field="visualFeelingJson" options={VISUAL_FEELING_OPTIONS} />
-      </Section>
-
-      <Section id="kpis" title="KPIs">
-        <CheckGroup label="KPIs de Tráfego" field="kpisTrafficJson" options={KPIS_TRAFFIC} />
-        <CheckGroup label="KPIs de Venda" field="kpisSalesJson" options={KPIS_SALES} />
-        <CheckGroup label="KPIs de Acompanhamento" field="kpisFollowupJson" options={KPIS_FOLLOWUP} />
-      </Section>
-
-      <div className="briefing-footer">
-        <button className="briefing-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-          {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar Briefing'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Editorial Tab ────────────────────────────────────────────────────────────
-function EditorialTab({ editorial, onSave }: {
-  editorial: EditorialRecord
-  onSave: (updated: EditorialRecord) => Promise<void>
-}) {
-  const [draft, setDraft] = useState<EditorialRecord>(editorial)
-  const [currentStep, setCurrentStep] = useState<EditorialStep>('Persona')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  const set = (updates: Partial<EditorialRecord>) => setDraft(d => ({ ...d, ...updates }))
-  const setPersona = (updates: Partial<EditorialPersona>) => setDraft(d => ({ ...d, persona: { ...d.persona, ...updates } }))
-
-  const handleSave = async () => {
-    setSaving(true)
-    await onSave(draft)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const stepIndex = EDITORIAL_STEPS.indexOf(currentStep)
-
-  return (
-    <div className="editorial-wrap">
-      <div className="editorial-steps">
-        {EDITORIAL_STEPS.map((step, i) => (
-          <button
-            key={step}
-            className={`editorial-step-btn${currentStep === step ? ' active' : ''}${i < stepIndex ? ' done' : ''}`}
-            onClick={() => setCurrentStep(step)}
-            type="button"
-          >
-            <span className="editorial-step-num">{i + 1}</span>
-            <span className="editorial-step-label">{step}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="editorial-step-content">
-        {currentStep === 'Persona' && (
-          <EditorialPersonaStep persona={draft.persona} onChange={setPersona} />
-        )}
-        {currentStep === 'Produtos' && (
-          <EditorialProductsStep products={draft.products} onChange={p => set({ products: p })} />
-        )}
-        {currentStep === 'Macrotemas' && (
-          <EditorialMacroStep macrotemas={draft.macrotemas} products={draft.products} onChange={m => set({ macrotemas: m })} />
-        )}
-        {currentStep === 'Microtemas' && (
-          <EditorialMicroStep macrotemas={draft.macrotemas} microtemas={draft.microtemas} onChange={m => set({ microtemas: m })} />
-        )}
-        {currentStep === 'Ideias & Copy' && (
-          <EditorialIdeiasStep macrotemas={draft.macrotemas} microtemas={draft.microtemas} ideias={draft.ideias} onChange={id => set({ ideias: id })} />
-        )}
-        {currentStep === 'Aprovação' && (
-          <EditorialAprovacaoStep ideias={draft.ideias} microtemas={draft.microtemas} macrotemas={draft.macrotemas} onChange={id => set({ ideias: id })} />
-        )}
-      </div>
-
-      <div className="editorial-footer">
-        <div className="editorial-nav-btns">
-          {stepIndex > 0 && (
-            <button type="button" className="editorial-nav-btn" onClick={() => setCurrentStep(EDITORIAL_STEPS[stepIndex - 1])}>
-              ← {EDITORIAL_STEPS[stepIndex - 1]}
-            </button>
-          )}
-          {stepIndex < EDITORIAL_STEPS.length - 1 && (
-            <button type="button" className="editorial-nav-btn primary" onClick={() => setCurrentStep(EDITORIAL_STEPS[stepIndex + 1])}>
-              {EDITORIAL_STEPS[stepIndex + 1]} →
-            </button>
-          )}
-        </div>
-        <button className="briefing-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-          {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Editorial: Persona Step ──────────────────────────────────────────────────
-function EditorialPersonaStep({ persona, onChange }: {
-  persona: EditorialPersona
-  onChange: (p: Partial<EditorialPersona>) => void
-}) {
-  const toggleChannel = (ch: string) => {
-    const cur = persona.channels
-    onChange({ channels: cur.includes(ch) ? cur.filter(c => c !== ch) : [...cur, ch] })
-  }
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Persona de Conteúdo</h3>
-      <p className="editorial-step-desc">Defina quem você está falando. Esse passo orienta todo o restante da linha editorial.</p>
-      <div className="editorial-field">
-        <label>Nome da Persona</label>
-        <input className="briefing-input" placeholder="Ex: A Empreendedora Ambiciosa" value={persona.name} onChange={e => onChange({ name: e.target.value })} />
-      </div>
-      <div className="editorial-row-2">
-        <div className="editorial-field">
-          <label>Faixa Etária</label>
-          <input className="briefing-input" placeholder="Ex: 28–40 anos" value={persona.ageRange} onChange={e => onChange({ ageRange: e.target.value })} />
-        </div>
-        <div className="editorial-field">
-          <label>Ocupação / Perfil</label>
-          <input className="briefing-input" placeholder="Ex: Dono de negócio local" value={persona.occupation} onChange={e => onChange({ occupation: e.target.value })} />
-        </div>
-      </div>
-      <div className="editorial-field">
-        <label>Principais Dores</label>
-        <textarea className="briefing-textarea" rows={3} placeholder="O que tira o sono dessa persona?" value={persona.pains} onChange={e => onChange({ pains: e.target.value })} />
-      </div>
-      <div className="editorial-field">
-        <label>Maiores Desejos</label>
-        <textarea className="briefing-textarea" rows={3} placeholder="O que essa persona mais quer alcançar?" value={persona.desires} onChange={e => onChange({ desires: e.target.value })} />
-      </div>
-      <div className="editorial-field">
-        <label>Onde está online</label>
-        <div className="briefing-checks">
-          {EDITORIAL_CHANNELS.map(ch => (
-            <label key={ch} className="briefing-check">
-              <input type="checkbox" checked={persona.channels.includes(ch)} onChange={() => toggleChannel(ch)} />
-              <span>{ch}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-      <div className="editorial-field">
-        <label>Nível de Consciência do Problema</label>
-        <select className="briefing-select" value={persona.awarenessLevel} onChange={e => onChange({ awarenessLevel: e.target.value })}>
-          <option value="">Selecione...</option>
-          {EDITORIAL_AWARENESS.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
-      </div>
-    </div>
-  )
-}
-
-// ─── Editorial: Produtos Step ─────────────────────────────────────────────────
-function EditorialProductsStep({ products, onChange }: {
-  products: EditorialProductItem[]
-  onChange: (p: EditorialProductItem[]) => void
-}) {
-  const add = () => onChange([...products, { id: genId(), name: '', description: '' }])
-  const remove = (id: string) => onChange(products.filter(p => p.id !== id))
-  const update = (id: string, field: 'name' | 'description', val: string) =>
-    onChange(products.map(p => p.id === id ? { ...p, [field]: val } : p))
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Produtos / Pilares de Conteúdo</h3>
-      <p className="editorial-step-desc">Liste os produtos ou serviços promovidos na linha editorial. Cada macrotema pode ser vinculado a um produto.</p>
-      {products.length === 0 && <p className="editorial-empty-hint">Nenhum produto ainda. Clique em "+ Adicionar" para começar.</p>}
-      {products.map((p, i) => (
-        <div key={p.id} className="editorial-product-row">
-          <span className="editorial-product-num">{i + 1}</span>
-          <div className="editorial-product-fields">
-            <input className="briefing-input" placeholder="Nome do produto" value={p.name} onChange={e => update(p.id, 'name', e.target.value)} />
-            <input className="briefing-input" placeholder="Descrição breve" value={p.description} onChange={e => update(p.id, 'description', e.target.value)} />
-          </div>
-          <button className="briefing-remove-btn" type="button" onClick={() => remove(p.id)}>×</button>
-        </div>
-      ))}
-      <button className="briefing-add-row-btn" type="button" onClick={add}>+ Adicionar produto</button>
-    </div>
-  )
-}
-
-// ─── Editorial: Macrotemas Step ───────────────────────────────────────────────
-function EditorialMacroStep({ macrotemas, products, onChange }: {
-  macrotemas: EditorialMacrotema[]
-  products: EditorialProductItem[]
-  onChange: (m: EditorialMacrotema[]) => void
-}) {
-  const add = (name = '') => onChange([...macrotemas, { id: genId(), name, description: '', productId: '' }])
-  const remove = (id: string) => onChange(macrotemas.filter(m => m.id !== id))
-  const update = (id: string, field: keyof EditorialMacrotema, val: string) =>
-    onChange(macrotemas.map(m => m.id === id ? { ...m, [field]: val } : m))
-  const unusedQuick = QUICK_MACROTEMAS.filter(q => !macrotemas.some(m => m.name === q))
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Macrotemas</h3>
-      <p className="editorial-step-desc">Grandes pilares de conteúdo. Ex: Educacional, Vendas, Prova Social.</p>
-      {unusedQuick.length > 0 && (
-        <div className="editorial-quick-add">
-          <p className="editorial-quick-label">Adicionar rápido:</p>
-          <div className="editorial-quick-chips">
-            {unusedQuick.map(q => (
-              <button key={q} className="editorial-quick-chip" type="button" onClick={() => add(q)}>{q}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {macrotemas.length === 0 && <p className="editorial-empty-hint">Nenhum macrotema ainda.</p>}
-      {macrotemas.map(m => (
-        <div key={m.id} className="editorial-macrotema-row">
-          <div className="editorial-macrotema-header">
-            <input className="briefing-input editorial-macrotema-name" placeholder="Nome do macrotema" value={m.name} onChange={e => update(m.id, 'name', e.target.value)} />
-            {products.length > 0 && (
-              <select className="briefing-select editorial-macrotema-product" value={m.productId} onChange={e => update(m.id, 'productId', e.target.value)}>
-                <option value="">Produto (opcional)</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            )}
-            <button className="briefing-remove-btn" type="button" onClick={() => remove(m.id)}>×</button>
-          </div>
-          <textarea className="briefing-textarea" rows={2} placeholder="Objetivo deste macrotema" value={m.description} onChange={e => update(m.id, 'description', e.target.value)} />
-        </div>
-      ))}
-      <button className="briefing-add-row-btn" type="button" onClick={() => add()}>+ Adicionar macrotema</button>
-    </div>
-  )
-}
-
-// ─── Editorial: Microtemas Step ───────────────────────────────────────────────
-function EditorialMicroStep({ macrotemas, microtemas, onChange }: {
-  macrotemas: EditorialMacrotema[]
-  microtemas: EditorialMicrotema[]
-  onChange: (m: EditorialMicrotema[]) => void
-}) {
-  const add = (macrotemaId: string) => onChange([...microtemas, { id: genId(), macrotemaId, name: '' }])
-  const remove = (id: string) => onChange(microtemas.filter(m => m.id !== id))
-  const update = (id: string, name: string) => onChange(microtemas.map(m => m.id === id ? { ...m, name } : m))
-  if (macrotemas.length === 0) {
-    return (
-      <div className="editorial-step-body">
-        <h3 className="editorial-step-title">Microtemas</h3>
-        <p className="editorial-empty-hint">Crie macrotemas primeiro para adicionar microtemas.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Microtemas</h3>
-      <p className="editorial-step-desc">Subtópicos específicos dentro de cada macrotema.</p>
-      {macrotemas.map(macro => {
-        const children = microtemas.filter(m => m.macrotemaId === macro.id)
-        return (
-          <div key={macro.id} className="editorial-macro-group">
-            <div className="editorial-macro-group-header">
-              <span className="editorial-macro-title">{macro.name || '(sem nome)'}</span>
-              <span className="editorial-macro-count">{children.length}</span>
-            </div>
-            <div className="editorial-microtemas-list">
-              {children.map(micro => (
-                <div key={micro.id} className="editorial-microtema-row">
-                  <input className="briefing-input" placeholder="Ex: Como dobrar as vendas em 30 dias" value={micro.name} onChange={e => update(micro.id, e.target.value)} />
-                  <button className="briefing-remove-btn" type="button" onClick={() => remove(micro.id)}>×</button>
-                </div>
-              ))}
-              <button className="editorial-add-micro-btn" type="button" onClick={() => add(macro.id)}>+ Microtema</button>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Editorial: Ideias & Copy Step ───────────────────────────────────────────
-function EditorialIdeiasStep({ macrotemas, microtemas, ideias, onChange }: {
-  macrotemas: EditorialMacrotema[]
-  microtemas: EditorialMicrotema[]
-  ideias: EditorialIdeia[]
-  onChange: (id: EditorialIdeia[]) => void
-}) {
-  const add = (microtemaId: string) =>
-    onChange([...ideias, { id: genId(), microtemaId, format: 'Reels', hook: '', copy: '', cta: '', status: 'Rascunho' }])
-  const remove = (id: string) => onChange(ideias.filter(i => i.id !== id))
-  const update = (id: string, updates: Partial<EditorialIdeia>) =>
-    onChange(ideias.map(i => i.id === id ? { ...i, ...updates } : i))
-  if (microtemas.length === 0) {
-    return (
-      <div className="editorial-step-body">
-        <h3 className="editorial-step-title">Ideias & Copy</h3>
-        <p className="editorial-empty-hint">Crie microtemas primeiro para adicionar ideias.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Ideias & Copy</h3>
-      <p className="editorial-step-desc">Para cada microtema, crie as ideias com hook, roteiro e CTA.</p>
-      {macrotemas.map(macro => {
-        const macroMicros = microtemas.filter(m => m.macrotemaId === macro.id)
-        if (macroMicros.length === 0) return null
-        return (
-          <div key={macro.id} className="editorial-ideias-macro-group">
-            <h4 className="editorial-ideias-macro-title">{macro.name || '(sem nome)'}</h4>
-            {macroMicros.map(micro => {
-              const microIdeias = ideias.filter(i => i.microtemaId === micro.id)
-              return (
-                <div key={micro.id} className="editorial-ideias-micro-group">
-                  <div className="editorial-ideias-micro-header">
-                    <span>{micro.name || '(sem nome)'}</span>
-                    <span className="editorial-ideias-count">{microIdeias.length} ideia{microIdeias.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  {microIdeias.map(ideia => (
-                    <div key={ideia.id} className="editorial-ideia-card">
-                      <div className="editorial-ideia-header">
-                        <select className="editorial-format-select" value={ideia.format} onChange={e => update(ideia.id, { format: e.target.value as EditorialFormat })}>
-                          {EDITORIAL_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-                        </select>
-                        <select className="editorial-status-select" value={ideia.status} style={{ color: EDITORIAL_STATUS_COLORS[ideia.status] }} onChange={e => update(ideia.id, { status: e.target.value as EditorialStatus })}>
-                          {EDITORIAL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        <button className="briefing-remove-btn" type="button" onClick={() => remove(ideia.id)}>×</button>
-                      </div>
-                      <div className="editorial-ideia-body">
-                        <div className="editorial-field">
-                          <label>Hook (primeiros segundos)</label>
-                          <textarea className="briefing-textarea" rows={2} placeholder="O que vai parar o scroll..." value={ideia.hook} onChange={e => update(ideia.id, { hook: e.target.value })} />
-                        </div>
-                        <div className="editorial-field">
-                          <label>Copy / Roteiro</label>
-                          <textarea className="briefing-textarea" rows={4} placeholder="Desenvolvimento do conteúdo..." value={ideia.copy} onChange={e => update(ideia.id, { copy: e.target.value })} />
-                        </div>
-                        <div className="editorial-field">
-                          <label>CTA</label>
-                          <input className="briefing-input" placeholder="Ex: Salva esse post e me segue!" value={ideia.cta} onChange={e => update(ideia.id, { cta: e.target.value })} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button className="editorial-add-ideia-btn" type="button" onClick={() => add(micro.id)}>+ Ideia</button>
-                </div>
-              )
-            })}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Editorial: Aprovação Step ────────────────────────────────────────────────
-function EditorialAprovacaoStep({ ideias, microtemas, macrotemas, onChange }: {
-  ideias: EditorialIdeia[]
-  microtemas: EditorialMicrotema[]
-  macrotemas: EditorialMacrotema[]
-  onChange: (id: EditorialIdeia[]) => void
-}) {
-  const updateStatus = (id: string, status: EditorialStatus) =>
-    onChange(ideias.map(i => i.id === id ? { ...i, status } : i))
-  const getMicroName = (id: string) => microtemas.find(m => m.id === id)?.name ?? '—'
-  const getMacroName = (microId: string) => {
-    const micro = microtemas.find(m => m.id === microId)
-    if (!micro) return '—'
-    return macrotemas.find(m => m.id === micro.macrotemaId)?.name ?? '—'
-  }
-  const grouped = EDITORIAL_STATUSES.reduce<Record<EditorialStatus, EditorialIdeia[]>>((acc, s) => {
-    acc[s] = ideias.filter(i => i.status === s); return acc
-  }, { 'Rascunho': [], 'Em Aprovação': [], 'Aprovado': [], 'Recusado': [] })
-  if (ideias.length === 0) {
-    return (
-      <div className="editorial-step-body">
-        <h3 className="editorial-step-title">Aprovação</h3>
-        <p className="editorial-empty-hint">Crie ideias primeiro para poder aprovar o conteúdo.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="editorial-step-body">
-      <h3 className="editorial-step-title">Aprovação</h3>
-      <p className="editorial-step-desc">{ideias.length} ideia{ideias.length !== 1 ? 's' : ''} no total · Atualize o status de cada peça.</p>
-      <div className="editorial-aprovacao-grid">
-        {EDITORIAL_STATUSES.map(status => (
-          <div key={status} className="editorial-aprovacao-col">
-            <div className="editorial-aprovacao-col-header" style={{ color: EDITORIAL_STATUS_COLORS[status] }}>
-              <span>{status}</span>
-              <span className="editorial-aprovacao-count">{grouped[status].length}</span>
-            </div>
-            <div className="editorial-aprovacao-cards">
-              {grouped[status].map(ideia => (
-                <div key={ideia.id} className="editorial-aprovacao-card">
-                  <div className="editorial-aprovacao-meta">
-                    <span className="editorial-aprovacao-format">{ideia.format}</span>
-                    <span className="editorial-aprovacao-micro">{getMacroName(ideia.microtemaId)} › {getMicroName(ideia.microtemaId)}</span>
-                  </div>
-                  {ideia.hook && <p className="editorial-aprovacao-hook">{ideia.hook}</p>}
-                  <select className="editorial-status-select" value={ideia.status} style={{ color: EDITORIAL_STATUS_COLORS[ideia.status] }} onChange={e => updateStatus(ideia.id, e.target.value as EditorialStatus)}>
-                    {EDITORIAL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              ))}
-              {grouped[status].length === 0 && <div className="editorial-aprovacao-empty">Nenhuma</div>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Estratégia Tab ───────────────────────────────────────────────────────────
-function EstratégiaTab({ strategy, onSave }: {
-  strategy: StrategyRecord
-  onSave: (s: StrategyRecord) => Promise<void>
-}) {
-  const [draft, setDraft] = useState(strategy)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const set = (k: keyof StrategyRecord, v: string) => setDraft(d => ({ ...d, [k]: v }))
-  const handleSave = async () => { setSaving(true); await onSave(draft); setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000) }
-  return (
-    <div className="extras-tab-wrap">
-      <div className="extras-tab-header">
-        <div>
-          <h3 className="extras-tab-title">Estratégia</h3>
-          <p className="extras-tab-desc">Objetivos, metas e plano de ação do contrato.</p>
-        </div>
-        <button className="briefing-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-          {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-        </button>
-      </div>
-      <div className="extras-fields">
-        <div className="extras-field">
-          <label>Objetivo Principal do Contrato</label>
-          <textarea rows={3} placeholder="Ex: Gerar 50 leads qualificados por mês via tráfego pago..." value={draft.mainGoal} onChange={e => set('mainGoal', e.target.value)} />
-        </div>
-        <div className="extras-field">
-          <label>Meta de Resultado Esperado</label>
-          <textarea rows={3} placeholder="Ex: R$ 50.000 em faturamento, 200 novos seguidores, 10 fechamentos..." value={draft.monthlyTarget} onChange={e => set('monthlyTarget', e.target.value)} />
-        </div>
-        <div className="extras-field">
-          <label>Prazo / Período de Revisão</label>
-          <input placeholder="Ex: Revisão a cada 30 dias, contrato de 6 meses..." value={draft.reviewPeriod} onChange={e => set('reviewPeriod', e.target.value)} />
-        </div>
-        <div className="extras-field">
-          <label>Plano de Ação / Observações</label>
-          <textarea rows={6} placeholder="Descreva as ações estratégicas planejadas, prioridades e pontos de atenção..." value={draft.actionPlan} onChange={e => set('actionPlan', e.target.value)} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Calendário Tab ───────────────────────────────────────────────────────────
-function CalendárioTab({ pieces, onSave }: {
-  pieces: CalendarPiece[]
-  onSave: (p: CalendarPiece[]) => Promise<void>
-}) {
-  const [draft, setDraft] = useState(pieces)
-  const [editing, setEditing] = useState<CalendarPiece | null>(null)
-  const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [dragOverCol, setDragOverCol] = useState<CalendarStatus | null>(null)
-  const [filterMonth, setFilterMonth] = useState('')
-  const [filterPilar, setFilterPilar] = useState('')
-  const [confirmRemove, setConfirmRemove] = useState<CalendarPiece | null>(null)
-
-  // Sincroniza com props quando vier nova base
-  useEffect(() => { setDraft(pieces) }, [pieces])
-
-  // Auto-save em qualquer mudança (debounced via state, simples)
-  const persist = (next: CalendarPiece[]) => {
-    setDraft(next)
-    void onSave(next)
-  }
-
-  const handleAdd = (status: CalendarStatus) => {
-    const today = new Date().toISOString().slice(0, 10)
-    const newPiece: CalendarPiece = {
-      id: genId(), title: '', format: 'Reels', date: today, status, notes: '',
-      pilar: '', hook: '', copy: '', cta: '',
-    }
-    persist([...draft, newPiece])
-    setEditing(newPiece)
-  }
-
-  const handleUpdate = (updated: CalendarPiece) => {
-    persist(draft.map(p => p.id === updated.id ? updated : p))
-    setEditing(null)
-  }
-
-  const handleRemove = (id: string) => {
-    persist(draft.filter(p => p.id !== id))
-    setConfirmRemove(null)
-  }
-
-  const handleDropOnColumn = (status: CalendarStatus) => {
-    if (!draggingId) return
-    persist(draft.map(p => p.id === draggingId ? { ...p, status } : p))
-    setDraggingId(null)
-    setDragOverCol(null)
-  }
-
-  // Filtros
-  const months = Array.from(new Set(draft.map(p => p.date?.slice(0, 7) || ''))).filter(Boolean).sort()
-  const visiblePieces = draft.filter(p => {
-    if (filterMonth && !p.date?.startsWith(filterMonth)) return false
-    if (filterPilar && (p.pilar ?? '') !== filterPilar) return false
-    return true
-  })
-  const usedPilares = Array.from(new Set(draft.map(p => p.pilar).filter((x): x is string => Boolean(x))))
-
-  return (
-    <div className="extras-tab-wrap cal-kanban-wrap">
-      <div className="extras-tab-header">
-        <div>
-          <h3 className="extras-tab-title">Calendário Editorial</h3>
-          <p className="extras-tab-desc">
-            {draft.length} peça{draft.length !== 1 ? 's' : ''} · Arraste pra mudar status
-          </p>
-        </div>
-        <div className="extras-header-actions">
-          <button className="crm-add-btn" onClick={() => handleAdd('Briefing')} type="button">+ Conteúdo</button>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      {(months.length > 1 || usedPilares.length > 0) && (
-        <div className="cal-filters">
-          {months.length > 1 && (
-            <div className="cal-filter-group">
-              <span className="cal-filter-label">Mês</span>
-              <div className="cal-filter-chips">
-                <button className={`cal-chip${filterMonth === '' ? ' active' : ''}`} type="button" onClick={() => setFilterMonth('')}>Todos</button>
-                {months.map(m => (
-                  <button key={m} className={`cal-chip${filterMonth === m ? ' active' : ''}`} type="button" onClick={() => setFilterMonth(m)}>
-                    {new Date(m + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {usedPilares.length > 0 && (
-            <div className="cal-filter-group">
-              <span className="cal-filter-label">Pilar</span>
-              <div className="cal-filter-chips">
-                <button className={`cal-chip${filterPilar === '' ? ' active' : ''}`} type="button" onClick={() => setFilterPilar('')}>Todos</button>
-                {usedPilares.map(p => (
-                  <button
-                    key={p}
-                    className={`cal-chip${filterPilar === p ? ' active' : ''}`}
-                    style={filterPilar === p && CALENDAR_PILAR_COLORS[p] ? { borderColor: CALENDAR_PILAR_COLORS[p], color: CALENDAR_PILAR_COLORS[p] } : undefined}
-                    type="button"
-                    onClick={() => setFilterPilar(p)}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Kanban */}
-      <div className="cal-kanban">
-        {CALENDAR_STATUSES.map(status => {
-          const colorPieces = visiblePieces.filter(p => p.status === status)
-          return (
-            <div
-              key={status}
-              className={`cal-kanban-column${dragOverCol === status ? ' is-drop-target' : ''}`}
-              onDragOver={e => { e.preventDefault(); setDragOverCol(status) }}
-              onDragLeave={() => setDragOverCol(cur => cur === status ? null : cur)}
-              onDrop={e => { e.preventDefault(); handleDropOnColumn(status) }}
-            >
-              <div className="cal-kanban-col-head">
-                <span className="cal-kanban-col-dot" style={{ background: CALENDAR_STATUS_COLORS[status] }} />
-                <span className="cal-kanban-col-title">{status}</span>
-                <span className="cal-kanban-col-count">{colorPieces.length}</span>
-                <button
-                  className="cal-kanban-col-add"
-                  type="button"
-                  onClick={() => handleAdd(status)}
-                  aria-label={`Adicionar em ${status}`}
-                  title="Adicionar"
-                >
-                  +
-                </button>
-              </div>
-
-              <div className="cal-kanban-col-body">
-                {colorPieces.length === 0 ? (
-                  <div className="cal-kanban-col-empty">Vazio</div>
-                ) : colorPieces.map(piece => (
-                  <article
-                    key={piece.id}
-                    className={`cal-kanban-card${draggingId === piece.id ? ' is-dragging' : ''}`}
-                    draggable
-                    onDragStart={e => {
-                      e.dataTransfer.setData('pieceId', piece.id)
-                      e.dataTransfer.effectAllowed = 'move'
-                      setDraggingId(piece.id)
-                    }}
-                    onDragEnd={() => { setDraggingId(null); setDragOverCol(null) }}
-                    onClick={() => setEditing(piece)}
-                  >
-                    {piece.pilar && (
-                      <span
-                        className="cal-kanban-card-pilar"
-                        style={CALENDAR_PILAR_COLORS[piece.pilar]
-                          ? { background: `${CALENDAR_PILAR_COLORS[piece.pilar]}22`, color: CALENDAR_PILAR_COLORS[piece.pilar] }
-                          : undefined
-                        }
-                      >
-                        {piece.pilar}
-                      </span>
-                    )}
-                    <h4 className="cal-kanban-card-title">
-                      {piece.title || <span className="cal-kanban-card-title-empty">(sem título)</span>}
-                    </h4>
-                    <div className="cal-kanban-card-meta">
-                      <span className="cal-kanban-card-format">{piece.format}</span>
-                      {piece.date && (
-                        <span className="cal-kanban-card-date">
-                          {new Date(piece.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Modal de edição */}
-      {editing && (
-        <CalendarPieceModal
-          piece={editing}
-          onClose={() => setEditing(null)}
-          onSave={handleUpdate}
-          onDelete={() => { setEditing(null); setConfirmRemove(editing) }}
-        />
-      )}
-
-      {/* Confirm de remoção */}
-      {confirmRemove && (
-        <ConfirmDialog
-          title="Excluir peça"
-          message={`Excluir "${confirmRemove.title || '(sem título)'}" do calendário?`}
-          confirmLabel="Excluir"
-          cancelLabel="Cancelar"
-          variant="danger"
-          onConfirm={() => handleRemove(confirmRemove.id)}
-          onClose={() => setConfirmRemove(null)}
-        />
-      )}
-    </div>
-  )
-}
-
-function CalendarPieceModal({
-  piece,
-  onClose,
-  onSave,
-  onDelete,
-}: {
-  piece: CalendarPiece
-  onClose: () => void
-  onSave: (p: CalendarPiece) => void
-  onDelete: () => void
-}) {
-  const [draft, setDraft] = useState<CalendarPiece>(piece)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  const set = <K extends keyof CalendarPiece>(field: K, value: CalendarPiece[K]) => {
-    setDraft(d => ({ ...d, [field]: value }))
-  }
-
-  return (
-    <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal cal-piece-modal" onClick={e => e.stopPropagation()}>
-        <div className="crm-modal-header">
-          <h3>Editar conteúdo</h3>
-          <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="cal-piece-modal-body">
-          <div className="extras-field">
-            <label>Título</label>
-            <input
-              autoFocus
-              placeholder="Ex: 3 erros que sabotam suas vendas"
-              value={draft.title}
-              onChange={e => set('title', e.target.value)}
-            />
-          </div>
-
-          <div className="cal-piece-row">
-            <div className="extras-field">
-              <label>Pilar</label>
-              <select value={draft.pilar ?? ''} onChange={e => set('pilar', e.target.value)}>
-                <option value="">— Sem pilar</option>
-                {CALENDAR_PILARES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="extras-field">
-              <label>Formato</label>
-              <select value={draft.format} onChange={e => set('format', e.target.value)}>
-                {CALENDAR_FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-            </div>
-            <div className="extras-field">
-              <label>Data</label>
-              <input type="date" value={draft.date} onChange={e => set('date', e.target.value)} />
-            </div>
-            <div className="extras-field">
-              <label>Status</label>
-              <select
-                value={draft.status}
-                onChange={e => set('status', e.target.value as CalendarStatus)}
-                style={{ color: CALENDAR_STATUS_COLORS[draft.status] }}
-              >
-                {CALENDAR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="extras-field">
-            <label>Hook / Gancho de abertura</label>
-            <input
-              placeholder="Primeira linha que prende. Ex: Você ainda faz isso nas suas vendas?"
-              value={draft.hook ?? ''}
-              onChange={e => set('hook', e.target.value)}
-            />
-          </div>
-
-          <div className="extras-field">
-            <label>Copy / Roteiro</label>
-            <textarea
-              rows={6}
-              placeholder="Estrutura completa do conteúdo — pode colar roteiro de vídeo, legenda do post, etc."
-              value={draft.copy ?? ''}
-              onChange={e => set('copy', e.target.value)}
-            />
-          </div>
-
-          <div className="extras-field">
-            <label>CTA / Chamada</label>
-            <input
-              placeholder="Ex: Comenta DICA pra eu te mandar o passo a passo"
-              value={draft.cta ?? ''}
-              onChange={e => set('cta', e.target.value)}
-            />
-          </div>
-
-          <div className="extras-field">
-            <label>Anotações internas</label>
-            <textarea
-              rows={3}
-              placeholder="Referências, observações de aprovação, links..."
-              value={draft.notes ?? ''}
-              onChange={e => set('notes', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="crm-modal-footer cal-piece-modal-footer">
-          <button type="button" onClick={onDelete} className="cal-piece-delete">Excluir</button>
-          <div className="cal-piece-footer-right">
-            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="button" onClick={() => onSave(draft)} className="crm-modal-submit">Salvar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Acessos Tab ──────────────────────────────────────────────────────────────
-function AcessosTab({ accesses, onSave }: {
-  accesses: AccessEntry[]
-  onSave: (a: AccessEntry[]) => Promise<void>
-}) {
-  const [draft, setDraft] = useState(accesses)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set())
-
-  const add = () => setDraft(d => [...d, { id: genId(), platform: '', login: '', password: '', notes: '' }])
-  const remove = (id: string) => setDraft(d => d.filter(a => a.id !== id))
-  const update = (id: string, updates: Partial<AccessEntry>) => setDraft(d => d.map(a => a.id === id ? { ...a, ...updates } : a))
-  const toggleVisible = (id: string) => setVisibleIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const handleSave = async () => { setSaving(true); await onSave(draft); setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000) }
-
-  return (
-    <div className="extras-tab-wrap">
-      <div className="extras-tab-header">
-        <div>
-          <h3 className="extras-tab-title">Acessos</h3>
-          <p className="extras-tab-desc">Credenciais de plataformas do cliente. Senhas visíveis apenas ao clicar.</p>
-        </div>
-        <div className="extras-header-actions">
-          <button className="extras-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-            {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-          </button>
-          <button className="crm-add-btn" onClick={add} type="button">+ Acesso</button>
-        </div>
-      </div>
-
-      {draft.length === 0 ? (
-        <div className="clients-empty"><p>Nenhum acesso cadastrado.</p></div>
-      ) : (
-        <div className="access-list">
-          {draft.map(entry => (
-            <div key={entry.id} className="access-card">
-              <div className="access-card-top">
-                <div className="extras-field" style={{ flex: 1 }}>
-                  <label>Plataforma</label>
-                  <select value={entry.platform} onChange={e => update(entry.id, { platform: e.target.value })}>
-                    <option value="">Selecione...</option>
-                    {ACCESS_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div className="extras-field" style={{ flex: 2 }}>
-                  <label>Login / E-mail / Usuário</label>
-                  <input placeholder="usuario@email.com" value={entry.login} onChange={e => update(entry.id, { login: e.target.value })} />
-                </div>
-                <div className="extras-field access-password-field">
-                  <label>Senha</label>
-                  <div className="access-password-wrap">
-                    <input
-                      type={visibleIds.has(entry.id) ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={entry.password}
-                      onChange={e => update(entry.id, { password: e.target.value })}
-                    />
-                    <button type="button" className="access-toggle-btn" onClick={() => toggleVisible(entry.id)} title={visibleIds.has(entry.id) ? 'Ocultar' : 'Mostrar'}>
-                      {visibleIds.has(entry.id) ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <button className="access-remove-btn" type="button" onClick={() => remove(entry.id)} title="Remover">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 14h10l1-14"/><path d="M9 7V4h6v3"/></svg>
-                </button>
-              </div>
-              <div className="extras-field">
-                <label>Observações</label>
-                <input placeholder="URL de acesso, página de admin, etc." value={entry.notes} onChange={e => update(entry.id, { notes: e.target.value })} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Resultados Tab ───────────────────────────────────────────────────────────
-function ResultadosTab({ results, onSave }: {
-  results: ResultMonth[]
-  onSave: (r: ResultMonth[]) => Promise<void>
-}) {
-  const [draft, setDraft] = useState(results)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-
-  const DEFAULT_METRICS = ['Leads gerados', 'Conversas no WhatsApp', 'Reuniões agendadas', 'Clientes fechados', 'Faturamento gerado', 'Crescimento de seguidores', 'Alcance', 'Engajamento']
-
-  const addMonth = () => {
-    const now = new Date()
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    if (draft.some(r => r.month === month)) return
-    const entry: ResultMonth = { id: genId(), month, metrics: {}, notes: '' }
-    setDraft(d => [entry, ...d])
-    setExpandedId(entry.id)
-  }
-  const remove = (id: string) => setDraft(d => d.filter(r => r.id !== id))
-  const updateMetric = (id: string, key: string, val: string) =>
-    setDraft(d => d.map(r => r.id === id ? { ...r, metrics: { ...r.metrics, [key]: val } } : r))
-  const updateNotes = (id: string, notes: string) =>
-    setDraft(d => d.map(r => r.id === id ? { ...r, notes } : r))
-  const handleSave = async () => { setSaving(true); await onSave(draft); setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000) }
-
-  const sorted = [...draft].sort((a, b) => b.month.localeCompare(a.month))
-
-  return (
-    <div className="extras-tab-wrap">
-      <div className="extras-tab-header">
-        <div>
-          <h3 className="extras-tab-title">Resultados</h3>
-          <p className="extras-tab-desc">Registro mensal de KPIs e resultados do cliente.</p>
-        </div>
-        <div className="extras-header-actions">
-          <button className="extras-save-btn" onClick={() => void handleSave()} disabled={saving} type="button">
-            {saving ? 'Salvando…' : saved ? '✓ Salvo' : 'Salvar'}
-          </button>
-          <button className="crm-add-btn" onClick={addMonth} type="button">+ Mês</button>
-        </div>
-      </div>
-
-      {sorted.length === 0 ? (
-        <div className="clients-empty"><p>Nenhum resultado cadastrado ainda.</p></div>
-      ) : (
-        <div className="results-list">
-          {sorted.map(entry => (
-            <div key={entry.id} className="results-month-card">
-              <div className="results-month-header" onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}>
-                <span className="results-month-label">
-                  {new Date(entry.month + '-01').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                </span>
-                <span className="results-month-count">{Object.values(entry.metrics).filter(v => v).length} KPI{Object.values(entry.metrics).filter(v => v).length !== 1 ? 's' : ''} preenchido{Object.values(entry.metrics).filter(v => v).length !== 1 ? 's' : ''}</span>
-                <svg className={`cal-item-arrow${expandedId === entry.id ? ' open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
-              </div>
-              {expandedId === entry.id && (
-                <div className="results-month-body">
-                  <div className="results-metrics-grid">
-                    {DEFAULT_METRICS.map(key => (
-                      <div key={key} className="extras-field">
-                        <label>{key}</label>
-                        <input placeholder="—" value={entry.metrics[key] ?? ''} onChange={e => updateMetric(entry.id, key, e.target.value)} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="extras-field" style={{ marginTop: 12 }}>
-                    <label>Observações do mês</label>
-                    <textarea rows={3} placeholder="Destaques, pontos de atenção, contexto..." value={entry.notes} onChange={e => updateNotes(entry.id, e.target.value)} />
-                  </div>
-                  <button className="cal-item-remove" type="button" onClick={() => remove(entry.id)}>Remover mês</button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Add Client Modal ─────────────────────────────────────────────────────────
-function AddClientModal({ prefill, onClose, onAdd }: {
-  prefill?: { name: string; company: string; email: string; phone: string }
-  onClose: () => void
-  onAdd: (data: { name: string; company: string; email: string; phone: string; service: ClientService; startDate: string }) => void
-}) {
-  const [name, setName] = useState(prefill?.name ?? '')
-  const [company, setCompany] = useState(prefill?.company ?? '')
-  const [email, setEmail] = useState(prefill?.email ?? '')
-  const [phone, setPhone] = useState(prefill?.phone ?? '')
-  const [service, setService] = useState<ClientService>('Social Media')
-  const [startDate, setStartDate] = useState('')
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onAdd({ name: name.trim(), company: company.trim(), email: email.trim(), phone: phone.trim(), service, startDate })
-  }
-
-  return (
-    <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal" onClick={e => e.stopPropagation()}>
-        <div className="crm-modal-header">
-          <h3>{prefill ? 'Converter Lead em Cliente' : 'Novo Cliente'}</h3>
-          <button onClick={onClose} type="button" className="crm-modal-close"><CloseIcon /></button>
-        </div>
-        {prefill && <p className="crm-modal-sub">Lead fechado no CRM. Confirme os dados abaixo.</p>}
-        <form className="crm-modal-form" onSubmit={handleSubmit}>
-          <label>Nome *<input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Nome do responsável" autoFocus required /></label>
-          <label>Empresa<input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Razão social ou nome fantasia" /></label>
-          <div className="crm-modal-row">
-            <label>E-mail<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@empresa.com" /></label>
-            <label>Telefone / WhatsApp<input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></label>
-          </div>
-          <div className="crm-modal-row">
-            <label>Serviço Contratado
-              <select value={service} onChange={e => setService(e.target.value as ClientService)}>
-                {CLIENT_SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-            <label>Início do Contrato<input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
-          </div>
-          <div className="crm-modal-footer">
-            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="submit" className="crm-modal-submit">{prefill ? 'Criar Cliente' : 'Adicionar cliente'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
 
 function SidebarIcon() {
   return (
@@ -7492,6 +6918,116 @@ function HandToolIcon() {
   )
 }
 
+function UndoIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 14L4 9l5-5" />
+      <path d="M4 9h11a5 5 0 0 1 0 10h-4" />
+    </svg>
+  )
+}
+function RedoIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 14l5-5-5-5" />
+      <path d="M20 9H9a5 5 0 0 0 0 10h4" />
+    </svg>
+  )
+}
+
+function AlignLeftIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="3" y1="3" x2="3" y2="21" />
+      <rect x="5" y="6" width="12" height="4" rx="1" />
+      <rect x="5" y="14" width="8" height="4" rx="1" />
+    </svg>
+  )
+}
+function AlignCenterHIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <rect x="5" y="6" width="14" height="4" rx="1" />
+      <rect x="8" y="14" width="8" height="4" rx="1" />
+    </svg>
+  )
+}
+function AlignRightIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="21" y1="3" x2="21" y2="21" />
+      <rect x="7" y="6" width="12" height="4" rx="1" />
+      <rect x="11" y="14" width="8" height="4" rx="1" />
+    </svg>
+  )
+}
+function AlignTopIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="3" y1="3" x2="21" y2="3" />
+      <rect x="6" y="5" width="4" height="12" rx="1" />
+      <rect x="14" y="5" width="4" height="8" rx="1" />
+    </svg>
+  )
+}
+function AlignCenterVIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="8" width="4" height="8" rx="1" />
+    </svg>
+  )
+}
+function AlignBottomIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="3" y1="21" x2="21" y2="21" />
+      <rect x="6" y="7" width="4" height="12" rx="1" />
+      <rect x="14" y="11" width="4" height="8" rx="1" />
+    </svg>
+  )
+}
+function DistributeHIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="3" y1="4" x2="3" y2="20" />
+      <line x1="21" y1="4" x2="21" y2="20" />
+      <rect x="10" y="8" width="4" height="8" rx="1" />
+    </svg>
+  )
+}
+function GroupIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 2" />
+      <rect x="6.5" y="6.5" width="5" height="5" rx="1" fill="currentColor" stroke="none" />
+      <rect x="12.5" y="12.5" width="5" height="5" rx="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+function UngroupIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="9" height="9" rx="1.5" strokeDasharray="3 2" />
+      <rect x="12" y="12" width="9" height="9" rx="1.5" strokeDasharray="3 2" />
+      <rect x="5.5" y="5.5" width="4" height="4" rx="1" fill="currentColor" stroke="none" />
+      <rect x="14.5" y="14.5" width="4" height="4" rx="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function DistributeVIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round">
+      <line x1="4" y1="3" x2="20" y2="3" />
+      <line x1="4" y1="21" x2="20" y2="21" />
+      <rect x="8" y="10" width="8" height="4" rx="1" />
+    </svg>
+  )
+}
+
 function UserPlusIcon() {
   return (
     <svg aria-hidden viewBox="0 0 24 24">
@@ -7499,6 +7035,27 @@ function UserPlusIcon() {
       <path d="M2.5 21a5.5 5.5 0 0 1 11 0" />
       <path d="M17 10h4" />
       <path d="M19 8v4" />
+    </svg>
+  )
+}
+
+function ImportLeadsIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path d="M4 4h10l6 6v10H4z" />
+      <path d="M14 4v6h6" />
+      <path d="M12 18v-7" />
+      <path d="m9 14 3-3 3 3" />
+    </svg>
+  )
+}
+
+function DownloadTemplateIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path d="M12 3v12" />
+      <path d="m8 11 4 4 4-4" />
+      <path d="M5 21h14" />
     </svg>
   )
 }
@@ -7533,6 +7090,20 @@ function BoardPlusIcon() {
       <path d="M15 4v16" />
       <path d="M17 10h4" />
       <path d="M19 8v4" />
+    </svg>
+  )
+}
+
+function FinancePlusIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path d="M4 19V5" />
+      <path d="M4 19h17" />
+      <path d="M8 16v-5" />
+      <path d="M13 16V8" />
+      <path d="M18 16v-3" />
+      <path d="M17 5h4" />
+      <path d="M19 3v4" />
     </svg>
   )
 }

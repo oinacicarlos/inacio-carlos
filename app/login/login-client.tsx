@@ -14,7 +14,7 @@ export default function LoginClient() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace('/dashboard')
+        router.replace('/disparos')
       }
     })
   }, [router])
@@ -40,7 +40,7 @@ export default function LoginClient() {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/disparos')
   }
 
   return (
