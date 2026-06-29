@@ -562,17 +562,23 @@ export default function Home() {
               <h2 id="about-title" className="about-name">Inácio Carlos</h2>
               <div className="about-bio">
                 <p>
-                  Me chamo Inácio Carlos, tenho 22 anos, nasci no Rio de Janeiro,
-                  sempre sonhei em trabalhar com comunicação, desde os 8 anos
-                  trabalho com a internet, criando, vendendo e estudando uma
-                  estratégia nova a cada dia.
+                  Me chamo Inácio Carlos, sou um estrategista de comunicação e
+                  crescimento digital.
                 </p>
                 <p>
-                  Gerei mais de 2 bilhões de visualizações orgânicas nas redes
-                  sociais, movimentei mais de R$5 milhões em veiculação de mídia
-                  paga, atendi mais de 150 empresas no mundo inteiro, fali 3
-                  empresas aos 22 anos e hoje meu objetivo é ajudar empresários
-                  que não conseguem ter resultados através da minha metodologia.
+                  Gerei mais de 2 bilhões de visualizações orgânicas,
+                  movimentei mais de R$5 milhões em mídia paga e ajudei mais
+                  de 150 empresas no Brasil e no exterior.
+                </p>
+                <p>
+                  Também quebrei três empresas antes dos 22 anos, e isso
+                  moldou minha visão sobre negócios, posicionamento e
+                  crescimento.
+                </p>
+                <p>
+                  Hoje, ajudo empresários que têm bons produtos, mas ainda não
+                  conseguem vender com consistência, a construírem uma
+                  comunicação mais estratégica, lucrativa e previsível.
                 </p>
               </div>
             </div>
