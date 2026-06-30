@@ -3,6 +3,12 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void
+  }
+}
+
 type Screen = 'intro' | 'form' | 'success'
 type DiagnosticResult = {
   perfil: string
@@ -341,6 +347,7 @@ export default function Home() {
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const leadEventTrackedRef = useRef(false)
 
   const currentQuestion = QUESTIONS[currentQuestionIndex]
   const currentAnswer = answers[currentQuestion.id] ?? ''
@@ -352,9 +359,25 @@ export default function Home() {
     }
   }, [screen, currentQuestionIndex, currentQuestion.type])
 
+  useEffect(() => {
+    if (screen !== 'success' || !diagnostic || leadEventTrackedRef.current) {
+      return
+    }
+
+    if (typeof window.fbq !== 'function') {
+      return
+    }
+
+    window.fbq('track', 'Lead', {
+      content_name: 'Consultoria Gratuita',
+    })
+    leadEventTrackedRef.current = true
+  }, [screen, diagnostic])
+
   const startApplication = () => {
     setError('')
     setCurrentQuestionIndex(0)
+    leadEventTrackedRef.current = false
     setScreen('form')
   }
 
