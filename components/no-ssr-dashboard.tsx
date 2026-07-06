@@ -2,7 +2,7 @@
 
 import nextDynamic from 'next/dynamic'
 
-type AdminModule = 'Disparos' | 'CRM' | 'Financeiro' | 'Links' | 'Quadros'
+type AdminModule = 'CRM' | 'PFX' | 'Quadros'
 
 const AdminDashboardClient = nextDynamic(
   () => import('@/components/admin-dashboard-client'),

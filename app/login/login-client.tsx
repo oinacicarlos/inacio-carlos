@@ -14,7 +14,7 @@ export default function LoginClient() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace('/disparos')
+        router.replace('/crm')
       }
     })
   }, [router])
@@ -40,7 +40,7 @@ export default function LoginClient() {
       return
     }
 
-    router.push('/disparos')
+    router.push('/crm')
   }
 
   return (
@@ -91,7 +91,7 @@ export default function LoginClient() {
             {error && <p className="admin-login-error">{error}</p>}
 
             <button className="admin-primary-button" type="submit" disabled={loading}>
-              {loading ? 'Acessando...' : 'Acessar hub'}
+              <span>{loading ? 'Acessando...' : 'Acessar hub'}</span>
             </button>
           </form>
 

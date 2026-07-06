@@ -28,72 +28,12 @@ import {
 import { supabase } from '@/lib/supabaseClient'
 
 type AdminModule =
-  | 'Disparos'
   | 'CRM'
-  | 'Financeiro'
-  | 'Links'
+  | 'PFX'
   | 'Quadros'
 
 type AdminDashboardClientProps = {
   initialModule?: AdminModule
-}
-
-type TrackedLinkSource = {
-  source: string
-  clicks: number
-}
-
-type TrackedLink = {
-  id: string
-  title: string
-  slug: string
-  destinationUrl: string
-  createdAt: string
-  sources: TrackedLinkSource[]
-}
-
-type TrackedLinkRow = {
-  id: string
-  title: string
-  slug: string
-  destination_url: string
-  created_at: string
-}
-
-type TrackedClickRow = {
-  link_id: string
-  source: string | null
-}
-
-type FinanceTab = 'Visão geral' | 'Entradas' | 'Saídas' | 'Relatórios'
-type FinanceKind = 'entrada' | 'saida'
-type FinanceStatus = 'Pendente' | 'Parcial' | 'Pago' | 'Cancelado'
-type FinanceRecordType = 'Fixa' | 'Variável' | 'Rendimento' | 'Dívida'
-
-type FinanceRecord = {
-  id: string
-  kind: FinanceKind
-  name: string
-  category: string
-  account: string
-  value: number
-  date: string
-  status: FinanceStatus
-  type: FinanceRecordType
-  note?: string
-}
-
-type FinanceRecordRow = {
-  id: string
-  kind: string
-  name: string
-  category: string
-  account: string
-  value: number | string
-  record_date: string
-  status: string
-  type: string
-  note: string | null
 }
 
 type BoardType = 'Funil de vendas' | 'Fluxo de processo' | 'Quadro'
@@ -272,52 +212,6 @@ type CrmActivityRow = {
   created_at: string
 }
 
-type DispatchChannel = 'WhatsApp' | 'E-mail'
-type DispatchStatus = 'Rascunho' | 'Enviando' | 'Enviado' | 'Erro'
-type DispatchStageFilter = 'Todos' | CrmStage
-type DispatchAttemptFilter = 'Todos' | 'Sem tentativa' | '1 tentativa' | '2 tentativas' | '3 tentativas'
-type DispatchQualificationFilter = 'Todos' | 'Qualificados' | 'Nao qualificados'
-
-type DispatchRecipientLog = {
-  email: string
-  nome: string
-  empresa: string
-  status: 'sent' | 'failed'
-  error?: string
-  sentAt?: string
-}
-
-type ConfirmDialogVariant = 'primary' | 'danger' | 'info'
-
-type ConfirmDialogState = {
-  title: string
-  message: string
-  confirmLabel?: string
-  cancelLabel?: string | null  // null = hide cancel (alert mode)
-  variant?: ConfirmDialogVariant
-  onConfirm?: () => void
-}
-
-type DispatchCampaign = {
-  id: string
-  name: string
-  channel: DispatchChannel
-  stageFilter: DispatchStageFilter
-  attemptFilter: DispatchAttemptFilter
-  qualificationFilter: DispatchQualificationFilter
-  subject: string
-  message: string
-  recipientCount: number
-  validRecipientCount: number
-  status: DispatchStatus
-  sentCount?: number
-  failedCount?: number
-  recipientsLog?: DispatchRecipientLog[]
-  extraEmails?: string[]
-  excludedEmails?: string[]
-  createdAt: string
-}
-
 const CRM_STAGES: CrmStage[] = ['Novos', 'Qualificando', 'Reunião', 'Fechado', 'Recusado']
 
 type CrmColumn = 'Novos' | 'Qualificando' | 'Reunião' | 'Resolução'
@@ -364,6 +258,62 @@ const CRM_CHECKLIST: Array<{ key: keyof CrmLead; label: string }> = [
 
 const CRM_LEADS_TABLE     = 'crm_leads'
 const CRM_ACTIVITIES_TABLE = 'crm_activities'
+
+// ─── PFX ────────────────────────────────────────────────────────────────────
+type PfxClientType = 'PJ' | 'PF'
+type PfxBirdStatus = 'Feito' | 'Não Feito'
+type PfxValidityStatus = 'valid' | 'soon' | 'expired' | 'missing'
+type PfxWhatsAppIntent = 'Cobrança' | 'Feedback' | 'Renovação'
+
+type PfxClient = {
+  id: string
+  clientName: string
+  clientType: PfxClientType
+  birdIdDone: boolean
+  document: string
+  pfxFileName: string
+  pfxFileUrl: string
+  pfxFileSize: number
+  validityDate: string
+  whatsapp: string
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+
+type PfxClientRow = {
+  id: string
+  client_name: string
+  client_type: string
+  bird_id_done: boolean
+  document: string
+  pfx_file_name: string
+  pfx_file_url: string
+  pfx_file_size: number
+  validity_date: string | null
+  whatsapp: string
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+type PfxClientFormData = {
+  clientName: string
+  clientType: PfxClientType
+  birdIdDone: boolean
+  document: string
+  pfxFileName: string
+  pfxFileUrl: string
+  pfxFileSize: number
+  validityDate: string
+  whatsapp: string
+  notes: string
+}
+
+const PFX_CLIENTS_TABLE = 'pfx_clients'
+const PFX_BIRD_OPTIONS: PfxBirdStatus[] = ['Feito', 'Não Feito']
+const PFX_WHATSAPP_INTENTS: PfxWhatsAppIntent[] = ['Cobrança', 'Feedback', 'Renovação']
+const PFX_FILE_LIMIT_BYTES = 5 * 1024 * 1024
 
 type CrmLeadImportColumn = 'name' | 'company' | 'email' | 'phone' | 'source' | 'stage'
 
@@ -533,29 +483,135 @@ function getNextAttempt(lead: CrmLead): 1 | 2 | 3 | null {
   return null
 }
 
+function mapPfxClient(row: PfxClientRow): PfxClient {
+  return {
+    id: row.id,
+    clientName: row.client_name ?? '',
+    clientType: row.client_type === 'PF' ? 'PF' : 'PJ',
+    birdIdDone: row.bird_id_done === true,
+    document: row.document ?? '',
+    pfxFileName: row.pfx_file_name ?? '',
+    pfxFileUrl: row.pfx_file_url ?? '',
+    pfxFileSize: Number(row.pfx_file_size ?? 0),
+    validityDate: row.validity_date ?? '',
+    whatsapp: row.whatsapp ?? '',
+    notes: row.notes ?? '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
+}
+
+function maskPfxDocument(value: string, type: PfxClientType) {
+  const digits = onlyDigits(value).slice(0, type === 'PF' ? 11 : 14)
+
+  if (type === 'PF') {
+    return digits
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
+  }
+
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5')
+}
+
+function maskPfxWhatsapp(value: string) {
+  const digits = onlyDigits(value).slice(0, 13)
+  const localDigits = digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits
+
+  if (localDigits.length <= 10) {
+    return localDigits
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+  }
+
+  return localDigits
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+}
+
+function normalizePfxWhatsapp(value: string) {
+  const digits = onlyDigits(value)
+  if (!digits) return ''
+  if (digits.startsWith('55')) return digits
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`
+  return digits
+}
+
+function getPfxValidityStatus(validityDate: string): PfxValidityStatus {
+  if (!validityDate) return 'missing'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(`${validityDate}T00:00:00`)
+  const days = Math.ceil((target.getTime() - today.getTime()) / 86400000)
+  if (days < 0) return 'expired'
+  if (days <= 30) return 'soon'
+  return 'valid'
+}
+
+function getPfxValidityLabel(validityDate: string) {
+  const status = getPfxValidityStatus(validityDate)
+  if (status === 'missing') return 'Sem validade'
+  const formatted = new Date(`${validityDate}T00:00:00`).toLocaleDateString('pt-BR')
+  if (status === 'expired') return `Vencido em ${formatted}`
+  if (status === 'soon') return `Vence em ${formatted}`
+  return formatted
+}
+
+function formatPfxFileSize(size: number) {
+  if (!size) return ''
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`
+  return `${(size / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
+}
+
+function getPfxWhatsappMessage(client: PfxClient, intent: PfxWhatsAppIntent) {
+  const name = client.clientName || 'tudo bem'
+  const document = client.document ? ` documento ${client.document}` : ''
+  const validity = client.validityDate
+    ? new Date(`${client.validityDate}T00:00:00`).toLocaleDateString('pt-BR')
+    : 'em breve'
+
+  if (intent === 'Cobrança') {
+    return `Olá, ${name}! Tudo bem? Passando para falar sobre o certificado digital/PFX${document}. Podemos seguir com a regularização?`
+  }
+
+  if (intent === 'Feedback') {
+    return `Olá, ${name}! Tudo bem? Gostaria de saber se deu tudo certo com o certificado digital/PFX e se você precisa de algum ajuste.`
+  }
+
+  return `Olá, ${name}! Tudo bem? O certificado digital/PFX${document} vence em ${validity}. Podemos iniciar a renovação?`
+}
+
+function getPfxWhatsappUrl(client: PfxClient, intent: PfxWhatsAppIntent) {
+  const phone = normalizePfxWhatsapp(client.whatsapp)
+  const message = encodeURIComponent(getPfxWhatsappMessage(client, intent))
+  return `https://wa.me/${phone}?text=${message}`
+}
+
 const MODULES: Array<{
   name: AdminModule
-  icon: 'dispatches' | 'crm' | 'finance' | 'links' | 'boards'
+  icon: 'crm' | 'pfx' | 'boards'
 }> = [
-  { name: 'Disparos', icon: 'dispatches' },
   { name: 'CRM', icon: 'crm' },
-  { name: 'Links', icon: 'links' },
+  { name: 'PFX', icon: 'pfx' },
   { name: 'Quadros', icon: 'boards' },
-  { name: 'Financeiro', icon: 'finance' },
 ]
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
-  Disparos: '/disparos',
-  Financeiro: '/financeiro',
-  Links: '/links',
+  CRM: '/crm',
+  PFX: '/pfx',
   Quadros: '/quadros',
 }
 
 function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
 
-const LINKS_TABLE_NAME = 'tracked_links'
-const LINK_CLICKS_TABLE_NAME = 'tracked_link_clicks'
-const FINANCE_RECORDS_TABLE = 'finance_records'
 const BOARD_NODE_TYPES = {
   boardNode: BoardCircleNode,
   sourceNode: BoardSourceNode,
@@ -572,7 +628,7 @@ const BOARD_DEFAULT_EDGE_OPTIONS = {
   animated: true,
   type: 'straight',
   markerEnd: { type: MarkerType.ArrowClosed },
-  style: { stroke: '#ffffff', strokeWidth: 2 },
+  style: { stroke: '#8f8f94', strokeWidth: 2.2 },
 }
 
 function getProfileInitials(name: string) {
@@ -665,7 +721,6 @@ function getProfilePhotoPreviewSize(aspect: number, zoom: number) {
 export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardClientProps) {
   const router = useRouter()
   const [checkingSession, setCheckingSession] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeModule, setActiveModule] = useState<AdminModule>(initialModule)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [profileModalOpen, setProfileModalOpen] = useState(false)
@@ -684,27 +739,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
   const [profileResetSending, setProfileResetSending] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
   const [profileError, setProfileError] = useState('')
-  // Lazy initial state: lê do localStorage durante o primeiro render
-  // (síncrono, sem flash, sem race condition).
-  // Como o componente está em dynamic({ ssr: false }), window sempre existe.
-  const [themePreview, setThemePreview] = useState<'Escuro' | 'Branco'>(() => {
-    try {
-      const saved = window.localStorage.getItem('hubTheme')
-      if (saved === 'Branco' || saved === 'Escuro') return saved
-    } catch {
-      // localStorage indisponível (modo privado, etc.)
-    }
-    return 'Escuro'
-  })
-
-  // Persiste mudança de tema
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('hubTheme', themePreview)
-    } catch {
-      // ignora se não puder escrever
-    }
-  }, [themePreview])
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const profilePhotoDragRef = useRef<{
     pointerId: number
@@ -959,27 +993,13 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
     setProfileMessage('Enviamos um link de redefinição para o e-mail informado.')
   }
 
-  const themeAttr = themePreview === 'Branco' ? 'light' : 'dark'
-
   if (checkingSession) {
-    return <main className="admin-dashboard-page" data-theme={themeAttr} />
+    return <main className="admin-dashboard-page" data-theme="dark" />
   }
 
   return (
-    <main className={sidebarOpen ? 'admin-dashboard-page' : 'admin-dashboard-page collapsed'} data-theme={themeAttr}>
+    <main className="admin-dashboard-page collapsed" data-theme="dark">
       <aside className="admin-sidebar" aria-label="Módulos administrativos">
-        <div className="admin-sidebar-top">
-          <button
-            className="admin-sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            type="button"
-            aria-label={sidebarOpen ? 'Fechar barra lateral' : 'Abrir barra lateral'}
-            title={sidebarOpen ? 'Fechar barra lateral' : 'Abrir barra lateral'}
-          >
-            <SidebarIcon />
-          </button>
-        </div>
-
         <nav className="admin-module-nav" aria-label="Navegação dos módulos">
           {MODULES.map(module => (
             <button
@@ -999,7 +1019,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
               <span className="module-icon-wrap">
                 <ModuleIcon type={module.icon} />
               </span>
-              {sidebarOpen && <span>{module.name}</span>}
             </button>
           ))}
         </nav>
@@ -1019,12 +1038,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
             <div className="admin-sidebar-avatar">
               {profilePhoto ? <img src={profilePhoto} alt="" /> : getProfileInitials(profileName)}
             </div>
-            {sidebarOpen && (
-              <div className="admin-sidebar-user-info">
-                <span className="admin-sidebar-user-name">{profileName}</span>
-                <span className="admin-sidebar-user-role">Admin</span>
-              </div>
-            )}
           </button>
 
           {profileMenuOpen && (
@@ -1051,27 +1064,6 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
                   </svg>
                 </span>
                 Sair
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => setThemePreview(themePreview === 'Escuro' ? 'Branco' : 'Escuro')}
-              >
-                <span className="admin-profile-menu-icon" aria-hidden="true">
-                  {themePreview === 'Escuro' ? (
-                    // Lua (clique muda para Escuro)
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-                    </svg>
-                  ) : (
-                    // Sol (clique muda para Branco)
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="4" />
-                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-                    </svg>
-                  )}
-                </span>
-                {themePreview}
               </button>
             </div>
           )}
@@ -1200,17 +1192,13 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
       )}
 
       <section
-        className={activeModule === 'Disparos' || activeModule === 'CRM' || activeModule === 'Financeiro' || activeModule === 'Links' || activeModule === 'Quadros' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
+        className={activeModule === 'CRM' || activeModule === 'PFX' || activeModule === 'Quadros' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
         aria-labelledby="active-module-title"
       >
-        {activeModule === 'Disparos' ? (
-          <DispatchesModule />
-        ) : activeModule === 'Financeiro' ? (
-          <FinanceiroModule />
-        ) : activeModule === 'Links' ? (
-          <LinksModule />
-        ) : activeModule === 'CRM' ? (
+        {activeModule === 'CRM' ? (
           <CrmModule />
+        ) : activeModule === 'PFX' ? (
+          <PfxModule />
         ) : activeModule === 'Quadros' ? (
           <BoardsModule />
         ) : (
@@ -2104,1774 +2092,442 @@ function CrmImportLeadsModal({ onClose, onImport }: {
   )
 }
 
-function getDispatchAttemptCount(lead: CrmLead) {
-  return [lead.attempt1, lead.attempt2, lead.attempt3].filter(Boolean).length
-}
-
-function isValidDispatchEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-}
-
-function isValidDispatchPhone(phone: string) {
-  return phone.replace(/\D/g, '').length >= 10
-}
-
-function getDispatchAudience(
-  leads: CrmLead[],
-  stageFilter: DispatchStageFilter,
-  attemptFilter: DispatchAttemptFilter,
-  qualificationFilter: DispatchQualificationFilter
-) {
-  return leads.filter(lead => {
-    if (stageFilter !== 'Todos' && lead.stage !== stageFilter) return false
-
-    const attempts = getDispatchAttemptCount(lead)
-    if (attemptFilter === 'Sem tentativa' && attempts !== 0) return false
-    if (attemptFilter === '1 tentativa' && attempts !== 1) return false
-    if (attemptFilter === '2 tentativas' && attempts !== 2) return false
-    if (attemptFilter === '3 tentativas' && attempts !== 3) return false
-
-    const leadStatus = getCrmLeadStatus(lead)
-    if (qualificationFilter === 'Qualificados' && leadStatus !== 'qualified') return false
-    if (qualificationFilter === 'Nao qualificados' && leadStatus !== 'disqualified') return false
-
-    return true
-  })
-}
-
-function getDispatchValidRecipients(leads: CrmLead[], channel: DispatchChannel) {
-  return leads.filter(lead => channel === 'E-mail'
-    ? isValidDispatchEmail(lead.email)
-    : isValidDispatchPhone(lead.phone)
-  )
-}
-
-function getDispatchAudienceLabel(campaign: DispatchCampaign) {
-  const parts = [
-    campaign.stageFilter === 'Todos' ? 'Todos os estágios' : campaign.stageFilter,
-    campaign.attemptFilter === 'Todos' ? '' : campaign.attemptFilter,
-    campaign.qualificationFilter === 'Todos' ? '' : campaign.qualificationFilter,
-  ].filter(Boolean)
-
-  return parts.join(' · ')
-}
-
-const DISPATCHES_TABLE = 'dispatches'
-
-type DispatchRow = {
-  id: string
-  name: string
-  channel: string
-  subject: string
-  message: string
-  stage_filter: string
-  attempt_filter: string
-  qualification_filter: string
-  status: string
-  sent_count: number
-  failed_count: number
-  recipients_log?: DispatchRecipientLog[] | null
-  extra_emails?: string[] | null
-  excluded_emails?: string[] | null
-  created_at: string
-}
-
-function mapDispatchRow(row: DispatchRow): DispatchCampaign {
-  return {
-    id: row.id,
-    name: row.name,
-    channel: row.channel as DispatchChannel,
-    subject: row.subject,
-    message: row.message,
-    stageFilter: row.stage_filter as DispatchStageFilter,
-    attemptFilter: row.attempt_filter as DispatchAttemptFilter,
-    qualificationFilter: row.qualification_filter as DispatchQualificationFilter,
-    status: row.status as DispatchStatus,
-    sentCount: row.sent_count,
-    failedCount: row.failed_count,
-    recipientsLog: Array.isArray(row.recipients_log) ? row.recipients_log : undefined,
-    extraEmails: Array.isArray(row.extra_emails) ? row.extra_emails : undefined,
-    excludedEmails: Array.isArray(row.excluded_emails) ? row.excluded_emails : undefined,
-    recipientCount: 0,
-    validRecipientCount: 0,
-    createdAt: row.created_at,
-  }
-}
-
-function DispatchesModule() {
-  const [leads, setLeads] = useState<CrmLead[]>([])
-  const [campaigns, setCampaigns] = useState<DispatchCampaign[]>([])
+function PfxModule() {
+  const [clients, setClients] = useState<PfxClient[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [contextMenu, setContextMenu] = useState<{ campaign: DispatchCampaign; x: number; y: number } | null>(null)
-  const [detailCampaign, setDetailCampaign] = useState<DispatchCampaign | null>(null)
-  const [editingCampaign, setEditingCampaign] = useState<DispatchCampaign | null>(null)
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
-  const ctxMenuRef = useRef<HTMLDivElement | null>(null)
-
-  // Fecha o menu de contexto ao clicar fora ou pressionar Esc
-  useEffect(() => {
-    if (!contextMenu) return
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as globalThis.Node | null
-      if (target && ctxMenuRef.current && !ctxMenuRef.current.contains(target)) {
-        setContextMenu(null)
-      }
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setContextMenu(null)
-    }
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [contextMenu])
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      setError('')
-
-      const [leadsResult, campaignsResult] = await Promise.all([
-        supabase.from(CRM_LEADS_TABLE).select('*').order('updated_at', { ascending: false }),
-        supabase.from(DISPATCHES_TABLE).select('*').order('created_at', { ascending: false }),
-      ])
-
-      if (leadsResult.error) {
-        setError('Não consegui carregar os leads do CRM.')
-        setLoading(false)
-        return
-      }
-
-      setLeads((leadsResult.data ?? []).map(row => mapCrmLead(row as CrmLeadRow)))
-      setCampaigns((campaignsResult.data ?? []).map(row => mapDispatchRow(row as DispatchRow)))
-      setLoading(false)
-    }
-
-    void loadData()
-  }, [])
-
-  const handleCreateCampaign = async (campaign: DispatchCampaign) => {
-    const { data, error: insertError } = await supabase
-      .from(DISPATCHES_TABLE)
-      .insert({
-        name: campaign.name,
-        channel: campaign.channel,
-        subject: campaign.subject,
-        message: campaign.message,
-        stage_filter: campaign.stageFilter,
-        attempt_filter: campaign.attemptFilter,
-        qualification_filter: campaign.qualificationFilter,
-        status: campaign.status,
-        sent_count: 0,
-        failed_count: 0,
-      })
-      .select()
-      .single()
-
-    if (insertError || !data) {
-      setCampaigns(currentCampaigns => [campaign, ...currentCampaigns])
-    } else {
-      setCampaigns(currentCampaigns => [mapDispatchRow(data as DispatchRow), ...currentCampaigns])
-    }
-    setIsCreateModalOpen(false)
-  }
-
-  const updateCampaignInDb = async (
-    id: string,
-    fields: Partial<{
-      status: string
-      sent_count: number
-      failed_count: number
-      name: string
-      channel: string
-      subject: string
-      message: string
-      stage_filter: string
-      attempt_filter: string
-      qualification_filter: string
-      recipients_log: DispatchRecipientLog[]
-      extra_emails: string[]
-      excluded_emails: string[]
-    }>,
-  ) => {
-    await supabase.from(DISPATCHES_TABLE).update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id)
-  }
-
-  const handleSendCampaign = async (campaign: DispatchCampaign) => {
-    if (campaign.channel !== 'E-mail') {
-      setConfirmDialog({
-        title: 'Canal indisponível',
-        message: 'Envio via WhatsApp ainda não está disponível. Em breve.',
-        confirmLabel: 'Entendi',
-        cancelLabel: null,
-        variant: 'info',
-      })
-      return
-    }
-
-    // Monta lista de destinatários válidos com base nos filtros da campanha
-    const audience = getDispatchAudience(leads, campaign.stageFilter, campaign.attemptFilter, campaign.qualificationFilter)
-    const validLeadsFromFilter = getDispatchValidRecipients(audience, campaign.channel)
-
-    // Remove leads cujo email está na lista de excluídos
-    const excludedSet = new Set((campaign.excludedEmails ?? []).map(e => e.toLowerCase()))
-    const filteredLeads = validLeadsFromFilter.filter(lead => !excludedSet.has(lead.email.toLowerCase()))
-
-    // Monta destinatários finais: leads do filtro + emails extras manuais
-    const filterRecipients = filteredLeads.map(lead => ({
-      email: lead.email,
-      nome: lead.name,
-      empresa: lead.company,
-    }))
-
-    // Evita duplicar email extra que já está em algum lead
-    const filterEmailSet = new Set(filterRecipients.map(r => r.email.toLowerCase()))
-    const extraRecipients = (campaign.extraEmails ?? [])
-      .filter(email => email && !filterEmailSet.has(email.toLowerCase()))
-      .map(email => ({ email, nome: '', empresa: '' }))
-
-    const validLeads = [...filterRecipients, ...extraRecipients]
-
-    if (validLeads.length === 0) {
-      setConfirmDialog({
-        title: 'Sem destinatários',
-        message: 'Nenhum destinatário válido encontrado com os filtros atuais.',
-        confirmLabel: 'OK',
-        cancelLabel: null,
-        variant: 'info',
-      })
-      return
-    }
-
-    // Marca como "Enviando"
-    setCampaigns(prev => prev.map(c =>
-      c.id === campaign.id ? { ...c, status: 'Enviando' } : c
-    ))
-    void updateCampaignInDb(campaign.id, { status: 'Enviando' })
-
-    try {
-      const res = await fetch('/api/dispatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel: campaign.channel,
-          subject: campaign.subject,
-          message: campaign.message,
-          recipients: validLeads,
-        }),
-      })
-
-      const result = await res.json() as {
-        sent?: number
-        failed?: number
-        results?: DispatchRecipientLog[]
-        error?: string
-      }
-
-      if (!res.ok || result.error) {
-        const fallbackLog: DispatchRecipientLog[] = validLeads.map(r => ({
-          email: r.email,
-          nome: r.nome,
-          empresa: r.empresa,
-          status: 'failed',
-          error: result.error ?? 'Falha desconhecida',
-        }))
-        setCampaigns(prev => prev.map(c =>
-          c.id === campaign.id
-            ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length, recipientsLog: fallbackLog }
-            : c
-        ))
-        void updateCampaignInDb(campaign.id, {
-          status: 'Erro',
-          sent_count: 0,
-          failed_count: validLeads.length,
-          recipients_log: fallbackLog,
-        })
-        return
-      }
-
-      const log = result.results ?? []
-      const finalStatus: DispatchStatus = (result.failed ?? 0) > 0 && (result.sent ?? 0) === 0 ? 'Erro' : 'Enviado'
-      setCampaigns(prev => prev.map(c =>
-        c.id === campaign.id
-          ? { ...c, status: finalStatus, sentCount: result.sent ?? 0, failedCount: result.failed ?? 0, recipientsLog: log }
-          : c
-      ))
-      void updateCampaignInDb(campaign.id, {
-        status: finalStatus,
-        sent_count: result.sent ?? 0,
-        failed_count: result.failed ?? 0,
-        recipients_log: log,
-      })
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Erro de rede'
-      const fallbackLog: DispatchRecipientLog[] = validLeads.map(r => ({
-        email: r.email,
-        nome: r.nome,
-        empresa: r.empresa,
-        status: 'failed',
-        error: errorMsg,
-      }))
-      setCampaigns(prev => prev.map(c =>
-        c.id === campaign.id ? { ...c, status: 'Erro', sentCount: 0, failedCount: validLeads.length, recipientsLog: fallbackLog } : c
-      ))
-      void updateCampaignInDb(campaign.id, {
-        status: 'Erro',
-        sent_count: 0,
-        failed_count: validLeads.length,
-        recipients_log: fallbackLog,
-      })
-    }
-  }
-
-  const handleDeleteCampaign = (campaign: DispatchCampaign) => {
-    setConfirmDialog({
-      title: 'Excluir campanha',
-      message: `Excluir "${campaign.name}"? Esta ação não pode ser desfeita.`,
-      confirmLabel: 'Excluir',
-      cancelLabel: 'Cancelar',
-      variant: 'danger',
-      onConfirm: async () => {
-        await supabase.from(DISPATCHES_TABLE).delete().eq('id', campaign.id)
-        setCampaigns(prev => prev.filter(c => c.id !== campaign.id))
-        setDetailCampaign(cur => (cur && cur.id === campaign.id ? null : cur))
-      },
-    })
-  }
-
-  const handleRenameCampaign = async (campaign: DispatchCampaign) => {
-    const next = window.prompt('Novo nome da campanha:', campaign.name)
-    if (!next) return
-    const trimmed = next.trim()
-    if (!trimmed || trimmed === campaign.name) return
-    await updateCampaignInDb(campaign.id, { name: trimmed })
-    setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, name: trimmed } : c))
-  }
-
-  const handleDuplicateCampaign = async (campaign: DispatchCampaign) => {
-    const { data, error: insertError } = await supabase
-      .from(DISPATCHES_TABLE)
-      .insert({
-        name: `${campaign.name} (cópia)`,
-        channel: campaign.channel,
-        subject: campaign.subject,
-        message: campaign.message,
-        stage_filter: campaign.stageFilter,
-        attempt_filter: campaign.attemptFilter,
-        qualification_filter: campaign.qualificationFilter,
-        status: 'Rascunho',
-        sent_count: 0,
-        failed_count: 0,
-      })
-      .select()
-      .single()
-    if (insertError || !data) return
-    setCampaigns(prev => [mapDispatchRow(data as DispatchRow), ...prev])
-  }
-
-  const handleResendCampaign = (campaign: DispatchCampaign) => {
-    setConfirmDialog({
-      title: 'Reenviar campanha',
-      message: `Reenviar "${campaign.name}" para os destinatários atuais? O log do envio anterior será sobrescrito.`,
-      confirmLabel: 'Reenviar',
-      cancelLabel: 'Cancelar',
-      variant: 'primary',
-      onConfirm: () => {
-        void handleSendCampaign(campaign)
-      },
-    })
-  }
-
-  const handleUpdateCampaign = async (updated: DispatchCampaign) => {
-    await updateCampaignInDb(updated.id, {
-      name: updated.name,
-      channel: updated.channel,
-      subject: updated.subject,
-      message: updated.message,
-      stage_filter: updated.stageFilter,
-      attempt_filter: updated.attemptFilter,
-      qualification_filter: updated.qualificationFilter,
-      extra_emails: updated.extraEmails ?? [],
-      excluded_emails: updated.excludedEmails ?? [],
-    })
-    setCampaigns(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))
-    setEditingCampaign(null)
-    // Se o detail modal estava aberto na mesma campanha, atualiza ele também
-    setDetailCampaign(cur => (cur && cur.id === updated.id ? { ...cur, ...updated } : cur))
-  }
-
-  return (
-    <div className="forms-module dispatches-module">
-      <header className="forms-module-header">
-        <div>
-          <h2 id="active-module-title">Disparos</h2>
-        </div>
-        <div className="links-header-actions">
-          <button
-            className="crm-add-btn crm-add-icon-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            type="button"
-            aria-label="Criar disparo"
-            title="Criar disparo"
-          >
-            <DispatchPlusIcon />
-          </button>
-        </div>
-      </header>
-
-      <section className="dispatches-sheet" aria-label="Campanhas de disparo">
-        <div className="dispatches-sheet-header">
-          <span>Campanha</span>
-          <span>Canal</span>
-          <span>Público</span>
-          <span>Status</span>
-          <span>Destinatários</span>
-          <span>Criado em</span>
-          <span></span>
-        </div>
-
-        {loading ? (
-          <div className="links-sheet-empty">Carregando leads do CRM...</div>
-        ) : error ? (
-          <div className="links-sheet-empty">{error}</div>
-        ) : campaigns.length > 0 ? (
-          <div className="links-sheet-body">
-            {campaigns.map(campaign => (
-              <div
-                className="dispatches-sheet-row"
-                key={campaign.id}
-                onClick={(event) => {
-                  // ignora cliques dentro da coluna de ação (botão Enviar/Reenviar)
-                  const target = event.target as globalThis.Element | null
-                  if (target && target.closest('.dispatches-sheet-action')) return
-                  setDetailCampaign(campaign)
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  const menuWidth = 200
-                  const menuHeight = 200
-                  const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8)
-                  const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
-                  setContextMenu({ campaign, x, y })
-                }}
-              >
-                <strong>{campaign.name}</strong>
-                <span>{campaign.channel}</span>
-                <span>{getDispatchAudienceLabel(campaign)}</span>
-                <span className={`dispatch-status dispatch-status--${campaign.status.toLowerCase().replace('ã', 'a').replace('í', 'i')}`}>
-                  {campaign.status}
-                </span>
-                <span>
-                  {campaign.status === 'Enviado'
-                    ? `${campaign.sentCount ?? campaign.validRecipientCount} enviados${(campaign.failedCount ?? 0) > 0 ? ` · ${campaign.failedCount} falhas` : ''}`
-                    : `${campaign.validRecipientCount}/${campaign.recipientCount}`
-                  }
-                </span>
-                <span>{new Date(campaign.createdAt).toLocaleDateString('pt-BR')}</span>
-                <span className="dispatches-sheet-action">
-                  {campaign.status === 'Rascunho' && (
-                    <button
-                      type="button"
-                      className="dispatch-send-btn"
-                      onClick={() => handleSendCampaign(campaign)}
-                      title="Enviar campanha"
-                    >
-                      Enviar
-                    </button>
-                  )}
-                  {campaign.status === 'Enviando' && (
-                    <span className="dispatch-sending-indicator">Enviando…</span>
-                  )}
-                  {campaign.status === 'Erro' && (
-                    <button
-                      type="button"
-                      className="dispatch-send-btn dispatch-send-btn--retry"
-                      onClick={() => handleSendCampaign({ ...campaign, status: 'Rascunho' })}
-                      title="Tentar novamente"
-                    >
-                      Tentar novamente
-                    </button>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="links-sheet-empty">Nenhum disparo criado ainda.</div>
-        )}
-      </section>
-
-      {isCreateModalOpen && (
-        <DispatchCreateModal
-          leads={leads}
-          onClose={() => setIsCreateModalOpen(false)}
-          onCreate={handleCreateCampaign}
-        />
-      )}
-
-      {contextMenu && (
-        <div
-          ref={ctxMenuRef}
-          className="board-card-ctx-menu dispatch-ctx-menu"
-          style={{
-            position: 'fixed',
-            left: contextMenu.x,
-            top: contextMenu.y,
-            zIndex: 200,
-          }}
-        >
-          <button
-            type="button"
-            disabled={contextMenu.campaign.status === 'Enviando'}
-            onClick={() => {
-              const c = contextMenu.campaign
-              setContextMenu(null)
-              handleResendCampaign(c)
-            }}
-          >
-            Reenviar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const c = contextMenu.campaign
-              setContextMenu(null)
-              setEditingCampaign(c)
-            }}
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const c = contextMenu.campaign
-              setContextMenu(null)
-              void handleDuplicateCampaign(c)
-            }}
-          >
-            Duplicar
-          </button>
-          <button
-            type="button"
-            className="board-card-ctx-delete"
-            onClick={() => {
-              const c = contextMenu.campaign
-              setContextMenu(null)
-              void handleDeleteCampaign(c)
-            }}
-          >
-            Excluir
-          </button>
-        </div>
-      )}
-
-      {detailCampaign && (
-        <DispatchDetailModal
-          campaign={detailCampaign}
-          leads={leads}
-          onClose={() => setDetailCampaign(null)}
-          onResend={(c) => {
-            setDetailCampaign(null)
-            handleResendCampaign(c)
-          }}
-          onEdit={(c) => {
-            setEditingCampaign(c)
-          }}
-          onDuplicate={async (c) => {
-            await handleDuplicateCampaign(c)
-            setDetailCampaign(null)
-          }}
-          onDelete={(c) => {
-            handleDeleteCampaign(c)
-          }}
-        />
-      )}
-
-      {editingCampaign && (
-        <DispatchEditModal
-          campaign={editingCampaign}
-          leads={leads}
-          onClose={() => setEditingCampaign(null)}
-          onSave={handleUpdateCampaign}
-        />
-      )}
-
-      {confirmDialog && (
-        <ConfirmDialog
-          {...confirmDialog}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
-    </div>
-  )
-}
-
-function DispatchDetailModal({
-  campaign,
-  leads,
-  onClose,
-  onResend,
-  onEdit,
-  onDuplicate,
-  onDelete,
-}: {
-  campaign: DispatchCampaign
-  leads: CrmLead[]
-  onClose: () => void
-  onResend: (campaign: DispatchCampaign) => void
-  onEdit: (campaign: DispatchCampaign) => void
-  onDuplicate: (campaign: DispatchCampaign) => void | Promise<void>
-  onDelete: (campaign: DispatchCampaign) => void | Promise<void>
-}) {
-  const audience = getDispatchAudience(
-    leads,
-    campaign.stageFilter,
-    campaign.attemptFilter,
-    campaign.qualificationFilter,
-  )
-  const validNow = getDispatchValidRecipients(audience, campaign.channel)
-  const log = campaign.recipientsLog ?? []
-  const sentInLog = log.filter(r => r.status === 'sent').length
-  const failedInLog = log.filter(r => r.status === 'failed').length
-  const hasLog = log.length > 0
-
-  return (
-    <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal dispatches-modal dispatch-detail-modal" onClick={event => event.stopPropagation()}>
-        <div className="crm-modal-header dispatch-detail-header">
-          <h3>{campaign.name}</h3>
-          <div className="dispatch-detail-actions">
-            <button
-              type="button"
-              className="dispatch-action-btn"
-              disabled={campaign.status === 'Enviando'}
-              onClick={() => onResend(campaign)}
-              title="Reenviar"
-              aria-label="Reenviar"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m22 2-7 20-4-9-9-4Z" />
-                <path d="M22 2 11 13" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="dispatch-action-btn"
-              onClick={() => onEdit(campaign)}
-              title="Editar"
-              aria-label="Editar"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="dispatch-action-btn"
-              onClick={() => void onDuplicate(campaign)}
-              title="Duplicar"
-              aria-label="Duplicar"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="dispatch-action-btn dispatch-action-btn--danger"
-              onClick={() => void onDelete(campaign)}
-              title="Excluir"
-              aria-label="Excluir"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-              </svg>
-            </button>
-            <span className="dispatch-detail-divider" aria-hidden="true" />
-            <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
-              <CloseIcon />
-            </button>
-          </div>
-        </div>
-
-        <div className="dispatch-detail-body">
-          <div className="dispatch-detail-meta">
-            <div className="dispatch-detail-meta-item">
-              <span>Canal</span>
-              <strong>{campaign.channel}</strong>
-            </div>
-            <div className="dispatch-detail-meta-item">
-              <span>Status</span>
-              <strong>{campaign.status}</strong>
-            </div>
-            <div className="dispatch-detail-meta-item">
-              <span>Público</span>
-              <strong>{getDispatchAudienceLabel(campaign)}</strong>
-            </div>
-            <div className="dispatch-detail-meta-item">
-              <span>Criado em</span>
-              <strong>{new Date(campaign.createdAt).toLocaleString('pt-BR')}</strong>
-            </div>
-          </div>
-
-          {campaign.subject && (
-            <div className="dispatch-detail-section">
-              <span className="dispatch-detail-label">Assunto</span>
-              <p className="dispatch-detail-subject">{campaign.subject}</p>
-            </div>
-          )}
-
-          <div className="dispatch-detail-section">
-            <span className="dispatch-detail-label">Mensagem</span>
-            <pre className="dispatch-detail-message">{campaign.message}</pre>
-          </div>
-
-          <div className="dispatch-detail-stats">
-            <div className="dispatch-stat">
-              <strong>{hasLog ? sentInLog : (campaign.sentCount ?? 0)}</strong>
-              <span>enviados</span>
-            </div>
-            <div className="dispatch-stat dispatch-stat--failed">
-              <strong>{hasLog ? failedInLog : (campaign.failedCount ?? 0)}</strong>
-              <span>falhas</span>
-            </div>
-            <div className="dispatch-stat">
-              <strong>{validNow.length}</strong>
-              <span>elegíveis agora</span>
-            </div>
-          </div>
-
-          {hasLog ? (
-            <div className="dispatch-detail-section">
-              <span className="dispatch-detail-label">
-                Destinatários do último envio ({log.length})
-              </span>
-              <div className="dispatch-recipients-list">
-                {log.map((r, i) => (
-                  <div key={`${r.email}-${i}`} className={`dispatch-recipient dispatch-recipient--${r.status}`}>
-                    <div className="dispatch-recipient-info">
-                      <strong>{r.nome || r.email}</strong>
-                      <span className="dispatch-recipient-meta">
-                        {r.empresa && <>{r.empresa} · </>}
-                        {r.email}
-                      </span>
-                      {r.status === 'failed' && r.error && (
-                        <span className="dispatch-recipient-error">{r.error}</span>
-                      )}
-                    </div>
-                    <span className={`dispatch-recipient-badge dispatch-recipient-badge--${r.status}`}>
-                      {r.status === 'sent' ? 'Enviado' : 'Falha'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="dispatch-detail-section">
-              <span className="dispatch-detail-label">
-                Vai enviar para ({validNow.length})
-              </span>
-              {validNow.length > 0 ? (
-                <div className="dispatch-recipients-list">
-                  {validNow.map(lead => (
-                    <div key={lead.id} className="dispatch-recipient">
-                      <div className="dispatch-recipient-info">
-                        <strong>{lead.name}</strong>
-                        <span className="dispatch-recipient-meta">
-                          {lead.company && <>{lead.company} · </>}
-                          {campaign.channel === 'E-mail' ? lead.email : lead.phone}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="dispatch-recipients-empty">
-                  Nenhum lead elegível com os filtros atuais.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DispatchEditModal({
-  campaign,
-  leads,
-  onClose,
-  onSave,
-}: {
-  campaign: DispatchCampaign
-  leads: CrmLead[]
-  onClose: () => void
-  onSave: (campaign: DispatchCampaign) => Promise<void>
-}) {
-  const [name, setName] = useState(campaign.name)
-  const [channel, setChannel] = useState<DispatchChannel>(campaign.channel)
-  const [stageFilter, setStageFilter] = useState<DispatchStageFilter>(campaign.stageFilter)
-  const [attemptFilter, setAttemptFilter] = useState<DispatchAttemptFilter>(campaign.attemptFilter)
-  const [qualificationFilter, setQualificationFilter] = useState<DispatchQualificationFilter>(campaign.qualificationFilter)
-  const [subject, setSubject] = useState(campaign.subject)
-  const [message, setMessage] = useState(campaign.message)
-  const [extraEmails, setExtraEmails] = useState<string[]>(campaign.extraEmails ?? [])
-  const [excludedEmails, setExcludedEmails] = useState<string[]>(campaign.excludedEmails ?? [])
-  const [extraInput, setExtraInput] = useState('')
-  const [error, setError] = useState('')
-
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-
-  // Audiência atualizada conforme filtros mudam
-  const audience = getDispatchAudience(leads, stageFilter, attemptFilter, qualificationFilter)
-  const validInAudience = getDispatchValidRecipients(audience, channel)
-
-  const excludedSet = new Set(excludedEmails.map(e => e.toLowerCase()))
-  const activeFromFilter = validInAudience.filter(l => !excludedSet.has(l.email.toLowerCase()))
-  const excludedFromFilter = validInAudience.filter(l => excludedSet.has(l.email.toLowerCase()))
-  const totalFinal = activeFromFilter.length + extraEmails.length
-
-  const addExtra = () => {
-    const e = extraInput.trim().toLowerCase()
-    if (!e) return
-    if (!isValidEmail(e)) {
-      setError('E-mail inválido.')
-      return
-    }
-    if (extraEmails.some(x => x.toLowerCase() === e)) {
-      setError('E-mail já adicionado.')
-      return
-    }
-    setExtraEmails(prev => [...prev, e])
-    setExtraInput('')
-    setError('')
-  }
-
-  const removeExtra = (email: string) => {
-    setExtraEmails(prev => prev.filter(e => e.toLowerCase() !== email.toLowerCase()))
-  }
-
-  const excludeLead = (email: string) => {
-    setExcludedEmails(prev => [...prev, email])
-  }
-
-  const restoreLead = (email: string) => {
-    setExcludedEmails(prev => prev.filter(e => e.toLowerCase() !== email.toLowerCase()))
-  }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const cleanName = name.trim()
-    const cleanSubject = subject.trim()
-    const cleanMessage = message.trim()
-
-    if (!cleanName) {
-      setError('Informe o nome da campanha.')
-      return
-    }
-    if (channel === 'E-mail' && !cleanSubject) {
-      setError('Informe o assunto do e-mail.')
-      return
-    }
-    if (!cleanMessage) {
-      setError('Escreva a mensagem do disparo.')
-      return
-    }
-
-    void onSave({
-      ...campaign,
-      name: cleanName,
-      channel,
-      stageFilter,
-      attemptFilter,
-      qualificationFilter,
-      subject: cleanSubject,
-      message: cleanMessage,
-      extraEmails,
-      excludedEmails,
-    })
-  }
-
-  return (
-    <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal dispatches-modal" onClick={event => event.stopPropagation()}>
-        <div className="crm-modal-header">
-          <h3>Editar campanha</h3>
-          <button onClick={onClose} type="button" className="crm-modal-close" aria-label="Fechar">
-            <CloseIcon />
-          </button>
-        </div>
-
-        <form className="crm-modal-form dispatches-modal-form" onSubmit={handleSubmit}>
-          <section className="dispatches-modal-section">
-            <span>Canal</span>
-            <div className="dispatch-channel-options">
-              {(['WhatsApp', 'E-mail'] as DispatchChannel[]).map(option => (
-                <button
-                  key={option}
-                  type="button"
-                  className={channel === option ? 'active' : ''}
-                  onClick={() => {
-                    setChannel(option)
-                    setError('')
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="dispatches-modal-section">
-            <span>Público do CRM</span>
-            <label>
-              Nome da campanha
-              <input value={name} onChange={event => setName(event.target.value)} placeholder="Prospecção - Leads novos" />
-            </label>
-            <div className="crm-modal-row">
-              <label>
-                Estágio
-                <select value={stageFilter} onChange={event => setStageFilter(event.target.value as DispatchStageFilter)}>
-                  <option value="Todos">Todos</option>
-                  {CRM_STAGES.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                </select>
-              </label>
-              <label>
-                Tentativas
-                <select value={attemptFilter} onChange={event => setAttemptFilter(event.target.value as DispatchAttemptFilter)}>
-                  <option value="Todos">Todos</option>
-                  <option value="Sem tentativa">Sem tentativa</option>
-                  <option value="1 tentativa">1 tentativa</option>
-                  <option value="2 tentativas">2 tentativas</option>
-                  <option value="3 tentativas">3 tentativas</option>
-                </select>
-              </label>
-            </div>
-            <label>
-              Qualificação
-              <select value={qualificationFilter} onChange={event => setQualificationFilter(event.target.value as DispatchQualificationFilter)}>
-                <option value="Todos">Todos</option>
-                <option value="Qualificados">Qualificados</option>
-                <option value="Nao qualificados">Não qualificados</option>
-              </select>
-            </label>
-          </section>
-
-          <section className="dispatches-modal-section">
-            <span>Mensagem</span>
-            {channel === 'E-mail' && (
-              <label>
-                Assunto
-                <input value={subject} onChange={event => setSubject(event.target.value)} placeholder="Próximo passo para a {empresa}" />
-              </label>
-            )}
-            <label>
-              Mensagem
-              <textarea
-                value={message}
-                onChange={event => setMessage(event.target.value)}
-                placeholder={channel === 'E-mail' ? 'Olá {nome}, tudo bem?' : 'Oi {nome}, tudo bem?'}
-                rows={5}
-              />
-            </label>
-            <p className="dispatches-modal-hint">Variáveis disponíveis: {'{nome}'} e {'{empresa}'}</p>
-          </section>
-
-          {channel === 'E-mail' && (
-            <section className="dispatches-modal-section">
-              <span>Destinatários ({totalFinal})</span>
-
-              {/* Adicionar extra */}
-              <div className="dispatch-extras-add">
-                <input
-                  type="email"
-                  value={extraInput}
-                  onChange={event => {
-                    setExtraInput(event.target.value)
-                    if (error) setError('')
-                  }}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      addExtra()
-                    }
-                  }}
-                  placeholder="adicionar@email.com"
-                />
-                <button type="button" onClick={addExtra}>+ Adicionar</button>
-              </div>
-
-              {extraEmails.length > 0 && (
-                <div className="dispatch-recipients-block">
-                  <span className="dispatch-recipients-block-label">Extras ({extraEmails.length})</span>
-                  <div className="dispatch-recipients-mini-list">
-                    {extraEmails.map(email => (
-                      <div key={email} className="dispatch-recipient-chip">
-                        <span>{email}</span>
-                        <button
-                          type="button"
-                          aria-label={`Remover ${email}`}
-                          onClick={() => removeExtra(email)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="dispatch-recipients-block">
-                <span className="dispatch-recipients-block-label">
-                  Da audiência ({activeFromFilter.length} ativos · {excludedFromFilter.length} excluídos)
-                </span>
-                {validInAudience.length === 0 ? (
-                  <p className="dispatch-recipients-empty">
-                    Nenhum lead elegível com os filtros atuais.
-                  </p>
-                ) : (
-                  <div className="dispatch-recipients-mini-list">
-                    {validInAudience.map(lead => {
-                      const isExcluded = excludedSet.has(lead.email.toLowerCase())
-                      return (
-                        <div
-                          key={lead.id}
-                          className={`dispatch-recipient-chip${isExcluded ? ' dispatch-recipient-chip--excluded' : ''}`}
-                        >
-                          <span>
-                            <strong>{lead.name}</strong>
-                            {lead.company && <> · {lead.company}</>}
-                            {' · '}
-                            {lead.email}
-                          </span>
-                          {isExcluded ? (
-                            <button
-                              type="button"
-                              className="dispatch-recipient-chip-restore"
-                              onClick={() => restoreLead(lead.email)}
-                            >
-                              Restaurar
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              aria-label={`Excluir ${lead.email}`}
-                              onClick={() => excludeLead(lead.email)}
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          <section className="dispatches-review">
-            <div>
-              <span>Filtro</span>
-              <strong>{activeFromFilter.length}</strong>
-            </div>
-            <div>
-              <span>Extras</span>
-              <strong>{extraEmails.length}</strong>
-            </div>
-            <div>
-              <span>Excluídos</span>
-              <strong>{excludedFromFilter.length}</strong>
-            </div>
-            <div>
-              <span>Total final</span>
-              <strong>{totalFinal}</strong>
-            </div>
-          </section>
-
-          {error && <p className="crm-modal-error">{error}</p>}
-
-          <div className="crm-modal-footer">
-            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="submit" className="crm-modal-submit">Salvar alterações</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function ConfirmDialog({
-  title,
-  message,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
-  variant = 'primary',
-  onConfirm,
-  onClose,
-}: ConfirmDialogState & { onClose: () => void }) {
-  // Esc fecha; Enter confirma
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        onConfirm?.()
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose, onConfirm])
-
-  const showCancel = cancelLabel !== null
-
-  return (
-    <div className="crm-modal-backdrop confirm-dialog-backdrop" onClick={onClose}>
-      <div
-        className={`confirm-dialog confirm-dialog--${variant}`}
-        role="alertdialog"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
-        onClick={event => event.stopPropagation()}
-      >
-        <div className="confirm-dialog-icon" aria-hidden="true">
-          {variant === 'danger' ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-          ) : variant === 'info' ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-          )}
-        </div>
-
-        <h3 id="confirm-dialog-title" className="confirm-dialog-title">{title}</h3>
-        <p id="confirm-dialog-message" className="confirm-dialog-message">{message}</p>
-
-        <div className="confirm-dialog-footer">
-          {showCancel && (
-            <button
-              type="button"
-              className="confirm-dialog-cancel"
-              onClick={onClose}
-            >
-              {cancelLabel}
-            </button>
-          )}
-          <button
-            type="button"
-            className={`confirm-dialog-confirm confirm-dialog-confirm--${variant}`}
-            autoFocus
-            onClick={() => {
-              onConfirm?.()
-              onClose()
-            }}
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function DispatchCreateModal({
-  leads,
-  onClose,
-  onCreate,
-}: {
-  leads: CrmLead[]
-  onClose: () => void
-  onCreate: (campaign: DispatchCampaign) => Promise<void>
-}) {
-  const [name, setName] = useState('')
-  const [channel, setChannel] = useState<DispatchChannel>('WhatsApp')
-  const [stageFilter, setStageFilter] = useState<DispatchStageFilter>('Todos')
-  const [attemptFilter, setAttemptFilter] = useState<DispatchAttemptFilter>('Todos')
-  const [qualificationFilter, setQualificationFilter] = useState<DispatchQualificationFilter>('Todos')
-  const [subject, setSubject] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-
-  const audience = getDispatchAudience(leads, stageFilter, attemptFilter, qualificationFilter)
-  const validRecipients = getDispatchValidRecipients(audience, channel)
-  const invalidRecipients = audience.length - validRecipients.length
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const cleanName = name.trim()
-    const cleanSubject = subject.trim()
-    const cleanMessage = message.trim()
-
-    if (!cleanName) {
-      setError('Informe o nome da campanha.')
-      return
-    }
-
-    if (channel === 'E-mail' && !cleanSubject) {
-      setError('Informe o assunto do e-mail.')
-      return
-    }
-
-    if (!cleanMessage) {
-      setError('Escreva a mensagem do disparo.')
-      return
-    }
-
-    if (validRecipients.length === 0) {
-      setError(channel === 'E-mail'
-        ? 'Nenhum lead desse filtro tem e-mail válido.'
-        : 'Nenhum lead desse filtro tem WhatsApp válido.'
-      )
-      return
-    }
-
-    onCreate({
-      id: genId(),
-      name: cleanName,
-      channel,
-      stageFilter,
-      attemptFilter,
-      qualificationFilter,
-      subject: cleanSubject,
-      message: cleanMessage,
-      recipientCount: audience.length,
-      validRecipientCount: validRecipients.length,
-      status: 'Rascunho',
-      createdAt: new Date().toISOString(),
-    })
-  }
-
-  return (
-    <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal dispatches-modal" onClick={event => event.stopPropagation()}>
-        <div className="crm-modal-header">
-          <h3>Novo disparo</h3>
-          <button onClick={onClose} type="button" className="crm-modal-close">
-            <CloseIcon />
-          </button>
-        </div>
-
-        <form className="crm-modal-form dispatches-modal-form" onSubmit={handleSubmit}>
-          <section className="dispatches-modal-section">
-            <span>Canal</span>
-            <div className="dispatch-channel-options">
-              {(['WhatsApp', 'E-mail'] as DispatchChannel[]).map(option => (
-                <button
-                  key={option}
-                  type="button"
-                  className={channel === option ? 'active' : ''}
-                  onClick={() => {
-                    setChannel(option)
-                    setError('')
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="dispatches-modal-section">
-            <span>Público do CRM</span>
-            <label>
-              Nome da campanha
-              <input value={name} onChange={event => setName(event.target.value)} placeholder="Prospecção - Leads novos" />
-            </label>
-            <div className="crm-modal-row">
-              <label>
-                Estágio
-                <select value={stageFilter} onChange={event => setStageFilter(event.target.value as DispatchStageFilter)}>
-                  <option value="Todos">Todos</option>
-                  {CRM_STAGES.map(stage => <option key={stage} value={stage}>{stage}</option>)}
-                </select>
-              </label>
-              <label>
-                Tentativas
-                <select value={attemptFilter} onChange={event => setAttemptFilter(event.target.value as DispatchAttemptFilter)}>
-                  <option value="Todos">Todos</option>
-                  <option value="Sem tentativa">Sem tentativa</option>
-                  <option value="1 tentativa">1 tentativa</option>
-                  <option value="2 tentativas">2 tentativas</option>
-                  <option value="3 tentativas">3 tentativas</option>
-                </select>
-              </label>
-            </div>
-            <label>
-              Qualificação
-              <select value={qualificationFilter} onChange={event => setQualificationFilter(event.target.value as DispatchQualificationFilter)}>
-                <option value="Todos">Todos</option>
-                <option value="Qualificados">Qualificados</option>
-                <option value="Nao qualificados">Não qualificados</option>
-              </select>
-            </label>
-          </section>
-
-          <section className="dispatches-modal-section">
-            <span>Mensagem</span>
-            {channel === 'E-mail' && (
-              <label>
-                Assunto
-                <input value={subject} onChange={event => setSubject(event.target.value)} placeholder="Próximo passo para a {empresa}" />
-              </label>
-            )}
-            <label>
-              Mensagem
-              <textarea
-                value={message}
-                onChange={event => setMessage(event.target.value)}
-                placeholder={channel === 'E-mail' ? 'Olá {nome}, tudo bem?' : 'Oi {nome}, tudo bem?'}
-                rows={5}
-              />
-            </label>
-            <p className="dispatches-modal-hint">Variáveis disponíveis: {'{nome}'} e {'{empresa}'}</p>
-          </section>
-
-          <section className="dispatches-review">
-            <div>
-              <span>Base</span>
-              <strong>{audience.length}</strong>
-            </div>
-            <div>
-              <span>Válidos</span>
-              <strong>{validRecipients.length}</strong>
-            </div>
-            <div>
-              <span>Sem contato</span>
-              <strong>{invalidRecipients}</strong>
-            </div>
-            <div>
-              <span>Canal</span>
-              <strong>{channel}</strong>
-            </div>
-          </section>
-
-          {error && <p className="crm-modal-error">{error}</p>}
-
-          <div className="crm-modal-footer">
-            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="submit" className="crm-modal-submit">Salvar rascunho</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-const FINANCE_TABS: FinanceTab[] = ['Visão geral', 'Entradas', 'Saídas', 'Relatórios']
-const FINANCE_STATUSES: FinanceStatus[] = ['Pendente', 'Parcial', 'Pago', 'Cancelado']
-const FINANCE_TYPES: FinanceRecordType[] = ['Fixa', 'Variável', 'Rendimento', 'Dívida']
-
-function formatFinanceCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
-function formatFinanceDate(value: string) {
-  if (!value) return '-'
-  const [year, month, day] = value.split('-')
-  return year && month && day ? `${day}/${month}/${year}` : value
-}
-
-function getFinanceStatusTone(status: FinanceStatus) {
-  if (status === 'Pago') return 'paid'
-  if (status === 'Parcial') return 'partial'
-  if (status === 'Cancelado') return 'cancelled'
-  return 'pending'
-}
-
-function mapFinanceRecord(row: FinanceRecordRow): FinanceRecord {
-  const kind = row.kind === 'saida' ? 'saida' : 'entrada'
-  const status = FINANCE_STATUSES.includes(row.status as FinanceStatus) ? row.status as FinanceStatus : 'Pendente'
-  const type = FINANCE_TYPES.includes(row.type as FinanceRecordType) ? row.type as FinanceRecordType : 'Fixa'
-
-  return {
-    id: row.id,
-    kind,
-    name: row.name ?? '',
-    category: row.category ?? '',
-    account: row.account ?? 'Principal',
-    value: Number(row.value ?? 0),
-    date: row.record_date ?? '',
-    status,
-    type,
-    note: row.note ?? '',
-  }
-}
-
-function FinanceiroModule() {
-  const [activeTab, setActiveTab] = useState<FinanceTab>('Visão geral')
-  const [records, setRecords] = useState<FinanceRecord[]>([])
-  const [createKind, setCreateKind] = useState<FinanceKind | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [financeError, setFinanceError] = useState('')
-
-  const loadFinanceRecords = async () => {
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [modalClient, setModalClient] = useState<PfxClient | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const loadClients = async () => {
     setLoading(true)
-    setFinanceError('')
+    setError('')
 
-    const { data, error } = await supabase
-      .from(FINANCE_RECORDS_TABLE)
-      .select('id, kind, name, category, account, value, record_date, status, type, note')
-      .order('record_date', { ascending: false })
-      .order('created_at', { ascending: false })
+    const { data, error: loadError } = await supabase
+      .from(PFX_CLIENTS_TABLE)
+      .select('*')
+      .order('validity_date', { ascending: true, nullsFirst: false })
 
-    if (error) {
-      setRecords([])
-      setFinanceError('Não consegui carregar o financeiro. Execute o SQL de criação da tabela.')
+    if (loadError) {
+      setError('Não consegui carregar os clientes PFX. Execute o SQL de criação da tabela.')
       setLoading(false)
       return
     }
 
-    setRecords((data ?? []).map(row => mapFinanceRecord(row as FinanceRecordRow)))
+    const mappedClients = (data ?? []).map(row => mapPfxClient(row as PfxClientRow))
+    setClients(mappedClients)
+    setSelectedClientId(currentId => currentId && mappedClients.some(client => client.id === currentId) ? currentId : (mappedClients[0]?.id ?? null))
     setLoading(false)
   }
 
-  useEffect(() => { void loadFinanceRecords() }, [])
+  useEffect(() => { void loadClients() }, [])
 
-  const entries = records.filter(record => record.kind === 'entrada')
-  const expenses = records.filter(record => record.kind === 'saida')
-  const totalEntries = entries.filter(record => record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
-  const totalExpenses = expenses.filter(record => record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
-  const pendingEntries = entries.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
-  const pendingExpenses = expenses.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
-  const balance = totalEntries - totalExpenses
-  const sortedRecords = [...records].sort((a, b) => a.date.localeCompare(b.date))
-  const nextEntries = sortedRecords.filter(record => record.kind === 'entrada' && record.status !== 'Pago' && record.status !== 'Cancelado').slice(0, 4)
-  const nextExpenses = sortedRecords.filter(record => record.kind === 'saida' && record.status !== 'Pago' && record.status !== 'Cancelado').slice(0, 4)
+  const selectedClient = selectedClientId ? (clients.find(client => client.id === selectedClientId) ?? null) : null
 
-  const handleCreateRecord = async (record: Omit<FinanceRecord, 'id'>) => {
-    setFinanceError('')
+  const handleSaveClient = async (formData: PfxClientFormData, clientId?: string) => {
+    const payload = {
+      client_name: formData.clientName,
+      client_type: formData.clientType,
+      bird_id_done: formData.birdIdDone,
+      document: formData.document,
+      pfx_file_name: formData.pfxFileName,
+      pfx_file_url: formData.pfxFileUrl,
+      pfx_file_size: formData.pfxFileSize,
+      validity_date: formData.validityDate || null,
+      whatsapp: formData.whatsapp,
+      notes: formData.notes,
+      updated_at: new Date().toISOString(),
+    }
 
-    const { data, error } = await supabase
-      .from(FINANCE_RECORDS_TABLE)
-      .insert({
-        kind: record.kind,
-        name: record.name,
-        category: record.category,
-        account: record.account,
-        value: record.value,
-        record_date: record.date,
-        status: record.status,
-        type: record.type,
-        note: record.note ?? '',
-      })
-      .select('id, kind, name, category, account, value, record_date, status, type, note')
+    if (clientId) {
+      const { data, error: saveError } = await supabase
+        .from(PFX_CLIENTS_TABLE)
+        .update(payload)
+        .eq('id', clientId)
+        .select('*')
+        .single()
+
+      if (saveError || !data) throw new Error('Não consegui salvar as alterações.')
+      const updatedClient = mapPfxClient(data as PfxClientRow)
+      setClients(current => current.map(client => client.id === clientId ? updatedClient : client))
+      setSelectedClientId(clientId)
+      return
+    }
+
+    const { data, error: saveError } = await supabase
+      .from(PFX_CLIENTS_TABLE)
+      .insert(payload)
+      .select('*')
       .single()
 
-    if (error || !data) {
-      setFinanceError('Não consegui salvar esse lançamento no Supabase.')
-      throw new Error('Não consegui salvar esse lançamento no Supabase.')
-    }
-
-    setRecords(current => [mapFinanceRecord(data as FinanceRecordRow), ...current])
-    setCreateKind(null)
+    if (saveError || !data) throw new Error('Não consegui adicionar o cliente PFX.')
+    const createdClient = mapPfxClient(data as PfxClientRow)
+    setClients(current => [createdClient, ...current])
+    setSelectedClientId(createdClient.id)
   }
 
-  const handleStatusChange = async (recordId: string, status: FinanceStatus) => {
-    const previousRecords = records
-    setRecords(current => current.map(record => record.id === recordId ? { ...record, status } : record))
-
-    const { error } = await supabase
-      .from(FINANCE_RECORDS_TABLE)
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', recordId)
-
-    if (error) {
-      setRecords(previousRecords)
-      setFinanceError('Não consegui atualizar o status no Supabase.')
-    }
+  const handleDeleteClient = async (clientId: string) => {
+    await supabase.from(PFX_CLIENTS_TABLE).delete().eq('id', clientId)
+    setClients(current => current.filter(client => client.id !== clientId))
+    setSelectedClientId(currentId => currentId === clientId ? null : currentId)
   }
 
-  const handleDeleteRecord = async (recordId: string) => {
-    const previousRecords = records
-    setRecords(current => current.filter(record => record.id !== recordId))
-
-    const { error } = await supabase
-      .from(FINANCE_RECORDS_TABLE)
-      .delete()
-      .eq('id', recordId)
-
-    if (error) {
-      setRecords(previousRecords)
-      setFinanceError('Não consegui excluir esse lançamento no Supabase.')
-    }
-  }
+  const counts = useMemo(() => {
+    return clients.reduce(
+      (acc, client) => {
+        const status = getPfxValidityStatus(client.validityDate)
+        if (status === 'expired') acc.expired += 1
+        if (status === 'soon') acc.soon += 1
+        if (!client.birdIdDone) acc.pendingBird += 1
+        if (!client.pfxFileName) acc.noFile += 1
+        return acc
+      },
+      { expired: 0, soon: 0, pendingBird: 0, noFile: 0 }
+    )
+  }, [clients])
 
   return (
-    <div className="finance-module">
-      <header className="finance-module-header">
-        <div>
-          <h2 id="active-module-title">Financeiro</h2>
+    <div className={`pfx-module crm-module${selectedClient ? ' pfx-module-panel-open' : ''}`}>
+      <div className="crm-module-inner pfx-module-inner">
+        <div className="crm-module-header">
+          <div>
+            <h2>PFX</h2>
+          </div>
+          <div className="crm-header-right">
+            {error && <span className="crm-global-error">{error}</span>}
+            <button
+              className="crm-add-btn crm-add-icon-btn"
+              onClick={() => { setModalClient(null); setIsModalOpen(true) }}
+              type="button"
+              aria-label="Adicionar cliente PFX"
+              title="Adicionar cliente PFX"
+            >
+              <PfxPlusIcon />
+            </button>
+          </div>
         </div>
-        <div className="finance-header-actions">
-          {financeError && <span className="crm-global-error">{financeError}</span>}
-          <button
-            className="crm-add-btn crm-add-icon-btn"
-            onClick={() => setCreateKind(activeTab === 'Saídas' ? 'saida' : 'entrada')}
-            type="button"
-            aria-label={activeTab === 'Saídas' ? 'Nova saída' : 'Nova entrada'}
-            title={activeTab === 'Saídas' ? 'Nova saída' : 'Nova entrada'}
-          >
-            <FinancePlusIcon />
-          </button>
+
+        <div className="pfx-summary-grid" aria-label="Resumo PFX">
+          <div className="pfx-summary-card">
+            <span>Vencidos</span>
+            <strong>{counts.expired}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>Próximos 30 dias</span>
+            <strong>{counts.soon}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>Bird-ID pendente</span>
+            <strong>{counts.pendingBird}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>Sem arquivo</span>
+            <strong>{counts.noFile}</strong>
+          </div>
         </div>
-      </header>
 
-      <nav className="finance-tabs" aria-label="Navegação do financeiro">
-        {FINANCE_TABS.map(tab => (
-          <button
-            key={tab}
-            className={activeTab === tab ? 'finance-tab active' : 'finance-tab'}
-            onClick={() => setActiveTab(tab)}
-            type="button"
-          >
-            {tab}
-          </button>
-        ))}
-      </nav>
+        {loading ? (
+          <div className="crm-loading">Carregando clientes PFX...</div>
+        ) : (
+          <div className="pfx-table-card">
+            <table className="pfx-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Tipo</th>
+                  <th>Documento</th>
+                  <th>Bird-ID</th>
+                  <th>PFX</th>
+                  <th>Validade</th>
+                  <th>WhatsApp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map(client => (
+                  <PfxClientRow
+                    key={client.id}
+                    client={client}
+                    selected={selectedClientId === client.id}
+                    onSelect={() => setSelectedClientId(currentId => currentId === client.id ? null : client.id)}
+                  />
+                ))}
+              </tbody>
+            </table>
 
-      {loading ? (
-        <div className="crm-loading">Carregando financeiro...</div>
-      ) : activeTab === 'Visão geral' ? (
-        <div className="finance-overview">
-          <section className="finance-summary-grid">
-            <FinanceSummaryCard label="Entradas" value={formatFinanceCurrency(totalEntries)} helper={`${formatFinanceCurrency(pendingEntries)} a receber`} />
-            <FinanceSummaryCard label="Saídas" value={formatFinanceCurrency(totalExpenses)} helper={`${formatFinanceCurrency(pendingExpenses)} a pagar`} />
-            <FinanceSummaryCard label="Balanço" value={formatFinanceCurrency(balance)} helper="Resultado previsto do período" tone={balance >= 0 ? 'positive' : 'negative'} />
-          </section>
+            {clients.length === 0 && (
+              <div className="pfx-empty-state">
+                <strong>Nenhum cliente PFX ainda.</strong>
+                <span>Use o botão no canto superior direito para cadastrar o primeiro certificado.</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-          <section className="finance-daily-grid">
-            <FinanceMiniList title="Próximas entradas" items={nextEntries} empty="Nenhuma entrada pendente." />
-            <FinanceMiniList title="Próximas saídas" items={nextExpenses} empty="Nenhuma saída pendente." />
-          </section>
-        </div>
-      ) : activeTab === 'Entradas' ? (
-        <FinanceRecordsTable kind="entrada" records={entries} onCreate={() => setCreateKind('entrada')} onDelete={handleDeleteRecord} onStatusChange={handleStatusChange} />
-      ) : activeTab === 'Saídas' ? (
-        <FinanceRecordsTable kind="saida" records={expenses} onCreate={() => setCreateKind('saida')} onDelete={handleDeleteRecord} onStatusChange={handleStatusChange} />
-      ) : (
-        <FinanceReports records={records} />
+      {selectedClient && (
+        <PfxClientPanel
+          client={selectedClient}
+          onClose={() => setSelectedClientId(null)}
+          onEdit={() => { setModalClient(selectedClient); setIsModalOpen(true) }}
+          onDelete={handleDeleteClient}
+        />
       )}
 
-      {createKind && (
-        <FinanceCreateModal kind={createKind} onClose={() => setCreateKind(null)} onCreate={handleCreateRecord} />
+      {isModalOpen && (
+        <PfxClientModal
+          client={modalClient}
+          onClose={() => setIsModalOpen(false)}
+          onSave={async data => {
+            await handleSaveClient(data, modalClient?.id)
+            setIsModalOpen(false)
+          }}
+        />
       )}
     </div>
   )
 }
 
-function FinanceSummaryCard({ label, value, helper, tone = 'neutral' }: { label: string; value: string; helper: string; tone?: 'neutral' | 'positive' | 'negative' }) {
-  return (
-    <article className={`finance-summary-card finance-summary-card--${tone}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{helper}</p>
-    </article>
-  )
-}
-
-function FinanceMiniList({ title, items, empty }: { title: string; items: FinanceRecord[]; empty: string }) {
-  return (
-    <article className="finance-list-card">
-      <header>
-        <h3>{title}</h3>
-      </header>
-      {items.length > 0 ? (
-        <div className="finance-mini-list">
-          {items.map(item => (
-            <div className="finance-mini-row" key={item.id}>
-              <div>
-                <strong>{item.name}</strong>
-                <span>{item.category} · {formatFinanceDate(item.date)}</span>
-              </div>
-              <b>{formatFinanceCurrency(item.value)}</b>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="finance-empty-text">{empty}</p>
-      )}
-    </article>
-  )
-}
-
-function FinanceRecordsTable({
-  kind,
-  records,
-  onCreate,
-  onDelete,
-  onStatusChange,
-}: {
-  kind: FinanceKind
-  records: FinanceRecord[]
-  onCreate: () => void
-  onDelete: (id: string) => void
-  onStatusChange: (id: string, status: FinanceStatus) => void
+function PfxClientRow({ client, selected, onSelect }: {
+  client: PfxClient
+  selected: boolean
+  onSelect: () => void
 }) {
+  const status = getPfxValidityStatus(client.validityDate)
+  const hasWhatsapp = normalizePfxWhatsapp(client.whatsapp) !== ''
+
   return (
-    <section className="finance-sheet" aria-label={kind === 'entrada' ? 'Entradas' : 'Saídas'}>
-      <div className="finance-sheet-top">
-        <h3>{kind === 'entrada' ? 'Entradas' : 'Saídas'}</h3>
-        <button className="crm-add-btn crm-add-icon-btn" onClick={onCreate} type="button" aria-label={kind === 'entrada' ? 'Nova entrada' : 'Nova saída'} title={kind === 'entrada' ? 'Nova entrada' : 'Nova saída'}>
-          <FinancePlusIcon />
+    <tr className={selected ? 'selected' : ''} onClick={onSelect}>
+      <td>
+        <div className="pfx-client-cell">
+          <strong>{client.clientName}</strong>
+          {client.notes && <span>{client.notes}</span>}
+        </div>
+      </td>
+      <td><span className="pfx-pill">{client.clientType}</span></td>
+      <td>{client.document || 'Não informado'}</td>
+      <td>
+        <span className={`pfx-bird-badge${client.birdIdDone ? ' done' : ''}`}>
+          {client.birdIdDone ? 'Feito' : 'Não feito'}
+        </span>
+      </td>
+      <td>
+        <span className={`pfx-file-badge${client.pfxFileName ? ' has-file' : ''}`}>
+          {client.pfxFileName || 'Sem arquivo'}
+        </span>
+      </td>
+      <td>
+        <span className={`pfx-validity-badge status-${status}`}>
+          {getPfxValidityLabel(client.validityDate)}
+        </span>
+      </td>
+      <td>
+        {hasWhatsapp ? (
+          <a
+            href={getPfxWhatsappUrl(client, 'Renovação')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pfx-row-whatsapp"
+            onClick={event => event.stopPropagation()}
+            title="Enviar WhatsApp"
+          >
+            <CrmWhatsappIcon />
+          </a>
+        ) : (
+          <span className="pfx-muted">Sem número</span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
+function PfxClientPanel({ client, onClose, onEdit, onDelete }: {
+  client: PfxClient
+  onClose: () => void
+  onEdit: () => void
+  onDelete: (clientId: string) => Promise<void>
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const status = getPfxValidityStatus(client.validityDate)
+  const whatsappReady = normalizePfxWhatsapp(client.whatsapp) !== ''
+
+  return (
+    <aside className="pfx-panel crm-lead-panel">
+      <div className="crm-panel-header">
+        <div className="crm-panel-title">
+          <span className={`pfx-panel-status-dot status-${status}`} />
+          <div>
+            <strong>{client.clientName}</strong>
+            <span>{client.clientType} · {client.document || 'Sem documento'}</span>
+          </div>
+        </div>
+        <button className="crm-panel-close" onClick={onClose} type="button" aria-label="Fechar">
+          <CloseIcon />
         </button>
       </div>
 
-      <div className="finance-sheet-header">
-        <span>Nome</span>
-        <span>Data</span>
-        <span>Categoria</span>
-        <span>Valor</span>
-        <span>Status</span>
-        <span />
-      </div>
+      <div className="crm-panel-body">
+        <div className="pfx-panel-hero">
+          <span className={`pfx-validity-badge status-${status}`}>
+            {getPfxValidityLabel(client.validityDate)}
+          </span>
+          <strong>{client.pfxFileName || 'Arquivo PFX não anexado'}</strong>
+          {client.pfxFileName && <span>{formatPfxFileSize(client.pfxFileSize)}</span>}
+          {client.pfxFileUrl && (
+            <a href={client.pfxFileUrl} download={client.pfxFileName || 'certificado.pfx'} className="pfx-download-link">
+              Baixar PFX
+            </a>
+          )}
+        </div>
 
-      {records.length > 0 ? (
-        <div className="finance-sheet-body">
-          {records.map(record => (
-            <div className="finance-sheet-row" key={record.id}>
-              <strong>{record.name}</strong>
-              <span>{formatFinanceDate(record.date)}</span>
-              <span>{record.category}</span>
-              <span>{formatFinanceCurrency(record.value)}</span>
-              <select
-                className={`finance-status-select finance-status-select--${getFinanceStatusTone(record.status)}`}
-                value={record.status}
-                onChange={event => onStatusChange(record.id, event.target.value as FinanceStatus)}
-                aria-label={`Status de ${record.name}`}
+        <div className="crm-panel-section">
+          <p className="crm-panel-label">WhatsApp</p>
+          <div className="pfx-whatsapp-actions">
+            {PFX_WHATSAPP_INTENTS.map(intent => (
+              <a
+                key={intent}
+                href={whatsappReady ? getPfxWhatsappUrl(client, intent) : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`crm-contact-btn crm-contact-whatsapp${!whatsappReady ? ' disabled' : ''}`}
+                aria-disabled={!whatsappReady}
+                onClick={event => { if (!whatsappReady) event.preventDefault() }}
               >
-                <option value="Pendente">Pendente</option>
-                <option value="Parcial">Parcial</option>
-                <option value="Pago">Pago</option>
-                <option value="Cancelado">Cancelado</option>
-              </select>
-              <div className="finance-row-actions">
-                <button onClick={() => onDelete(record.id)} type="button" aria-label={`Excluir ${record.name}`} title="Excluir">
-                  <TrashIcon />
-                </button>
+                <CrmWhatsappIcon /> {intent}
+              </a>
+            ))}
+          </div>
+          <div className="crm-contact-info">
+            {client.whatsapp ? <span>{client.whatsapp}</span> : <span>Nenhum WhatsApp cadastrado</span>}
+          </div>
+        </div>
+
+        <div className="crm-panel-section">
+          <p className="crm-panel-label">Dados</p>
+          <div className="pfx-detail-list">
+            <div><span>Tipo</span><strong>{client.clientType}</strong></div>
+            <div><span>Bird-ID</span><strong>{client.birdIdDone ? 'Feito' : 'Não feito'}</strong></div>
+            <div><span>Documento</span><strong>{client.document || 'Não informado'}</strong></div>
+            <div><span>Atualizado em</span><strong>{formatCrmDate(client.updatedAt)}</strong></div>
+          </div>
+        </div>
+
+        {client.notes && (
+          <div className="crm-panel-section">
+            <p className="crm-panel-label">Observação</p>
+            <p className="pfx-notes">{client.notes}</p>
+          </div>
+        )}
+
+        <div className="crm-panel-section">
+          <button type="button" className="pfx-edit-btn" onClick={onEdit}>
+            <PencilIcon /> Editar cliente
+          </button>
+        </div>
+
+        <div className="crm-panel-section crm-panel-danger-zone">
+          {confirmDelete ? (
+            <div className="crm-delete-confirm">
+              <span>Excluir este cliente PFX?</span>
+              <div className="crm-delete-confirm-actions">
+                <button className="crm-delete-yes" onClick={() => void onDelete(client.id)} type="button">Sim, excluir</button>
+                <button className="crm-delete-no" onClick={() => setConfirmDelete(false)} type="button">Cancelar</button>
               </div>
             </div>
-          ))}
+          ) : (
+            <button className="crm-delete-btn" onClick={() => setConfirmDelete(true)} type="button">
+              <TrashIcon /> Excluir cliente
+            </button>
+          )}
         </div>
-      ) : (
-        <div className="finance-sheet-empty">Nenhum lançamento criado ainda.</div>
-      )}
-    </section>
+      </div>
+    </aside>
   )
 }
 
-function FinanceReports({ records }: { records: FinanceRecord[] }) {
-  const totalEntries = records.filter(record => record.kind === 'entrada' && record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
-  const totalExpenses = records.filter(record => record.kind === 'saida' && record.status !== 'Cancelado').reduce((sum, record) => sum + record.value, 0)
-  const balance = totalEntries - totalExpenses
-  const totalPending = records.filter(record => record.status === 'Pendente' || record.status === 'Parcial').reduce((sum, record) => sum + record.value, 0)
-  const categoryKeys = Array.from(new Set(records.map(record => `${record.kind}:${record.category}`)))
-
-  return (
-    <div className="finance-reports">
-      <section className="finance-summary-grid">
-        <FinanceSummaryCard label="Entradas" value={formatFinanceCurrency(totalEntries)} helper="Total consolidado" />
-        <FinanceSummaryCard label="Saídas" value={formatFinanceCurrency(totalExpenses)} helper="Total consolidado" />
-        <FinanceSummaryCard label="Saldo" value={formatFinanceCurrency(balance)} helper={`${formatFinanceCurrency(totalPending)} pendente`} tone={balance >= 0 ? 'positive' : 'negative'} />
-      </section>
-
-      <section className="finance-sheet">
-        <div className="finance-sheet-top">
-          <h3>Resumo por categoria</h3>
-        </div>
-        <div className="finance-sheet-header finance-sheet-header--report">
-          <span>Categoria</span>
-          <span>Tipo</span>
-          <span>Total</span>
-        </div>
-        <div className="finance-sheet-body">
-          {categoryKeys.map(key => {
-            const [kind, category] = key.split(':') as [FinanceKind, string]
-            const total = records
-              .filter(record => record.kind === kind && record.category === category && record.status !== 'Cancelado')
-              .reduce((sum, record) => sum + record.value, 0)
-
-            return (
-              <div className="finance-sheet-row finance-sheet-row--report" key={key}>
-                <strong>{category}</strong>
-                <span>{kind === 'entrada' ? 'Entrada' : 'Saída'}</span>
-                <span>{formatFinanceCurrency(total)}</span>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-    </div>
-  )
-}
-
-function FinanceCreateModal({
-  kind,
-  onClose,
-  onCreate,
-}: {
-  kind: FinanceKind
+function PfxClientModal({ client, onClose, onSave }: {
+  client: PfxClient | null
   onClose: () => void
-  onCreate: (record: Omit<FinanceRecord, 'id'>) => Promise<void>
+  onSave: (data: PfxClientFormData) => Promise<void>
 }) {
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
-  const [account, setAccount] = useState('Principal')
-  const [value, setValue] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [status, setStatus] = useState<FinanceStatus>('Pendente')
-  const [type, setType] = useState<FinanceRecordType>(kind === 'entrada' ? 'Fixa' : 'Variável')
-  const [note, setNote] = useState('')
-  const [error, setError] = useState('')
+  const [clientName, setClientName] = useState(client?.clientName ?? '')
+  const [clientType, setClientType] = useState<PfxClientType>(client?.clientType ?? 'PJ')
+  const [birdIdDone, setBirdIdDone] = useState(client?.birdIdDone ?? false)
+  const [document, setDocument] = useState(client?.document ?? '')
+  const [pfxFileName, setPfxFileName] = useState(client?.pfxFileName ?? '')
+  const [pfxFileUrl, setPfxFileUrl] = useState(client?.pfxFileUrl ?? '')
+  const [pfxFileSize, setPfxFileSize] = useState(client?.pfxFileSize ?? 0)
+  const [validityDate, setValidityDate] = useState(client?.validityDate ?? '')
+  const [whatsapp, setWhatsapp] = useState(client?.whatsapp ?? '')
+  const [notes, setNotes] = useState(client?.notes ?? '')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleTypeChange = (nextType: PfxClientType) => {
+    setClientType(nextType)
+    setDocument(maskPfxDocument(document, nextType))
+  }
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setError('')
+
+    if (file.size > PFX_FILE_LIMIT_BYTES) {
+      setError('O arquivo PFX pode ter no máximo 5MB.')
+      event.target.value = ''
+      return
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result ?? ''))
+      reader.onerror = () => reject(new Error('Falha ao ler arquivo.'))
+      reader.readAsDataURL(file)
+    })
+
+    setPfxFileName(file.name)
+    setPfxFileUrl(dataUrl)
+    setPfxFileSize(file.size)
+  }
+
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const parsedValue = Number(value)
+    const cleanName = clientName.trim()
+    const cleanDocument = maskPfxDocument(document, clientType)
+    const documentDigits = onlyDigits(cleanDocument)
+    const expectedDocumentSize = clientType === 'PF' ? 11 : 14
 
-    if (!name.trim() || !category.trim() || !date || !Number.isFinite(parsedValue) || parsedValue <= 0) {
-      setError('Preencha nome, categoria, data e valor para salvar.')
+    if (!cleanName) {
+      setError('Informe o nome do cliente.')
+      return
+    }
+
+    if (cleanDocument && documentDigits.length !== expectedDocumentSize) {
+      setError(clientType === 'PF' ? 'Informe um CPF completo.' : 'Informe um CNPJ completo.')
       return
     }
 
     setSaving(true)
+    setError('')
+
     try {
-      await onCreate({
-        kind,
-        name: name.trim(),
-        category: category.trim(),
-        account: account.trim() || 'Principal',
-        value: parsedValue,
-        date,
-        status,
-        type,
-        note: note.trim(),
+      await onSave({
+        clientName: cleanName,
+        clientType,
+        birdIdDone,
+        document: cleanDocument,
+        pfxFileName,
+        pfxFileUrl,
+        pfxFileSize,
+        validityDate,
+        whatsapp: maskPfxWhatsapp(whatsapp),
+        notes: notes.trim(),
       })
-    } catch {
-      setError('Não consegui salvar esse lançamento agora.')
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Não consegui salvar o cliente.')
     } finally {
       setSaving(false)
     }
@@ -3879,353 +2535,73 @@ function FinanceCreateModal({
 
   return (
     <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal finance-modal" onClick={event => event.stopPropagation()}>
+      <div className="crm-modal pfx-modal" onClick={event => event.stopPropagation()}>
         <div className="crm-modal-header">
-          <h3>{kind === 'entrada' ? 'Nova entrada' : 'Nova saída'}</h3>
-          <button onClick={onClose} type="button" className="crm-modal-close">
-            <CloseIcon />
-          </button>
+          <h3>{client ? 'Editar cliente PFX' : 'Novo cliente PFX'}</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close"><CloseIcon /></button>
         </div>
 
-        <form className="crm-modal-form" onSubmit={handleSubmit}>
-          <label>
-            Nome
-            <input value={name} onChange={event => setName(event.target.value)} placeholder={kind === 'entrada' ? 'Mensalidade cliente' : 'Ferramenta ou despesa'} autoFocus />
-          </label>
-
-          <div className="crm-modal-row">
-            <label>
-              Categoria
-              <input value={category} onChange={event => setCategory(event.target.value)} placeholder={kind === 'entrada' ? 'Contrato' : 'Software'} />
-            </label>
-            <label>
-              Conta
-              <input value={account} onChange={event => setAccount(event.target.value)} placeholder="Principal" />
-            </label>
-          </div>
-
-          <div className="crm-modal-row">
-            <label>
-              Valor
-              <input type="number" min="0" step="0.01" value={value} onChange={event => setValue(event.target.value)} placeholder="0,00" />
-            </label>
-            <label>
-              Data
-              <input type="date" value={date} onChange={event => setDate(event.target.value)} />
-            </label>
-          </div>
-
+        <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
+          <label>Cliente *<input value={clientName} onChange={event => { setClientName(event.target.value); setError('') }} placeholder="Nome do cliente" autoFocus /></label>
           <div className="crm-modal-row">
             <label>
               Tipo
-              <select value={type} onChange={event => setType(event.target.value as FinanceRecordType)}>
-                {kind === 'entrada' ? (
-                  <>
-                    <option value="Fixa">Fixa</option>
-                    <option value="Variável">Variável</option>
-                    <option value="Rendimento">Rendimento</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="Fixa">Fixa</option>
-                    <option value="Variável">Variável</option>
-                    <option value="Dívida">Dívida</option>
-                  </>
-                )}
+              <select value={clientType} onChange={event => handleTypeChange(event.target.value as PfxClientType)}>
+                <option value="PJ">PJ</option>
+                <option value="PF">PF</option>
               </select>
             </label>
             <label>
-              Status
-              <select value={status} onChange={event => setStatus(event.target.value as FinanceStatus)}>
-                <option value="Pendente">Pendente</option>
-                <option value="Parcial">Parcial</option>
-                <option value="Pago">Pago</option>
-                <option value="Cancelado">Cancelado</option>
+              Bird-ID
+              <select value={birdIdDone ? 'Feito' : 'Não Feito'} onChange={event => setBirdIdDone(event.target.value === 'Feito')}>
+                {PFX_BIRD_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
               </select>
             </label>
           </div>
-
+          <div className="crm-modal-row">
+            <label>
+              Documento
+              <input
+                value={document}
+                onChange={event => setDocument(maskPfxDocument(event.target.value, clientType))}
+                placeholder={clientType === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
+              />
+            </label>
+            <label>
+              Validade
+              <input type="date" value={validityDate} onChange={event => setValidityDate(event.target.value)} />
+            </label>
+          </div>
           <label>
-            Observação
-            <textarea value={note} onChange={event => setNote(event.target.value)} placeholder="Detalhes internos..." rows={3} />
+            WhatsApp
+            <input value={whatsapp} onChange={event => setWhatsapp(maskPfxWhatsapp(event.target.value))} placeholder="(00) 00000-0000" />
           </label>
 
+          <div className="pfx-upload-field">
+            <span className="crm-import-file-label">Arquivo PFX</span>
+            <div className="crm-import-upload">
+              <button type="button" onClick={() => fileInputRef.current?.click()}>
+                Escolher arquivo
+              </button>
+              <span>{pfxFileName ? `${pfxFileName}${formatPfxFileSize(pfxFileSize) ? ` · ${formatPfxFileSize(pfxFileSize)}` : ''}` : 'Nenhum arquivo escolhido'}</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pfx,.p12,application/x-pkcs12"
+                onChange={event => void handleFileChange(event)}
+              />
+            </div>
+          </div>
+
+          <label>Observação<textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Detalhes internos..." /></label>
           {error && <p className="crm-modal-error">{error}</p>}
 
           <div className="crm-modal-footer">
             <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="submit" disabled={saving} className="crm-modal-submit">
-              {saving ? 'Salvando...' : 'Salvar'}
-            </button>
+            <button type="submit" disabled={saving} className="crm-modal-submit">{saving ? 'Salvando...' : 'Salvar'}</button>
           </div>
         </form>
       </div>
-    </div>
-  )
-}
-
-function LinksModule() {
-  const [links, setLinks] = useState<TrackedLink[]>([])
-  const [title, setTitle] = useState('')
-  const [slug, setSlug] = useState('')
-  const [destinationUrl, setDestinationUrl] = useState('')
-  const [error, setError] = useState('')
-  const [linksError, setLinksError] = useState('')
-  const [linksLoading, setLinksLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [copiedLinkId, setCopiedLinkId] = useState('')
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-
-  const loadTrackedLinks = async () => {
-    setLinksLoading(true)
-    setLinksError('')
-
-    const { data: linkRows, error: linkError } = await supabase
-      .from('tracked_links')
-      .select('id, title, slug, destination_url, created_at')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-
-    if (linkError) {
-      setLinks([])
-      setLinksError('Não consegui carregar os links do Supabase.')
-      setLinksLoading(false)
-      return
-    }
-
-    const rows = (linkRows ?? []) as TrackedLinkRow[]
-    const linkIds = rows.map(link => link.id)
-    let clickRows: TrackedClickRow[] = []
-
-    if (linkIds.length > 0) {
-      const { data: clicks, error: clicksError } = await supabase
-        .from('tracked_link_clicks')
-        .select('link_id, source')
-        .in('link_id', linkIds)
-
-      if (clicksError) {
-        setLinksError('Links carregados, mas não consegui buscar os cliques.')
-      } else {
-        clickRows = (clicks ?? []) as TrackedClickRow[]
-      }
-    }
-
-    setLinks(mapTrackedLinks(rows, clickRows))
-    setLinksLoading(false)
-  }
-
-  useEffect(() => {
-    void loadTrackedLinks()
-  }, [])
-
-  const handleCreateLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError('')
-    setLinksError('')
-
-    const cleanTitle = title.trim()
-    const cleanDestination = normalizeDestinationUrl(destinationUrl)
-    const cleanSlug = slugify(slug || cleanTitle)
-
-    if (!cleanTitle || !cleanDestination || !cleanSlug) {
-      setError('Preencha nome, destino e slug para criar o link.')
-      return
-    }
-
-    if (links.some(link => link.slug === cleanSlug)) {
-      setError('Esse slug já existe. Use outro nome para o link.')
-      return
-    }
-
-    setActionLoading(true)
-    const { data: createdLink, error: insertError } = await supabase
-      .from('tracked_links')
-      .insert({
-        title: cleanTitle,
-        slug: cleanSlug,
-        destination_url: cleanDestination,
-      })
-      .select('id, title, slug, destination_url, created_at')
-      .single()
-    setActionLoading(false)
-
-    if (insertError) {
-      setError(insertError.code === '23505' ? 'Esse slug já existe. Use outro nome para o link.' : 'Não consegui salvar o link no Supabase.')
-      return
-    }
-
-    setLinks(currentLinks => [
-      mapTrackedLink(createdLink as TrackedLinkRow, []),
-      ...currentLinks,
-    ])
-    setTitle('')
-    setSlug('')
-    setDestinationUrl('')
-    setIsCreateModalOpen(false)
-  }
-
-  const handleCopyLink = async (link: TrackedLink) => {
-    const trackedHref = getTrackedLinkHref(link)
-
-    try {
-      await navigator.clipboard.writeText(trackedHref)
-      setCopiedLinkId(link.id)
-      window.setTimeout(() => setCopiedLinkId(''), 1400)
-    } catch {
-      setCopiedLinkId('')
-    }
-  }
-
-  const handleDeleteLink = async (link: TrackedLink) => {
-    setLinksError('')
-    setActionLoading(true)
-    const { error: deleteError } = await supabase
-      .from('tracked_links')
-      .update({ is_active: false })
-      .eq('id', link.id)
-    setActionLoading(false)
-
-    if (deleteError) {
-      setLinksError('Não consegui excluir esse link no Supabase.')
-      return
-    }
-
-    setLinks(currentLinks => currentLinks.filter(currentLink => currentLink.id !== link.id))
-  }
-
-  return (
-    <div className="forms-module links-module">
-      <header className="forms-module-header">
-        <div>
-          <h2 id="active-module-title">Links</h2>
-        </div>
-        <div className="links-header-actions">
-          <button
-            className="crm-add-btn crm-add-icon-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            type="button"
-            aria-label="Criar link"
-            title="Criar link"
-          >
-            <LinkPlusIcon />
-          </button>
-        </div>
-      </header>
-
-      <div className="links-workspace">
-        <section className="links-sheet" aria-label="Links rastreados">
-          <div className="links-sheet-header">
-            <span>Nome</span>
-            <span>Link rastreado</span>
-            <span>Destino</span>
-            <span>Cliques</span>
-            <span>Origem</span>
-            <span />
-          </div>
-
-          {linksLoading ? (
-            <div className="links-sheet-empty">
-              Carregando links...
-            </div>
-          ) : linksError ? (
-            <div className="links-sheet-empty">
-              {linksError}
-            </div>
-          ) : links.length > 0 ? (
-            <div className="links-sheet-body">
-              {links.map(link => (
-                <div className="links-sheet-row" key={link.id}>
-                  <strong>{link.title}</strong>
-                  <a href={getTrackedLinkPath(link)} target="_blank" rel="noopener noreferrer">
-                    {getTrackedLinkHref(link)}
-                  </a>
-                  <span>{link.destinationUrl}</span>
-                  <span>{getTrackedLinkClicks(link)}</span>
-                  <span>{getTrackedLinkTopSource(link)}</span>
-                  <div className="tracked-link-actions">
-                    <button onClick={() => handleCopyLink(link)} type="button" aria-label={`Copiar ${link.title}`} title="Copiar link">
-                      {copiedLinkId === link.id ? <CheckIcon /> : <CopyIcon />}
-                    </button>
-                    <a href={getTrackedLinkPath(link)} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${link.title}`} title="Abrir link">
-                      <ExternalLinkIcon />
-                    </a>
-                    <button disabled={actionLoading} onClick={() => handleDeleteLink(link)} type="button" aria-label={`Excluir ${link.title}`} title="Excluir link">
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="links-sheet-empty">
-              Nenhum link criado ainda.
-            </div>
-          )}
-        </section>
-      </div>
-
-      {isCreateModalOpen && (
-        <div className="crm-modal-backdrop" onClick={() => setIsCreateModalOpen(false)}>
-          <div className="crm-modal" onClick={event => event.stopPropagation()}>
-            <div className="crm-modal-header">
-              <h3>Novo rastreador</h3>
-              <button onClick={() => setIsCreateModalOpen(false)} type="button" className="crm-modal-close">
-                <CloseIcon />
-              </button>
-            </div>
-
-            <form className="crm-modal-form" onSubmit={handleCreateLink}>
-              <label>
-                Nome
-                <input
-                  value={title}
-                  onChange={event => {
-                    setTitle(event.target.value)
-                    if (!slug) setError('')
-                  }}
-                  placeholder="Instagram Bio"
-                  autoFocus
-                />
-              </label>
-
-              <label>
-                Link final
-                <input
-                  value={destinationUrl}
-                  onChange={event => {
-                    setDestinationUrl(event.target.value)
-                    if (error) setError('')
-                  }}
-                  placeholder="https://instagram.com/inaciocarlos"
-                />
-              </label>
-
-              <label>
-                Slug
-                <input
-                  value={slug}
-                  onChange={event => {
-                    setSlug(event.target.value)
-                    if (error) setError('')
-                  }}
-                  placeholder={slugify(title) || 'instagram-bio'}
-                />
-              </label>
-
-              {error && <p className="crm-modal-error">{error}</p>}
-
-              <div className="crm-modal-footer">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="crm-modal-cancel">
-                  Cancelar
-                </button>
-                <button disabled={actionLoading} type="submit" className="crm-modal-submit">
-                  {actionLoading ? 'Salvando...' : 'Criar link'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -4410,7 +2786,7 @@ function BoardsModule() {
         </button>
       </header>
 
-      {moduleError && <p className="links-form-error">{moduleError}</p>}
+      {moduleError && <p className="module-form-error">{moduleError}</p>}
 
       <div className="boards-workspace">
         <section className="boards-library" aria-label="Quadros criados">
@@ -5223,7 +3599,7 @@ function BoardEditor({
 
   const handleConnect = (connection: Connection) => {
     const newEdges = addEdge(
-      { ...connection, animated: true, type: 'straight', markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: '#ffffff', strokeWidth: 2 } },
+      { ...connection, animated: true, type: 'straight', markerEnd: { type: MarkerType.ArrowClosed }, style: { stroke: '#8f8f94', strokeWidth: 2.2 } },
       edges,
     )
     setEdges(newEdges)
@@ -5831,7 +4207,7 @@ function buildEdgeWithCondition(base: Edge, condition: EdgeCondition, customLabe
   return typed({ ...base, ...reset, label: undefined, style: s })
 }
 
-const EDGE_PRESET_COLORS = ['#6366f1','#22c55e','#ef4444','#f59e0b','#ec4899','#0ea5e9','#ffffff','#a3a3a3']
+const EDGE_PRESET_COLORS = ['#8f8f94','#a3a3a3','#737373','#525252','#d4d4d8','#f5f5f7','#22c55e','#ef4444']
 
 function EdgeEditPanel({
   edge,
@@ -5847,14 +4223,14 @@ function EdgeEditPanel({
   const [condition, setCondition] = useState<EdgeCondition>(() => deriveCondition(edge))
   const [customLabel, setCustomLabel] = useState(() => condition === 'custom' ? String(edge.label ?? '') : '')
   const [edgeType, setEdgeType] = useState(edge.type ?? 'smoothstep')
-  const [color, setColor] = useState<string>(() => (edge.style?.stroke as string | undefined) ?? '#ffffff')
+  const [color, setColor] = useState<string>(() => (edge.style?.stroke as string | undefined) ?? '#8f8f94')
 
   useEffect(() => {
     const c = deriveCondition(edge)
     setCondition(c)
     setCustomLabel(c === 'custom' ? String(edge.label ?? '') : '')
     setEdgeType(edge.type ?? 'smoothstep')
-    setColor((edge.style?.stroke as string | undefined) ?? '#ffffff')
+    setColor((edge.style?.stroke as string | undefined) ?? '#8f8f94')
   }, [edge.id])
 
   const handleSubmit = (event: FormEvent) => {
@@ -5936,80 +4312,6 @@ function EdgeEditPanel({
       </form>
     </div>
   )
-}
-
-function mapTrackedLinks(linkRows: TrackedLinkRow[], clickRows: TrackedClickRow[]) {
-  return linkRows.map(linkRow => {
-    const clickSources = clickRows
-      .filter(click => click.link_id === linkRow.id)
-      .reduce<Record<string, number>>((sources, click) => {
-        const source = click.source || 'Direto'
-        sources[source] = (sources[source] ?? 0) + 1
-
-        return sources
-      }, {})
-
-    return mapTrackedLink(
-      linkRow,
-      Object.entries(clickSources).map(([source, clicks]) => ({ source, clicks })),
-    )
-  })
-}
-
-function mapTrackedLink(linkRow: TrackedLinkRow, sources: TrackedLinkSource[]) {
-  return {
-    id: linkRow.id,
-    title: linkRow.title,
-    slug: linkRow.slug,
-    destinationUrl: linkRow.destination_url,
-    createdAt: formatTrackedLinkDate(linkRow.created_at),
-    sources,
-  }
-}
-
-function formatTrackedLinkDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(value))
-}
-
-function getTrackedLinkPath(link: TrackedLink) {
-  return `/l/${link.slug}`
-}
-
-function getTrackedLinkHref(link: TrackedLink) {
-  const trackedLinkPath = getTrackedLinkPath(link)
-
-  if (typeof window === 'undefined') {
-    return trackedLinkPath
-  }
-
-  return `${window.location.origin}${trackedLinkPath}`
-}
-
-function getTrackedLinkClicks(link: TrackedLink) {
-  return link.sources.reduce((total, source) => total + source.clicks, 0)
-}
-
-function getTrackedLinkTopSource(link: TrackedLink) {
-  return [...link.sources].sort((firstSource, secondSource) => secondSource.clicks - firstSource.clicks)[0]?.source ?? 'Sem dados'
-}
-
-function normalizeDestinationUrl(value: string) {
-  const cleanValue = value.trim()
-
-  if (!cleanValue) return ''
-  if (/^https?:\/\//i.test(cleanValue)) return cleanValue
-
-  return `https://${cleanValue}`
-}
-
-function slugify(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
 }
 
 function createBoardTemplate(id: string, name: string, type: BoardType): Board {
@@ -6114,7 +4416,7 @@ function createBoardEdge(id: string, source: string, target: string, type = 'def
     type,
     animated: true,
     markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: '#ffffff', strokeWidth: 2 },
+    style: { stroke: '#8f8f94', strokeWidth: 2.2 },
   }
 }
 
@@ -6792,15 +5094,6 @@ function BoardNodeIcon({ kind }: { kind: BoardNodeKind }) {
 }
 
 
-function SidebarIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <rect x="3" y="5" width="18" height="14" rx="3" />
-      <path d="M9 5v14" />
-    </svg>
-  )
-}
-
 function EmailActionIcon() {
   return (
     <svg aria-hidden viewBox="0 0 24 24">
@@ -7060,28 +5353,6 @@ function DownloadTemplateIcon() {
   )
 }
 
-function LinkPlusIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L10.9 5.03" />
-      <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07l1.22-1.22" />
-      <path d="M18 17h4" />
-      <path d="M20 15v4" />
-    </svg>
-  )
-}
-
-function DispatchPlusIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <path d="m22 2-7 20-4-9-9-4Z" />
-      <path d="M22 2 11 13" />
-      <path d="M16 18h4" />
-      <path d="M18 16v4" />
-    </svg>
-  )
-}
-
 function BoardPlusIcon() {
   return (
     <svg aria-hidden viewBox="0 0 24 24">
@@ -7094,16 +5365,13 @@ function BoardPlusIcon() {
   )
 }
 
-function FinancePlusIcon() {
+function PfxPlusIcon() {
   return (
     <svg aria-hidden viewBox="0 0 24 24">
-      <path d="M4 19V5" />
-      <path d="M4 19h17" />
-      <path d="M8 16v-5" />
-      <path d="M13 16V8" />
-      <path d="M18 16v-3" />
-      <path d="M17 5h4" />
-      <path d="M19 3v4" />
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 14h6" />
+      <path d="M12 11v6" />
     </svg>
   )
 }
@@ -7111,17 +5379,8 @@ function FinancePlusIcon() {
 function ModuleIcon({
   type,
 }: {
-  type: 'dispatches' | 'crm' | 'finance' | 'links' | 'boards' | 'clients'
+  type: 'crm' | 'pfx' | 'boards' | 'clients'
 }) {
-  if (type === 'dispatches') {
-    return (
-      <svg aria-hidden viewBox="0 0 24 24">
-        <path d="m22 2-7 20-4-9-9-4Z" />
-        <path d="M22 2 11 13" />
-      </svg>
-    )
-  }
-
   if (type === 'crm') {
     return (
       <svg aria-hidden viewBox="0 0 24 24">
@@ -7134,23 +5393,13 @@ function ModuleIcon({
     )
   }
 
-  if (type === 'finance') {
+  if (type === 'pfx') {
     return (
       <svg aria-hidden viewBox="0 0 24 24">
-        <path d="M4 19V5" />
-        <path d="M4 19h17" />
-        <path d="M8 16v-5" />
-        <path d="M13 16V8" />
-        <path d="M18 16v-3" />
-      </svg>
-    )
-  }
-
-  if (type === 'links') {
-    return (
-      <svg aria-hidden viewBox="0 0 24 24">
-        <path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L10.9 5.03" />
-        <path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07l1.22-1.22" />
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
       </svg>
     )
   }
