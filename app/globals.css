@@ -7608,6 +7608,328 @@ a:focus-visible {
 	gap: 6px;
 }
 
+/* ── Contabilidade ───────────────────────────────── */
+
+.routine-module-inner {
+	gap: 0;
+}
+
+.routine-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.routine-tabs button {
+	height: 30px;
+	padding: 0 12px;
+	border: 1px solid rgba(245, 245, 247, 0.08);
+	border-radius: 999px;
+	background: rgba(245, 245, 247, 0.035);
+	color: rgba(245, 245, 247, 0.48);
+	font-size: 11px;
+	font-weight: 700;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.routine-tabs button:hover,
+.routine-tabs button.active {
+	border-color: rgba(245, 245, 247, 0.16);
+	background: rgba(245, 245, 247, 0.08);
+	color: rgba(245, 245, 247, 0.9);
+}
+
+.routine-summary-grid {
+	grid-template-columns: repeat(5, minmax(120px, 1fr));
+}
+
+.routine-filters {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(150px, 1fr));
+	gap: 10px;
+	margin-bottom: 12px;
+}
+
+.routine-filters input,
+.routine-filters select {
+	height: 34px;
+	width: 100%;
+	border: 1px solid rgba(245, 245, 247, 0.09);
+	border-radius: 9px;
+	background: rgba(245, 245, 247, 0.035);
+	color: rgba(245, 245, 247, 0.78);
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 0 11px;
+	outline: none;
+}
+
+.routine-filters input:focus,
+.routine-filters select:focus {
+	border-color: rgba(245, 245, 247, 0.2);
+}
+
+.routine-table-card {
+	min-height: 220px;
+}
+
+.routine-table {
+	min-width: 980px;
+}
+
+.routine-table-title {
+	padding: 13px 14px 0;
+	color: rgba(245, 245, 247, 0.42);
+	font-size: 10px;
+	font-weight: 760;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.routine-status-badge,
+.routine-item-badge,
+.routine-open-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 24px;
+	padding: 0 9px;
+	border-radius: 999px;
+	border: 1px solid rgba(245, 245, 247, 0.08);
+	background: rgba(245, 245, 247, 0.045);
+	color: rgba(245, 245, 247, 0.72);
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.routine-status-badge.ativo {
+	color: #22c55e;
+	background: rgba(34, 197, 94, 0.08);
+	border-color: rgba(34, 197, 94, 0.18);
+}
+
+.routine-status-badge.inativo {
+	color: rgba(245, 245, 247, 0.46);
+}
+
+.routine-item-badge.status-pendente {
+	color: #f59e0b;
+	border-color: rgba(245, 158, 11, 0.18);
+	background: rgba(245, 158, 11, 0.08);
+}
+
+.routine-item-badge.status-anexado {
+	color: #60a5fa;
+	border-color: rgba(96, 165, 250, 0.18);
+	background: rgba(96, 165, 250, 0.08);
+}
+
+.routine-item-badge.status-enviado {
+	color: #22c55e;
+	border-color: rgba(34, 197, 94, 0.18);
+	background: rgba(34, 197, 94, 0.08);
+}
+
+.routine-row-actions {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.routine-row-actions button,
+.routine-open-btn {
+	height: 28px;
+	border-radius: 8px;
+	border: 1px solid rgba(245, 245, 247, 0.09);
+	background: rgba(245, 245, 247, 0.04);
+	color: rgba(245, 245, 247, 0.72);
+	font-family: inherit;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 0 10px;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.routine-row-actions button:hover,
+.routine-open-btn:hover {
+	border-color: rgba(245, 245, 247, 0.18);
+	background: rgba(245, 245, 247, 0.075);
+	color: rgba(245, 245, 247, 0.94);
+}
+
+.routine-row-actions svg {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 2;
+}
+
+.routine-checklist {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	gap: 12px;
+}
+
+.routine-checklist-header {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 12px;
+	padding: 13px;
+	border: 1px solid rgba(245, 245, 247, 0.08);
+	border-radius: 14px;
+	background: linear-gradient(180deg, rgba(245, 245, 247, 0.045), rgba(245, 245, 247, 0.014));
+}
+
+.routine-checklist-header div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.routine-checklist-header span {
+	color: rgba(245, 245, 247, 0.42);
+	font-size: 10px;
+	font-weight: 760;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.routine-checklist-header strong {
+	color: rgba(245, 245, 247, 0.92);
+	font-size: 16px;
+	font-weight: 760;
+	letter-spacing: -0.02em;
+}
+
+.routine-checklist-header button {
+	height: 32px;
+	border: 1px solid rgba(245, 245, 247, 0.1);
+	border-radius: 9px;
+	background: rgba(245, 245, 247, 0.045);
+	color: rgba(245, 245, 247, 0.82);
+	font-size: 11px;
+	font-weight: 750;
+	padding: 0 12px;
+}
+
+.routine-checklist-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	overflow: auto;
+	padding-bottom: 18px;
+}
+
+.routine-checklist-item {
+	display: grid;
+	grid-template-columns: minmax(180px, 1.2fr) 140px 150px minmax(160px, 1fr) 110px;
+	align-items: center;
+	gap: 10px;
+	padding: 10px;
+	border: 1px solid rgba(245, 245, 247, 0.07);
+	border-radius: 12px;
+	background: rgba(245, 245, 247, 0.025);
+}
+
+.routine-checklist-title {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	min-width: 0;
+}
+
+.routine-checklist-title span {
+	width: 8px;
+	height: 8px;
+	border-radius: 999px;
+	box-shadow: 0 0 18px currentColor;
+	flex: none;
+}
+
+.routine-checklist-title strong {
+	min-width: 0;
+	color: rgba(245, 245, 247, 0.86);
+	font-size: 12px;
+	font-weight: 750;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.routine-checklist-title em {
+	flex: none;
+	font-style: normal;
+	color: rgba(245, 245, 247, 0.34);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.routine-checklist-item.routine-not-applicable {
+	opacity: 0.62;
+}
+
+.routine-checklist-item input,
+.routine-checklist-item select,
+.routine-file-control {
+	height: 32px;
+	width: 100%;
+	border: 1px solid rgba(245, 245, 247, 0.09);
+	border-radius: 8px;
+	background: rgba(245, 245, 247, 0.035);
+	color: rgba(245, 245, 247, 0.72);
+	font-family: inherit;
+	font-size: 11px;
+	font-weight: 650;
+	padding: 0 10px;
+	outline: none;
+}
+
+.routine-file-control {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.routine-file-control input {
+	display: none;
+}
+
+.routine-checklist-item > span {
+	color: rgba(245, 245, 247, 0.38);
+	font-size: 11px;
+	font-weight: 650;
+}
+
+.routine-message-modal textarea {
+	min-height: 280px;
+	white-space: pre-wrap;
+}
+
+.routine-copy-feedback {
+	margin: 0;
+	color: #22c55e;
+	font-size: 12px;
+	font-weight: 650;
+}
+
+.routine-empty-center {
+	min-height: 260px;
+}
+
 @media (max-width: 1240px) {
 	.crm-module {
 		position: relative;
@@ -7704,6 +8026,36 @@ a:focus-visible {
 
 	.pfx-whatsapp-actions {
 		grid-template-columns: 1fr;
+	}
+
+	.routine-summary-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.routine-filters {
+		grid-template-columns: 1fr;
+	}
+
+	.routine-checklist-header {
+		grid-template-columns: 1fr;
+		align-items: stretch;
+	}
+
+	.routine-checklist-header button {
+		width: 100%;
+	}
+
+	.routine-checklist-item {
+		grid-template-columns: 1fr;
+		align-items: stretch;
+	}
+
+	.routine-checklist-title strong {
+		white-space: normal;
+	}
+
+	.routine-message-modal textarea {
+		min-height: 220px;
 	}
 }
 
