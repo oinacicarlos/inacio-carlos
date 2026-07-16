@@ -12,12 +12,15 @@ create table if not exists public.routine_items (
 
 alter table public.routine_clients add column if not exists name text not null default '';
 alter table public.routine_clients add column if not exists cnpj text not null default '';
+alter table public.routine_clients add column if not exists partner_name text not null default '';
+alter table public.routine_clients add column if not exists partner_cpf text not null default '';
 alter table public.routine_clients add column if not exists regime text not null default 'MEI';
 alter table public.routine_clients add column if not exists has_payroll boolean not null default false;
 alter table public.routine_clients add column if not exists whatsapp text not null default '';
 alter table public.routine_clients add column if not exists email text not null default '';
 alter table public.routine_clients add column if not exists monthly_fee numeric(12,2) not null default 0;
 alter table public.routine_clients add column if not exists notes text not null default '';
+alter table public.routine_clients add column if not exists documents jsonb not null default '[]'::jsonb;
 alter table public.routine_clients add column if not exists status text not null default 'Ativo';
 alter table public.routine_clients add column if not exists created_at timestamptz not null default now();
 alter table public.routine_clients add column if not exists updated_at timestamptz not null default now();
