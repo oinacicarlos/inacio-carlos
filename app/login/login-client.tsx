@@ -4,6 +4,15 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
+function isInvalidRefreshTokenError(error: unknown) {
+  return error instanceof Error && error.message.toLowerCase().includes('refresh token')
+}
+
+async function clearInvalidLocalSession(error: unknown) {
+  if (!isInvalidRefreshTokenError(error)) return
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
+}
+
 export default function LoginClient() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -12,11 +21,19 @@ export default function LoginClient() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        router.replace('/crm')
-      }
-    })
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error: sessionError }) => {
+        if (sessionError) {
+          await clearInvalidLocalSession(sessionError)
+          return
+        }
+
+        if (data.session) {
+          router.replace('/crm')
+        }
+      })
+      .catch(clearInvalidLocalSession)
   }, [router])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -36,6 +53,9 @@ export default function LoginClient() {
     setLoading(false)
 
     if (signInError) {
+      if (isInvalidRefreshTokenError(signInError)) {
+        await clearInvalidLocalSession(signInError)
+      }
       setError('E-mail ou senha inválidos.')
       return
     }
@@ -43,23 +63,44 @@ export default function LoginClient() {
     router.push('/crm')
   }
 
+  const handleGoogleLogin = async () => {
+    setError('')
+    setLoading(true)
+    const { error: googleError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/crm`,
+      },
+    })
+    setLoading(false)
+
+    if (googleError) {
+      if (isInvalidRefreshTokenError(googleError)) {
+        await clearInvalidLocalSession(googleError)
+      }
+      setError('Não foi possível entrar com Google.')
+    }
+  }
+
   return (
     <main className="admin-login-page">
       <section className="admin-login-panel" aria-label="Acesso ao hub admin">
         <div className="admin-login-content">
+          <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
+            <span>Conta</span>Facil
+          </a>
+
           <header className="admin-login-header">
-            <h1>Acesse sua conta</h1>
-            <p>
-              Ainda não tem acesso? <a href="mailto:contatoinaciocarlos@gmail.com">Solicitar</a>
-            </p>
+            <h1>Acesse o hub</h1>
+            <p>Entre para acompanhar clientes, rotinas e oportunidades em um só lugar.</p>
           </header>
 
           <form className="admin-login-form" onSubmit={handleLogin} noValidate>
             <label className="admin-login-field">
-              <span>Entre com seu email</span>
+              <span>E-mail</span>
               <input
                 type="email"
-                placeholder="me@example.com"
+                placeholder="voce@empresa.com"
                 autoComplete="email"
                 value={email}
                 onChange={event => {
@@ -71,7 +112,7 @@ export default function LoginClient() {
 
             <label className="admin-login-field">
               <span>
-                Entre com sua senha
+                Senha
                 <span className="admin-info-dot" aria-hidden>
                   i
                 </span>
@@ -95,52 +136,19 @@ export default function LoginClient() {
             </button>
           </form>
 
-          <div className="admin-social-auth" aria-label="Entrar com provedores externos">
-            <button type="button">
-              <GithubIcon />
-              Entrar com GitHub
-            </button>
-            <button type="button">
-              <AppleIcon />
-              Entrar com Apple
-            </button>
-            <button type="button">
+          <div className="admin-social-auth" aria-label="Entrar com Google">
+            <button type="button" onClick={handleGoogleLogin} disabled={loading}>
               <GoogleIcon />
               Entrar com Google
             </button>
           </div>
 
           <p className="admin-login-terms">
-            Ao acessar, você concorda com os <a href="#">Termos de Serviço</a> e{' '}
-            <a href="#">Política de Privacidade</a>.
+            Ainda não tem acesso? <a href="mailto:contatoinaciocarlos@gmail.com">Solicitar entrada</a>
           </p>
         </div>
       </section>
-
-      <aside className="admin-login-media" aria-label="Paisagem com casa no campo" />
     </main>
-  )
-}
-
-function GithubIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M12 .5A11.5 11.5 0 0 0 8.36 22.9c.58.11.79-.25.79-.56v-2.03c-3.23.7-3.91-1.39-3.91-1.39-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.58-.29-5.29-1.29-5.29-5.74 0-1.27.45-2.3 1.19-3.11-.12-.29-.52-1.47.11-3.07 0 0 .97-.31 3.17 1.19A10.9 10.9 0 0 1 12 6.02c.98 0 1.97.13 2.89.39 2.2-1.5 3.16-1.19 3.16-1.19.63 1.6.23 2.78.11 3.07.74.81 1.19 1.84 1.19 3.11 0 4.46-2.72 5.44-5.31 5.73.42.37.79 1.08.79 2.18v3.23c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .5Z"
-      />
-    </svg>
-  )
-}
-
-function AppleIcon() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24">
-      <path
-        fill="currentColor"
-        d="M16.53 12.65c-.02-2.38 1.95-3.52 2.04-3.57-1.11-1.62-2.83-1.84-3.44-1.86-1.47-.15-2.86.86-3.6.86-.75 0-1.91-.84-3.14-.82-1.62.02-3.11.94-3.95 2.39-1.69 2.94-.43 7.29 1.22 9.67.81 1.17 1.77 2.49 3.04 2.44 1.22-.05 1.68-.79 3.15-.79 1.47 0 1.88.79 3.17.76 1.31-.02 2.14-1.19 2.94-2.37.93-1.36 1.31-2.68 1.33-2.75-.03-.01-2.55-.98-2.58-3.96ZM14.17 5.67c.67-.81 1.12-1.94 1-3.06-.96.04-2.12.64-2.81 1.45-.62.72-1.16 1.87-1.02 2.97 1.07.08 2.16-.55 2.83-1.36Z"
-      />
-    </svg>
   )
 }
 

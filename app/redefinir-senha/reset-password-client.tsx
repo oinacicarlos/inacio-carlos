@@ -4,6 +4,15 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
+function isInvalidRefreshTokenError(error: unknown) {
+  return error instanceof Error && error.message.toLowerCase().includes('refresh token')
+}
+
+async function clearInvalidLocalSession(error: unknown) {
+  if (!isInvalidRefreshTokenError(error)) return
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
+}
+
 export default function ResetPasswordClient() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
@@ -20,11 +29,27 @@ export default function ResetPasswordClient() {
       window.location.href.includes('type=recovery') ||
       window.location.hash.includes('access_token')
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return
-      setHasRecoveryAccess(openedFromRecoveryLink && Boolean(data.session))
-      setReady(true)
-    })
+    supabase.auth
+      .getSession()
+      .then(async ({ data, error: sessionError }) => {
+        if (!mounted) return
+
+        if (sessionError) {
+          await clearInvalidLocalSession(sessionError)
+          setHasRecoveryAccess(false)
+          setReady(true)
+          return
+        }
+
+        setHasRecoveryAccess(openedFromRecoveryLink && Boolean(data.session))
+        setReady(true)
+      })
+      .catch(async error => {
+        await clearInvalidLocalSession(error)
+        if (!mounted) return
+        setHasRecoveryAccess(false)
+        setReady(true)
+      })
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -72,9 +97,13 @@ export default function ResetPasswordClient() {
   return (
     <main className="password-reset-page">
       <section className="password-reset-panel" aria-label="Redefinir senha">
+        <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
+          <span>Conta</span>Facil
+        </a>
+
         <header className="password-reset-header">
           <h1>Redefinir senha</h1>
-          <p>Defina uma nova senha para acessar o hub.</p>
+          <p>Crie uma nova senha para voltar ao hub administrativo.</p>
         </header>
 
         {!ready ? (

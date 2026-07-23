@@ -1,0 +1,221 @@
+import type { ContractGeneratorState, ContractTemplateConfig, ContractType } from "./types"
+
+export const CONTRACT_CHOICES: Array<
+  Pick<ContractTemplateConfig, "id" | "title" | "description" | "choiceTitle" | "examples" | "partyLabels" | "legalPartyLabels">
+> = [
+  {
+    id: "service",
+    title: "Contrato de Prestação de Serviços",
+    description: "Para trabalhos pontuais, mensais, recorrentes ou realizados por etapas.",
+    choiceTitle: "Vou prestar ou contratar um serviço",
+    examples: "Pintura, consultoria, design, manutenção, conteúdo, aulas e reformas.",
+    partyLabels: ["Quem está contratando?", "Quem fará o serviço?"],
+    legalPartyLabels: ["CONTRATANTE", "CONTRATADO"],
+  },
+  {
+    id: "goods_sale",
+    title: "Contrato de Compra e Venda de Bem Móvel",
+    description: "Para venda de equipamentos, móveis, máquinas, ferramentas e outros bens.",
+    choiceTitle: "Vou vender ou comprar alguma coisa",
+    examples: "Equipamento usado, móveis, máquinas, ferramentas e objetos comerciais.",
+    partyLabels: ["Quem está vendendo?", "Quem está comprando?"],
+    legalPartyLabels: ["VENDEDOR", "COMPRADOR"],
+  },
+  {
+    id: "commercial_partnership",
+    title: "Contrato de Parceria Comercial ou Comissão",
+    description: "Para indicações de clientes, divulgação, comissões e divisão de receitas.",
+    choiceTitle: "Vou fazer uma parceria ou pagar comissão",
+    examples: "Indicação de clientes, comissão por venda, divulgação e divisão de receita.",
+    partyLabels: ["Primeiro participante", "Segundo participante"],
+    legalPartyLabels: ["PARTE A", "PARTE B"],
+  },
+  {
+    id: "debt_acknowledgment",
+    title: "Instrumento de Reconhecimento de Dívida e Parcelamento",
+    description: "Para registrar uma dívida e combinar datas e formas de pagamento.",
+    choiceTitle: "Quero registrar uma dívida ou parcelamento",
+    examples: "Dívida comercial, saldo em aberto, parcelamento e acordo de pagamento.",
+    partyLabels: ["Quem deve?", "Quem receberá?"],
+    legalPartyLabels: ["DEVEDOR", "CREDOR"],
+  },
+]
+
+export const CONTRACT_TITLES = CONTRACT_CHOICES.reduce(
+  (titles, choice) => ({ ...titles, [choice.id]: choice.title }),
+  {} as Record<ContractType, string>,
+)
+
+export const RESPONSIBILITY_OPTIONS: Record<ContractType, { partyA: string[]; partyB: string[] }> = {
+  service: {
+    partyA: [
+      "Fazer os pagamentos nas datas combinadas",
+      "Enviar informações e materiais necessários",
+      "Dar acesso ao local ou sistemas necessários",
+      "Aprovar etapas dentro do prazo combinado",
+      "Pagar separadamente por serviços adicionais",
+    ],
+    partyB: [
+      "Realizar o serviço descrito",
+      "Cumprir os prazos combinados",
+      "Informar problemas ou atrasos",
+      "Corrigir falhas de sua responsabilidade",
+      "Entregar os arquivos ou materiais combinados",
+    ],
+  },
+  goods_sale: {
+    partyA: [
+      "Entregar o bem descrito",
+      "Informar defeitos conhecidos",
+      "Disponibilizar documentos existentes",
+      "Cumprir a forma de entrega combinada",
+    ],
+    partyB: ["Realizar o pagamento", "Conferir o bem", "Retirar ou receber o bem", "Assumir despesas combinadas"],
+  },
+  commercial_partnership: {
+    partyA: ["Indicar clientes conforme combinado", "Prestar informações corretas", "Respeitar as regras de comissão"],
+    partyB: ["Pagar comissões devidas", "Informar vendas concluídas", "Manter comunicação sobre oportunidades"],
+  },
+  debt_acknowledgment: {
+    partyA: ["Realizar pagamentos nas datas combinadas", "Informar alteração de contato", "Comunicar eventual atraso"],
+    partyB: ["Emitir comprovante de quitação", "Informar dados para pagamento", "Confirmar o recebimento das parcelas"],
+  },
+}
+
+export const DRAFT_KEY = "contafacil-contract-generator-draft"
+
+export function emptyParty(label = "") {
+  return {
+    kind: "person" as const,
+    label,
+    name: "",
+    document: "",
+    secondaryDocument: "",
+    civilStatus: "",
+    profession: "",
+    address: "",
+    email: "",
+    phone: "",
+    tradeName: "",
+    representativeName: "",
+    representativeDocument: "",
+    representativeRole: "",
+  }
+}
+
+export function createInitialContractState(): ContractGeneratorState {
+  return {
+    contractType: null,
+    parties: [emptyParty(), emptyParty()],
+    details: {
+      serviceName: "",
+      description: "",
+      included: "",
+      notIncluded: "",
+      location: "",
+      deliveries: "",
+      revisions: "",
+      serviceMode: "",
+      stages: [],
+      itemName: "",
+      itemDescription: "",
+      quantity: "",
+      brand: "",
+      model: "",
+      serialNumber: "",
+      condition: "",
+      knownIssues: "",
+      deliveryMethod: "",
+      deliveryCondition: "",
+      partnershipGoal: "",
+      partyAActivities: "",
+      partyBActivities: "",
+      involvedProduct: "",
+      referralRules: "",
+      commissionDueWhen: "",
+      exclusivity: "",
+      partnershipTerm: "",
+      commissionFormat: "",
+      debtAmount: "",
+      debtOrigin: "",
+      debtDate: "",
+      previousPayment: "no",
+      paidAmount: "",
+      remainingBalance: "",
+      debtPaymentMode: "single",
+      debtInstallments: "",
+      debtInstallmentAmount: "",
+      debtFirstDueDate: "",
+    },
+    payment: {
+      mode: "",
+      totalAmount: "",
+      upfrontAmount: "",
+      upfrontDate: "",
+      installments: "",
+      installmentAmount: "",
+      firstDueDate: "",
+      monthlyDueDay: "",
+      method: "",
+      pixKey: "",
+      bankDetails: "",
+      notes: "",
+      lateMode: "",
+      lateFine: "",
+      monthlyInterest: "",
+    },
+    dates: {
+      startDate: "",
+      endDate: "",
+      deliveryDeadline: "",
+      noEndDate: false,
+      renewal: "",
+      priorNoticeDays: "",
+      dependsOnClient: false,
+      deliveryDate: "",
+      deliveryResponsible: "",
+      deliveryLocation: "",
+      transportCost: "",
+      transportPaidBy: "",
+    },
+    responsibilities: {
+      partyA: [],
+      partyB: [],
+      custom: "",
+    },
+    termination: {
+      options: [],
+      priorNoticeDays: "",
+      penaltyType: "",
+      penaltyValue: "",
+      defaultCondition: "",
+    },
+    optionalClauses: {
+      confidentiality: false,
+      materialUse: false,
+      imageUse: false,
+      revisionLimit: false,
+      warranty: false,
+      nonSolicit: false,
+      exclusivity: false,
+      materialUseNotes: "",
+      imageUseNotes: "",
+      warrantyNotes: "",
+      revisionLimitNotes: "",
+      restrictionTerm: "",
+      exclusivityNotes: "",
+    },
+    signature: {
+      city: "",
+      state: "",
+      date: "",
+      mode: "unknown",
+      witnessCount: "none",
+      witnesses: [
+        { name: "", document: "" },
+        { name: "", document: "" },
+      ],
+    },
+    saveDraftLocally: false,
+  }
+}

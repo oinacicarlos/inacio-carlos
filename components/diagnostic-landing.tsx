@@ -498,29 +498,23 @@ export default function Home() {
       {screen === 'intro' && (
         <>
           {/* HERO */}
-          <section className="hero-screen" aria-labelledby="hero-title">
-            <FloatingPlatforms />
-            <span className="hero-badge">Diagnóstico gratuito · 3 minutos</span>
-            <h1 id="hero-title">
-              Faço a sua empresa vender mais, de forma <strong>simples e fácil.</strong>
-            </h1>
-            <p className="hero-sub">
-              Esse é um diagnóstico 100% gratuito para te ajudar a
-              identificar os gargalos da sua empresa!
-            </p>
-            <div className="hero-actions">
-              <button className="primary-action" onClick={startApplication} type="button">
-                <span className="primary-action-label">Diagnóstico</span>
-              </button>
-              <a className="hero-secondary" href="#goals">Saber mais</a>
+          <section id="inicio" className="hero-screen" aria-labelledby="hero-title">
+            <LandingHeader onOpenCnpj={startApplication} />
+
+            <div className="hero-content">
+              <div className="hero-copy">
+                <h1 id="hero-title">
+                  Uma Assessoria completa para prestadores de serviço
+                </h1>
+                <p className="hero-sub">
+                  Uma empresa feita de prestadores de serviço para prestadores de serviço
+                </p>
+              </div>
             </div>
           </section>
 
-          {/* SEÇÃO 2 — Uma análise da sua empresa para você que busca */}
-          <section id="goals" className="goals-section" aria-labelledby="goals-title">
-            <h2 id="goals-title" className="goals-title">
-              Uma análise da sua empresa para você que busca:
-            </h2>
+          {/* SEÇÃO 2 — CTAs */}
+          <section id="goals" className="goals-section" aria-label="Soluções para prestadores de serviço">
             <div className="goals-grid">
               <article className="goal-card">
                 <span className="goal-card-icon" aria-hidden="true">
@@ -530,12 +524,15 @@ export default function Home() {
                     <circle cx="12" cy="12" r="1.8" fill="currentColor" />
                   </svg>
                 </span>
-                <h3 className="goal-card-title">Leads</h3>
+                <h3 className="goal-card-title">Abrir CNPJ</h3>
                 <p className="goal-card-desc">
-                  Mais pessoas chegando até a sua empresa todos os dias.
-                  Estruturo aquisição constante: tráfego, conteúdo e
-                  presença que atraem clientes em vez de só seguidores.
+                  Comece sua empresa do jeito certo, com orientação para
+                  escolher o melhor enquadramento desde o início.
                 </p>
+                <button className="goal-card-cta" onClick={startApplication} type="button">
+                  Abrir empresa
+                  <span aria-hidden="true">→</span>
+                </button>
               </article>
               <article className="goal-card">
                 <span className="goal-card-icon" aria-hidden="true">
@@ -544,12 +541,15 @@ export default function Home() {
                     <polyline points="15 7 21 7 21 13" />
                   </svg>
                 </span>
-                <h3 className="goal-card-title">Conversões</h3>
+                <h3 className="goal-card-title">Pagar menos impostos</h3>
                 <p className="goal-card-desc">
-                  Já entram contatos, mas poucos viram cliente?
-                  Reorganizo o seu processo comercial para transformar
-                  conversa em venda, sem depender de improviso.
+                  Entenda se sua empresa está pagando mais imposto do que
+                  deveria e quais ajustes podem melhorar sua margem.
                 </p>
+                <button className="goal-card-cta" onClick={startApplication} type="button">
+                  Fazer diagnóstico
+                  <span aria-hidden="true">→</span>
+                </button>
               </article>
               <article className="goal-card">
                 <span className="goal-card-icon" aria-hidden="true">
@@ -559,18 +559,40 @@ export default function Home() {
                     <polyline points="2.5 18 12 23 21.5 18" />
                   </svg>
                 </span>
-                <h3 className="goal-card-title">Estrutura</h3>
+                <h3 className="goal-card-title">Trocar contabilidade</h3>
                 <p className="goal-card-desc">
-                  Sem site, Instagram profissional ou presença digital
-                  organizada? Construo a base do zero para sua empresa
-                  existir online com identidade e direção.
+                  Saia de uma contabilidade lenta ou confusa e tenha uma
+                  assessoria mais próxima da realidade do seu serviço.
                 </p>
+                <button className="goal-card-cta" onClick={startApplication} type="button">
+                  Trocar agora
+                  <span aria-hidden="true">→</span>
+                </button>
+              </article>
+              <article className="goal-card">
+                <span className="goal-card-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <line x1="8" y1="8" x2="16" y2="8" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                    <line x1="8" y1="16" x2="13" y2="16" />
+                  </svg>
+                </span>
+                <h3 className="goal-card-title">Contabilidade completa</h3>
+                <p className="goal-card-desc">
+                  Tenha rotina fiscal, orientação e acompanhamento para manter
+                  sua empresa organizada e pronta para crescer.
+                </p>
+                <button className="goal-card-cta" onClick={startApplication} type="button">
+                  Conhecer assessoria
+                  <span aria-hidden="true">→</span>
+                </button>
               </article>
             </div>
           </section>
 
           {/* SEÇÃO 3 — Quem sou */}
-          <section className="about-section" aria-labelledby="about-title">
+          <section id="quem-sou" className="about-section" aria-labelledby="about-title">
             <div className="about-photo-wrap">
               <span className="about-photo-accent" aria-hidden="true" />
               <img
@@ -608,7 +630,7 @@ export default function Home() {
           </section>
 
           {/* SEÇÃO 4 — Valor / Pricing */}
-          <section className="pricing-section" aria-labelledby="pricing-title">
+          <section id="valor" className="pricing-section" aria-labelledby="pricing-title">
             <p className="lp-eyebrow">O valor</p>
             <h2 id="pricing-title" className="pricing-title">
               Quanto custa receber um diagnóstico completo comigo?
@@ -655,7 +677,7 @@ export default function Home() {
           </section>
 
           {/* SEÇÃO 5 — FAQ */}
-          <section className="faq-section" aria-labelledby="faq-title">
+          <section id="faq" className="faq-section" aria-labelledby="faq-title">
             <p className="lp-eyebrow">Perguntas frequentes</p>
             <h2 id="faq-title" className="faq-title">
               O que você precisa saber.
@@ -875,36 +897,28 @@ export default function Home() {
   )
 }
 
-function BrandMark() {
+function LandingHeader({ onOpenCnpj }: { onOpenCnpj: () => void }) {
   return (
-    <a className="brand-mark" href="/" aria-label="Inácio Carlos">
-      <strong>Inácio</strong> Carlos
-    </a>
-  )
-}
+    <header className="lp-header" aria-label="Cabeçalho da IONIA">
+      <a className="lp-header-logo" href="#inicio" aria-label="IONIA">
+        IONIA
+      </a>
 
-const FLOATING_PLATFORMS = [
-  { src: '/logos/instagram.svg', label: 'Instagram',  pos: 'p1' },
-  { src: '/logos/meta.png',      label: 'Meta Ads',   pos: 'p2' },
-  { src: '/logos/whatsapp.webp', label: 'WhatsApp',   pos: 'p3' },
-  { src: '/logos/facebook.png',  label: 'Facebook',   pos: 'p4' },
-  { src: '/logos/linkedin.png',  label: 'LinkedIn',   pos: 'p5' },
-  { src: '/logos/google.png',    label: 'Google Ads', pos: 'p6' },
-] as const
+      <nav className="lp-header-nav" aria-label="Páginas">
+        <a href="#inicio">Início</a>
+        <a href="#goals">Diagnóstico</a>
+        <a href="#quem-sou">Quem sou</a>
+        <a href="#valor">Valor</a>
+        <a href="#faq">FAQ</a>
+      </nav>
 
-function FloatingPlatforms() {
-  return (
-    <div className="floating-platforms" aria-hidden="true">
-      {FLOATING_PLATFORMS.map(p => (
-        <span
-          key={p.label}
-          className={`floating-platform floating-platform--${p.pos}`}
-          title={p.label}
-        >
-          <img src={p.src} alt="" loading="lazy" />
-        </span>
-      ))}
-    </div>
+      <div className="lp-header-actions">
+        <a className="lp-header-login" href="/login">Login</a>
+        <button className="lp-header-primary" onClick={onOpenCnpj} type="button">
+          Abrir CNPJ
+        </button>
+      </div>
+    </header>
   )
 }
 

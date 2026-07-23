@@ -822,11 +822,20 @@ function getCurrentRoutineCompetenceMonth() {
 }
 
 function normalizeRoutineCompetenceMonth(value: string) {
-  return value ? `${value}-01` : getCurrentRoutineCompetenceMonth()
+	return value ? `${value}-01` : getCurrentRoutineCompetenceMonth()
+}
+
+function hasRoutineCompetenceForMonth(
+	competences: RoutineCompetence[],
+	clientId: string,
+	monthValue: string
+) {
+	const competenceMonth = normalizeRoutineCompetenceMonth(monthValue)
+	return competences.some(competence => competence.clientId === clientId && competence.competenceMonth === competenceMonth)
 }
 
 function getRoutineMonthInputValue(competenceMonth: string) {
-  return competenceMonth ? competenceMonth.slice(0, 7) : getCurrentRoutineCompetenceMonth().slice(0, 7)
+	return competenceMonth ? competenceMonth.slice(0, 7) : getCurrentRoutineCompetenceMonth().slice(0, 7)
 }
 
 function shiftRoutineMonthValue(value: string, offset: number) {
@@ -2550,13 +2559,11 @@ function RoutineControlModule() {
   }
 
   const handleCreateCompetence = async (clientId: string, monthValue: string) => {
-    const competenceMonth = normalizeRoutineCompetenceMonth(monthValue)
-    const exists = competences.find(competence => competence.clientId === clientId && competence.competenceMonth === competenceMonth)
-    if (exists) {
-      setSelectedCompetenceId(exists.id)
-      setActiveArea('Competências')
-      return
-    }
+	const competenceMonth = normalizeRoutineCompetenceMonth(monthValue)
+	const exists = competences.find(competence => competence.clientId === clientId && competence.competenceMonth === competenceMonth)
+	if (exists) {
+		throw new Error('Essa empresa já tem rotinas cadastradas nessa competência.')
+	}
 
     const { data, error: competenceError } = await supabase
       .from(ROUTINE_COMPETENCES_TABLE)
@@ -3027,22 +3034,25 @@ function RoutineControlModule() {
       )}
 
       {competenceModalOpen && (
-        <RoutineCompetenceModal
-          clients={clients}
-          onClose={() => setCompetenceModalOpen(false)}
-          onCreate={async (clientId, monthValue) => {
-            await handleCreateCompetence(clientId, monthValue)
+				<RoutineCompetenceModal
+					clients={clients}
+					competences={competences}
+					currentMonth={competenceMonthFilter}
+					onClose={() => setCompetenceModalOpen(false)}
+					onCreate={async (clientId, monthValue) => {
+						await handleCreateCompetence(clientId, monthValue)
             setCompetenceModalOpen(false)
           }}
         />
       )}
 
       {quickCompetenceModalOpen && (
-        <RoutineQuickCompetenceModal
-          clients={clients}
-          currentMonth={competenceMonthFilter}
-          onClose={() => setQuickCompetenceModalOpen(false)}
-          onCreate={async (clientIds, monthValue) => {
+				<RoutineQuickCompetenceModal
+					clients={clients}
+					competences={competences}
+					currentMonth={competenceMonthFilter}
+					onClose={() => setQuickCompetenceModalOpen(false)}
+					onCreate={async (clientIds, monthValue) => {
             await handleCreateCompetencesBulk(clientIds, monthValue)
             setQuickCompetenceModalOpen(false)
           }}
@@ -3226,20 +3236,34 @@ function RoutineClientModal({ client, onClose, onSave }: {
   )
 }
 
-function RoutineCompetenceModal({ clients, onClose, onCreate }: {
+function RoutineCompetenceModal({ clients, competences, currentMonth, onClose, onCreate }: {
   clients: RoutineClient[]
+  competences: RoutineCompetence[]
+  currentMonth: string
   onClose: () => void
   onCreate: (clientId: string, monthValue: string) => Promise<void>
 }) {
-  const [clientId, setClientId] = useState(clients[0]?.id ?? '')
-  const [monthValue, setMonthValue] = useState(getCurrentRoutineCompetenceMonth().slice(0, 7))
+  const [clientId, setClientId] = useState('')
+  const [monthValue, setMonthValue] = useState(currentMonth || getCurrentRoutineCompetenceMonth().slice(0, 7))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const availableClients = useMemo(() => (
+    clients.filter(client => !hasRoutineCompetenceForMonth(competences, client.id, monthValue))
+  ), [clients, competences, monthValue])
+
+  useEffect(() => {
+    if (clientId && availableClients.some(client => client.id === clientId)) {
+      return
+    }
+
+    setClientId(availableClients[0]?.id ?? '')
+  }, [availableClients, clientId])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!clientId) {
-      setError('Cadastre um cliente antes de criar a competência.')
+      setError(clients.length ? 'Todas as empresas já têm rotinas cadastradas nessa competência.' : 'Cadastre um cliente antes de criar a competência.')
       return
     }
 
@@ -3262,12 +3286,20 @@ function RoutineCompetenceModal({ clients, onClose, onCreate }: {
           <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
         </div>
         <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
-          <label>Cliente<select value={clientId} onChange={event => setClientId(event.target.value)}>{clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
-          <label>Competência<input type="month" value={monthValue} onChange={event => setMonthValue(event.target.value)} /></label>
+          <label>Competência<input type="month" value={monthValue} onChange={event => { setMonthValue(event.target.value); setError('') }} /></label>
+          <label>Cliente
+            {availableClients.length > 0 ? (
+              <select value={clientId} onChange={event => setClientId(event.target.value)}>
+                {availableClients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
+              </select>
+            ) : (
+              <div className="routine-modal-empty-option">Todas as empresas já têm rotinas cadastradas nessa competência.</div>
+            )}
+          </label>
           {error && <p className="crm-modal-error">{error}</p>}
           <div className="crm-modal-footer">
             <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
-            <button type="submit" disabled={saving} className="crm-modal-submit">{saving ? 'Criando...' : 'Criar'}</button>
+            <button type="submit" disabled={saving || availableClients.length === 0} className="crm-modal-submit">{saving ? 'Criando...' : 'Criar'}</button>
           </div>
         </form>
       </div>
@@ -3275,8 +3307,9 @@ function RoutineCompetenceModal({ clients, onClose, onCreate }: {
   )
 }
 
-function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate }: {
+function RoutineQuickCompetenceModal({ clients, competences, currentMonth, onClose, onCreate }: {
   clients: RoutineClient[]
+  competences: RoutineCompetence[]
   currentMonth: string
   onClose: () => void
   onCreate: (clientIds: string[], monthValue: string) => Promise<void>
@@ -3285,19 +3318,27 @@ function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate 
   const [regimeFilter, setRegimeFilter] = useState<'Todos' | RoutineRegime>('Todos')
   const [payrollFilter, setPayrollFilter] = useState<'Todos' | 'Sim' | 'Não'>('Todos')
   const [search, setSearch] = useState('')
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => clients.map(client => client.id))
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const availableClients = useMemo(() => (
+    clients.filter(client => !hasRoutineCompetenceForMonth(competences, client.id, monthValue))
+  ), [clients, competences, monthValue])
+
+  useEffect(() => {
+    setSelectedIds(availableClients.map(client => client.id))
+  }, [availableClients])
+
   const visibleClients = useMemo(() => {
     const query = search.toLowerCase().trim()
-    return clients.filter(client => {
+    return availableClients.filter(client => {
       const matchesSearch = !query || [client.name, client.partnerName, client.cnpj, client.partnerCpf].some(value => value.toLowerCase().includes(query))
       const matchesRegime = regimeFilter === 'Todos' || client.regime === regimeFilter
       const matchesPayroll = payrollFilter === 'Todos' || (payrollFilter === 'Sim' ? client.hasPayroll : !client.hasPayroll)
       return matchesSearch && matchesRegime && matchesPayroll
     })
-  }, [clients, search, regimeFilter, payrollFilter])
+  }, [availableClients, search, regimeFilter, payrollFilter])
 
   const toggleClient = (clientId: string) => {
     setSelectedIds(current => current.includes(clientId)
@@ -3318,7 +3359,7 @@ function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selectedIds.length) {
-      setError('Selecione pelo menos uma empresa.')
+      setError(availableClients.length ? 'Selecione pelo menos uma empresa.' : 'Todas as empresas já têm rotinas cadastradas nessa competência.')
       return
     }
 
@@ -3342,7 +3383,7 @@ function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate 
         </div>
         <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
           <div className="crm-modal-row">
-            <label>Competência<input type="month" value={monthValue} onChange={event => setMonthValue(event.target.value)} /></label>
+            <label>Competência<input type="month" value={monthValue} onChange={event => { setMonthValue(event.target.value); setError('') }} /></label>
             <label>Buscar<input value={search} onChange={event => setSearch(event.target.value)} placeholder="Empresa, sócio, CPF ou CNPJ" /></label>
           </div>
           <div className="crm-modal-row">
@@ -3358,7 +3399,7 @@ function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate 
           </div>
 
           <div className="routine-quick-toolbar">
-            <span>{selectedIds.length} selecionada(s) · {visibleClients.length} visível(is)</span>
+            <span>{selectedIds.length} selecionada(s) · {visibleClients.length} disponível(is)</span>
             <div>
               <button type="button" onClick={selectVisibleClients}>Selecionar visíveis</button>
               <button type="button" onClick={clearVisibleClients}>Limpar visíveis</button>
@@ -3379,7 +3420,9 @@ function RoutineQuickCompetenceModal({ clients, currentMonth, onClose, onCreate 
                 </span>
               </label>
             ))}
-            {visibleClients.length === 0 && <p>Nenhuma empresa encontrada com esses filtros.</p>}
+            {visibleClients.length === 0 && (
+              <p>{availableClients.length === 0 ? 'Todas as empresas já têm rotinas cadastradas nessa competência.' : 'Nenhuma empresa disponível com esses filtros.'}</p>
+            )}
           </div>
 
           {error && <p className="crm-modal-error">{error}</p>}
