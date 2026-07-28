@@ -14,6 +14,8 @@ import {
   Users,
 } from "lucide-react"
 import { StripePlanButton } from "@/components/stripe-plan-button"
+import { BlogCard } from "@/components/blog/blog-card"
+import { getRecentArticles } from "@/lib/blog/articles"
 
 const accountingServices = [
   {
@@ -131,7 +133,8 @@ const accountingPlans = [
       "Até 1 nota fiscal de serviço por mês",
       "Emissão de DAS",
       "Orientação contábil",
-      "Atendimento por WhatsApp",
+      "Ferramentas ilimitadas",
+      "Atendimento humanizado por WhatsApp",
     ],
   },
   {
@@ -149,7 +152,9 @@ const accountingPlans = [
       "1 funcionário",
       "Até 2 notas fiscais de serviço por mês",
       "Emissão de DAS",
-      "Atendimento prioritário",
+      "Ferramentas ilimitadas",
+      "Pacote e-CAC incluso",
+      "Atendimento prioritário e humanizado",
       "Orientação especializada",
     ],
   },
@@ -170,11 +175,17 @@ const accountingPlans = [
       "Apuração mensal dos impostos",
       "Rotinas contábeis e fiscais",
       "Pró-labore de 1 sócio",
+      "Ferramentas ilimitadas",
+      "Pacote e-CAC completo",
+      "Consulta ao Serasa",
+      "Atendimento humanizado e prioritário",
     ],
   },
 ]
 
 export default function HomePage() {
+  const recentArticles = getRecentArticles(3)
+
   return (
     <main className="accounting-landing">
       <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
@@ -186,6 +197,7 @@ export default function HomePage() {
           <a href="#servicos">Serviços</a>
           <a href="#planos">Planos</a>
           <a href="#ferramentas">Ferramentas</a>
+          <a href="/blog">Blog</a>
           <a href="#duvidas">Dúvidas</a>
         </nav>
 
@@ -365,6 +377,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="accounting-blog" id="blog" aria-labelledby="accounting-blog-title">
+        <div className="accounting-tools-inner">
+          <h2 id="accounting-blog-title">Artigos recentes</h2>
+          <p className="accounting-tools-subtitle">
+            <span>Guias práticos sobre precificação, contratos, rescisão e MEI</span>
+            <span>pra você tomar decisão com mais segurança.</span>
+          </p>
+
+          <div className="blog-grid">
+            {recentArticles.map(article => (
+              <BlogCard article={article} key={article.slug} />
+            ))}
+          </div>
+
+          <a className="accounting-secondary-button accounting-blog-cta" href="/blog">
+            Ver todos os artigos
+          </a>
+        </div>
+      </section>
+
       <section className="accounting-faq" id="duvidas" aria-labelledby="accounting-faq-title">
         <div className="accounting-faq-inner">
           <div className="accounting-faq-head">
@@ -403,6 +435,7 @@ export default function HomePage() {
               <a href="#servicos">Serviços</a>
               <a href="#planos">Planos</a>
               <a href="#ferramentas">Ferramentas</a>
+              <a href="/blog">Blog</a>
               <a href="#duvidas">Dúvidas</a>
               <a href="/login">Login</a>
             </div>

@@ -1,10 +1,24 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { BadgeCheck, Calculator, Info } from "lucide-react"
 import { calculateTermination } from "@/lib/termination-calculator/calculations"
 import { formatCurrency, parseLocalDate, parseMoneyInput } from "@/lib/termination-calculator/formatters"
 import type { NoticeOption, TerminationInput, TerminationType } from "@/lib/termination-calculator/types"
+import { ToolShell } from "@/components/tool-shell"
+import ToolResultGate from "@/components/tool-result-gate"
+import { createIdempotencyKey, recordToolUsage } from "@/lib/tool-usage/record-client"
+
+const terminationTypeHelp: Record<TerminationType, string> = {
+  noCause: "A empresa decide encerrar o contrato. Dá direito a todas as verbas, incluindo multa do FGTS.",
+  resignation: "O funcionário pede para sair. Não há multa do FGTS nem saque do fundo.",
+  mutual: "Empresa e funcionário concordam em encerrar juntos. Verbas reduzidas pela metade em alguns pontos.",
+  cause: "Demissão por falta grave comprovada. O funcionário perde a maioria dos direitos rescisórios.",
+}
+
+// Quanto tempo sem alterações até considerar a simulação "concluída" e
+// contar como uma utilização. Evita contar quem só abriu a página e saiu.
+const USAGE_SETTLE_DELAY_MS = 2500
 
 type FormValues = {
   salary: string
@@ -58,10 +72,41 @@ function toInput(values: FormValues): TerminationInput {
   }
 }
 
-export default function TerminationSimulatorClient() {
+export default function TerminationSimulatorClient({
+  trackUsage = false,
+  isAuthenticated = false,
+}: {
+  trackUsage?: boolean
+  isAuthenticated?: boolean
+}) {
   const [values, setValues] = useState<FormValues>(defaultValues)
   const input = useMemo(() => toInput(values), [values])
   const result = useMemo(() => calculateTermination(input), [input])
+
+  const usageRecordedRef = useRef(false)
+  const idempotencyKeyRef = useRef<string | undefined>(undefined)
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = createIdempotencyKey()
+  }
+
+  // Só conta como utilização se o usuário de fato alterou algum campo — abrir
+  // a página com os valores padrão e sair não deve consumir o limite.
+  const isDirty = useMemo(
+    () => (Object.keys(defaultValues) as (keyof FormValues)[]).some((key) => values[key] !== defaultValues[key]),
+    [values],
+  )
+
+  useEffect(() => {
+    if (!trackUsage || usageRecordedRef.current || !isDirty || !result.isValid) return
+
+    const timer = setTimeout(() => {
+      usageRecordedRef.current = true
+      recordToolUsage("simulador-rescisao", idempotencyKeyRef.current!)
+    }, USAGE_SETTLE_DELAY_MS)
+
+    return () => clearTimeout(timer)
+  }, [isDirty, result, trackUsage])
+
   const composition = result.isValid
     ? [
         { label: "Saldo de salário", value: result.salaryBalance },
@@ -80,30 +125,7 @@ export default function TerminationSimulatorClient() {
   }
 
   return (
-    <main className="accounting-landing termination-page">
-      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
-        <a className="accounting-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
-        </a>
-
-        <nav className="accounting-nav" aria-label="Navegação principal">
-          <a href="/#servicos">Serviços</a>
-          <a href="/#planos">Planos</a>
-          <a href="/#ferramentas">Ferramentas</a>
-          <a href="/#duvidas">Dúvidas</a>
-        </nav>
-
-        <div className="accounting-header-actions">
-          <a className="accounting-login" href="/login">
-            Login
-          </a>
-          <a className="accounting-header-cta" href="/diagnostico">
-            <span>Abrir CNPJ</span>
-            <span aria-hidden="true">›</span>
-          </a>
-        </div>
-      </header>
-
+    <ToolShell mainClassName="termination-page">
       <section className="termination-simple-section" aria-labelledby="termination-title">
         <div className="termination-simple-head">
           <span>
@@ -186,6 +208,7 @@ export default function TerminationSimulatorClient() {
                   Justa causa
                 </button>
               </div>
+              <p className="termination-simple-type-help">{terminationTypeHelp[values.terminationType]}</p>
             </div>
 
             <div className="termination-simple-field-grid">
@@ -212,29 +235,31 @@ export default function TerminationSimulatorClient() {
           <aside className="termination-simple-result" aria-label="Resultado da rescisão">
             {result.isValid ? (
               <>
-                <span>Estimativa da rescisão</span>
-                <strong data-testid="termination-estimated-after-discounts">
-                  {formatCurrency(result.estimatedAfterDiscounts)}
-                </strong>
-                <p>Cálculo resumido para planejamento. Não é valor líquido definitivo.</p>
+                <ToolResultGate unlocked={isAuthenticated} redirectTo="/ferramentas/simulador-rescisao">
+                  <span>Estimativa da rescisão</span>
+                  <strong data-testid="termination-estimated-after-discounts">
+                    {formatCurrency(result.estimatedAfterDiscounts)}
+                  </strong>
+                  <p>Cálculo resumido para planejamento. Não é valor líquido definitivo.</p>
 
-                <div className="termination-simple-composition">
-                  {composition.map(item => (
-                    <div className={item.discount ? "is-discount" : ""} key={item.label}>
-                      <span>{item.label}</span>
-                      <b>{formatCurrency(item.value)}</b>
+                  <div className="termination-simple-composition">
+                    {composition.map(item => (
+                      <div className={item.discount ? "is-discount" : ""} key={item.label}>
+                        <span>{item.label}</span>
+                        <b>{formatCurrency(item.value)}</b>
+                      </div>
+                    ))}
+                    <div className="is-highlighted">
+                      <span>Custo estimado da empresa</span>
+                      <b data-testid="termination-company-cost">{formatCurrency(result.estimatedCompanyCost)}</b>
                     </div>
-                  ))}
-                  <div className="is-highlighted">
-                    <span>Custo estimado da empresa</span>
-                    <b data-testid="termination-company-cost">{formatCurrency(result.estimatedCompanyCost)}</b>
                   </div>
-                </div>
 
-                <div className="termination-simple-note">
-                  <Info size={17} strokeWidth={2.1} aria-hidden="true" />
-                  <p>INSS, IRRF e particularidades contratuais não estão incluídos nesta estimativa.</p>
-                </div>
+                  <div className="termination-simple-note">
+                    <Info size={17} strokeWidth={2.1} aria-hidden="true" />
+                    <p>INSS, IRRF e particularidades contratuais não estão incluídos nesta estimativa.</p>
+                  </div>
+                </ToolResultGate>
 
                 <a className="termination-simple-cta" href="/diagnostico">
                   <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
@@ -255,49 +280,6 @@ export default function TerminationSimulatorClient() {
           </aside>
         </div>
       </section>
-
-      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
-        <div className="accounting-footer-inner">
-          <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
-            </a>
-            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
-          </div>
-
-          <nav className="accounting-footer-nav" aria-label="Links do rodapé">
-            <div>
-              <h2>Menu</h2>
-              <a href="/#servicos">Serviços</a>
-              <a href="/#planos">Planos</a>
-              <a href="/#ferramentas">Ferramentas</a>
-              <a href="/#duvidas">Dúvidas</a>
-              <a href="/login">Login</a>
-            </div>
-
-            <div>
-              <h2>Ferramentas</h2>
-              <a href="/ferramentas/gerador-contrato">Gerador de Contrato</a>
-              <a href="/ferramentas/simulador-rescisao">Simulador de Rescisão</a>
-              <a href="/ferramentas/simulador-contratacao">Simulador de Contratação</a>
-              <a href="/ferramentas/calculadora-precificacao">Calculadora de Precificação</a>
-            </div>
-
-            <div>
-              <h2>Redes sociais</h2>
-              <a href="#">Instagram</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">Facebook</a>
-              <a href="#">WhatsApp</a>
-            </div>
-          </nav>
-        </div>
-
-        <div className="accounting-footer-bottom">
-          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
-          <a href="/diagnostico">Abrir CNPJ</a>
-        </div>
-      </footer>
-    </main>
+    </ToolShell>
   )
 }

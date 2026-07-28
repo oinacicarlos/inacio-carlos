@@ -22,6 +22,14 @@ export function StripePlanButton({ featured, plan, children }: StripePlanButtonP
         },
         body: JSON.stringify({ plan }),
       })
+      if (response.status === 401) {
+        // Não autenticado: manda pro login e volta pra retomar a
+        // contratação assim que entrar (StripePlanButton não decide sozinho
+        // se pode comprar — quem decide é o servidor).
+        window.location.href = `/login?checkout=${plan}`
+        return
+      }
+
       const data = (await response.json()) as { url?: string; error?: string }
 
       if (!response.ok || !data.url) {

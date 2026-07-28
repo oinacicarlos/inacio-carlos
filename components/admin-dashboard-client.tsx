@@ -26,12 +26,21 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import { supabase } from '@/lib/supabaseClient'
+import {
+  CATEGORY_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
+  type RequestCategory,
+  type RequestPriority,
+  type RequestStatus,
+} from '@/lib/client-requests/constants'
 
 type AdminModule =
   | 'CRM'
   | 'Contabilidade'
   | 'PFX'
   | 'Quadros'
+  | 'Solicitacoes'
 
 type AdminDashboardClientProps = {
   initialModule?: AdminModule
@@ -942,12 +951,13 @@ function getPfxWhatsappUrl(client: PfxClient, intent: PfxWhatsAppIntent) {
 
 const MODULES: Array<{
   name: AdminModule
-  icon: 'crm' | 'routines' | 'pfx' | 'boards'
+  icon: 'crm' | 'routines' | 'pfx' | 'boards' | 'clients'
 }> = [
   { name: 'CRM', icon: 'crm' },
   { name: 'Contabilidade', icon: 'routines' },
   { name: 'PFX', icon: 'pfx' },
   { name: 'Quadros', icon: 'boards' },
+  { name: 'Solicitacoes', icon: 'clients' },
 ]
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
@@ -955,6 +965,7 @@ const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
   Contabilidade: '/contabilidade',
   PFX: '/pfx',
   Quadros: '/quadros',
+  Solicitacoes: '/solicitacoes-clientes',
 }
 
 function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
@@ -1539,7 +1550,7 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
       )}
 
       <section
-        className={activeModule === 'CRM' || activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Quadros' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
+        className={activeModule === 'CRM' || activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Quadros' || activeModule === 'Solicitacoes' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
         aria-labelledby="active-module-title"
       >
         {activeModule === 'CRM' ? (
@@ -1550,6 +1561,8 @@ export default function DashboardPage({ initialModule = 'CRM' }: AdminDashboardC
           <PfxModule />
         ) : activeModule === 'Quadros' ? (
           <BoardsModule />
+        ) : activeModule === 'Solicitacoes' ? (
+          <ClientRequestsAdminModule />
         ) : (
           <div className="admin-module-empty">
             <h2 id="active-module-title">{activeModule}</h2>
@@ -6812,4 +6825,283 @@ function ModuleIcon({
   }
 
   return null
+}
+
+// ── Solicitações de clientes ──────────────────────────────────────────
+// Módulo adicionado sem tocar em nenhum dos módulos existentes acima.
+// Lê e grava através de RPCs SECURITY DEFINER (admin_list_client_requests,
+// admin_update_client_request) gated por is_admin() no banco — ver
+// supabase/create-admin-client-requests-access.sql. A tabela client_requests
+// e suas policies (usadas pelo hub do cliente) não são alteradas aqui.
+
+type AdminClientRequest = {
+  id: string
+  user_id: string
+  category: RequestCategory
+  title: string
+  description: string
+  priority: RequestPriority
+  status: RequestStatus
+  attachment_path: string | null
+  internal_note: string | null
+  created_at: string
+  updated_at: string
+  client_name: string | null
+  client_email: string | null
+  client_company_name: string | null
+}
+
+const REQUEST_STATUS_OPTIONS = Object.keys(STATUS_LABELS) as RequestStatus[]
+
+function ClientRequestsAdminModule() {
+  const [requests, setRequests] = useState<AdminClientRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'Todos' | RequestStatus>('Todos')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [draftStatus, setDraftStatus] = useState<RequestStatus>('recebida')
+  const [draftNote, setDraftNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null)
+
+  const loadRequests = async () => {
+    setLoading(true)
+    setError('')
+    const { data, error: loadError } = await supabase.rpc('admin_list_client_requests')
+
+    if (loadError) {
+      setError('Não consegui carregar as solicitações. Execute o SQL de acesso administrativo.')
+      setLoading(false)
+      return
+    }
+
+    setRequests((data ?? []) as AdminClientRequest[])
+    setLoading(false)
+  }
+
+  useEffect(() => { void loadRequests() }, [])
+
+  const selected = selectedId ? (requests.find(request => request.id === selectedId) ?? null) : null
+
+  useEffect(() => {
+    if (!selected) return
+    setDraftStatus(selected.status)
+    setDraftNote(selected.internal_note ?? '')
+    setSaveMessage('')
+    setAttachmentUrl(null)
+  }, [selected?.id])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAttachmentUrl() {
+      if (!selected?.attachment_path) return
+      const { data } = await supabase.storage
+        .from('client-request-attachments')
+        .createSignedUrl(selected.attachment_path, 60 * 5)
+      if (active && data?.signedUrl) setAttachmentUrl(data.signedUrl)
+    }
+
+    void loadAttachmentUrl()
+    return () => { active = false }
+  }, [selected?.attachment_path])
+
+  const filteredRequests = useMemo(() => {
+    const term = search.trim().toLowerCase()
+
+    return requests.filter(request => {
+      if (statusFilter !== 'Todos' && request.status !== statusFilter) return false
+      if (!term) return true
+
+      return (
+        request.title.toLowerCase().includes(term) ||
+        (request.client_name ?? '').toLowerCase().includes(term) ||
+        (request.client_email ?? '').toLowerCase().includes(term) ||
+        (request.client_company_name ?? '').toLowerCase().includes(term)
+      )
+    })
+  }, [requests, search, statusFilter])
+
+  const handleSave = async () => {
+    if (!selected) return
+    setSaving(true)
+    setSaveMessage('')
+
+    const { error: saveError } = await supabase.rpc('admin_update_client_request', {
+      p_request_id: selected.id,
+      p_status: draftStatus,
+      p_internal_note: draftNote,
+    })
+
+    setSaving(false)
+
+    if (saveError) {
+      setSaveMessage('Não consegui salvar as alterações.')
+      return
+    }
+
+    const updatedAt = new Date().toISOString()
+    setRequests(current =>
+      current.map(request =>
+        request.id === selected.id
+          ? { ...request, status: draftStatus, internal_note: draftNote, updated_at: updatedAt }
+          : request,
+      ),
+    )
+    setSaveMessage('Alterações salvas.')
+  }
+
+  return (
+    <div className={`crm-module${selected ? ' crm-module-panel-open' : ''}`}>
+      <div className="crm-module-inner">
+        <div className="crm-module-header">
+          <div>
+            <h2>Solicitações de clientes</h2>
+          </div>
+          <div className="crm-header-right">
+            {error && <span className="crm-global-error">{error}</span>}
+          </div>
+        </div>
+
+        <RoutineFilters>
+          <input
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Buscar por cliente, e-mail, empresa ou título"
+          />
+          <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as 'Todos' | RequestStatus)}>
+            <option value="Todos">Todos os status</option>
+            {REQUEST_STATUS_OPTIONS.map(status => (
+              <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+            ))}
+          </select>
+        </RoutineFilters>
+
+        {loading ? (
+          <div className="crm-loading">Carregando solicitações...</div>
+        ) : (
+          <div className="pfx-table-card">
+            <table className="pfx-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Título</th>
+                  <th>Categoria</th>
+                  <th>Prioridade</th>
+                  <th>Status</th>
+                  <th>Enviada em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRequests.map(request => (
+                  <tr
+                    key={request.id}
+                    className={selectedId === request.id ? 'selected' : ''}
+                    onClick={() => setSelectedId(currentId => currentId === request.id ? null : request.id)}
+                  >
+                    <td>
+                      <div className="pfx-client-cell">
+                        <strong>{request.client_name || request.client_email || 'Cliente'}</strong>
+                        {request.client_company_name && <span>{request.client_company_name}</span>}
+                      </div>
+                    </td>
+                    <td>{request.title}</td>
+                    <td>{CATEGORY_LABELS[request.category] ?? request.category}</td>
+                    <td>{PRIORITY_LABELS[request.priority] ?? request.priority}</td>
+                    <td>{STATUS_LABELS[request.status] ?? request.status}</td>
+                    <td>{formatCrmDate(request.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {filteredRequests.length === 0 && (
+              <div className="pfx-empty-state">
+                <strong>Nenhuma solicitação encontrada.</strong>
+                <span>Ajuste a busca ou o filtro de status.</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selected && (
+        <aside className="pfx-panel crm-lead-panel">
+          <div className="crm-panel-header">
+            <div className="crm-panel-title">
+              <div>
+                <strong>{selected.title}</strong>
+                <span>{CATEGORY_LABELS[selected.category] ?? selected.category} · {formatCrmDate(selected.created_at)}</span>
+              </div>
+            </div>
+            <button className="crm-panel-close" onClick={() => setSelectedId(null)} type="button" aria-label="Fechar">
+              <CloseIcon />
+            </button>
+          </div>
+
+          <div className="crm-panel-body">
+            <div className="crm-panel-section">
+              <p className="crm-panel-label">Cliente</p>
+              <div className="pfx-detail-list">
+                <div><span>Nome</span><strong>{selected.client_name || 'Não informado'}</strong></div>
+                <div><span>E-mail</span><strong>{selected.client_email || 'Não informado'}</strong></div>
+                <div><span>Empresa</span><strong>{selected.client_company_name || 'Não informado'}</strong></div>
+              </div>
+            </div>
+
+            <div className="crm-panel-section">
+              <p className="crm-panel-label">Descrição</p>
+              <p className="pfx-notes">{selected.description || 'Sem descrição.'}</p>
+            </div>
+
+            {selected.attachment_path && (
+              <div className="crm-panel-section">
+                <p className="crm-panel-label">Anexo</p>
+                {attachmentUrl ? (
+                  <a href={attachmentUrl} target="_blank" rel="noreferrer" className="pfx-download-link">
+                    Abrir anexo
+                  </a>
+                ) : (
+                  <span>Carregando link do anexo...</span>
+                )}
+              </div>
+            )}
+
+            <div className="crm-panel-section">
+              <p className="crm-panel-label">Alterar status</p>
+              <div className="crm-modal-form">
+                <select value={draftStatus} onChange={event => setDraftStatus(event.target.value as RequestStatus)}>
+                  {REQUEST_STATUS_OPTIONS.map(status => (
+                    <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="crm-panel-section">
+              <p className="crm-panel-label">Observação interna (o cliente nunca vê isso)</p>
+              <div className="crm-modal-form">
+                <textarea
+                  value={draftNote}
+                  onChange={event => setDraftNote(event.target.value)}
+                  placeholder="Anotações internas sobre esta solicitação"
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            {saveMessage && <p className="crm-panel-label">{saveMessage}</p>}
+
+            <div className="crm-panel-section">
+              <button type="button" className="pfx-edit-btn" onClick={() => void handleSave()} disabled={saving}>
+                {saving ? 'Salvando...' : 'Salvar alterações'}
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+    </div>
+  )
 }

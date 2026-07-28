@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useReducer, useState } from "react"
+import { useEffect, useMemo, useReducer, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   BadgeCheck,
   ChevronLeft,
@@ -17,11 +18,15 @@ import type { ContractGeneratorState, ContractParty, ContractType, StageItem } f
 import { contractToPlainText, getContractFileName, getContractTitle, getSummaryRows, buildContractClauses, TOOL_NOTICE } from "@/lib/contract-generator/utils/contractBuilder"
 import { validateContractState } from "@/lib/contract-generator/utils/validation"
 import { generateContractPdf } from "@/lib/contract-generator/utils/pdf"
+import { ToolShell } from "@/components/tool-shell"
+import ToolResultGate from "@/components/tool-result-gate"
+import AuthGateModal from "@/components/auth-gate-modal"
+import { createIdempotencyKey, recordToolUsage } from "@/lib/tool-usage/record-client"
 
 type Screen = "intro" | "steps" | "review"
 type Updater = (state: ContractGeneratorState) => ContractGeneratorState
 
-const TOTAL_STEPS = 9
+const TOTAL_STEPS = 6
 
 const paymentModes = ["Pagamento único", "Entrada e saldo", "Parcelado", "Mensal", "Por etapa", "Por hora", "Por diária", "Por comissão"]
 const lateModes = ["Apenas avisar", "Multa e juros", "Suspender serviço", "Cancelar após atraso"]
@@ -56,12 +61,31 @@ function fieldId(key: string) {
   return `contract-${key}`
 }
 
-export default function ContractGeneratorClient() {
+export default function ContractGeneratorClient({
+  trackUsage = false,
+  isAuthenticated = false,
+}: {
+  trackUsage?: boolean
+  isAuthenticated?: boolean
+}) {
+  const router = useRouter()
   const [state, dispatch] = useReducer(reducer, undefined, createInitialContractState)
   const [screen, setScreen] = useState<Screen>("intro")
   const [step, setStep] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState("")
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const usageRecordedRef = useRef(false)
+  const idempotencyKeyRef = useRef<string | undefined>(undefined)
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = createIdempotencyKey()
+  }
+
+  useEffect(() => {
+    if (!trackUsage || usageRecordedRef.current || screen !== "review") return
+    usageRecordedRef.current = true
+    recordToolUsage("gerador-contrato", idempotencyKeyRef.current!)
+  }, [screen, trackUsage])
   const [draftLoaded, setDraftLoaded] = useState(false)
 
   const selectedChoice = CONTRACT_CHOICES.find((choice) => choice.id === state.contractType)
@@ -159,21 +183,38 @@ export default function ContractGeneratorClient() {
   }
 
   async function copyText() {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true)
+      return
+    }
     await navigator.clipboard.writeText(plainText)
     setCopyFeedback("Texto copiado.")
     window.setTimeout(() => setCopyFeedback(""), 1800)
   }
 
   function printContract() {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true)
+      return
+    }
     window.print()
   }
 
   function downloadPdf() {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true)
+      return
+    }
     if (!validation.isValid) {
       setShowErrors(true)
       return
     }
     generateContractPdf(state, clauses, getContractFileName(state))
+  }
+
+  function handleAuthenticated() {
+    setAuthModalOpen(false)
+    router.refresh()
   }
 
   const error = (key: string) => (showErrors ? validation.errors[key] : "")
@@ -206,7 +247,7 @@ export default function ContractGeneratorClient() {
 
   function optionButton(label: string, selected: boolean, onClick: () => void) {
     return (
-      <button className={selected ? "is-selected" : ""} type="button" onClick={onClick}>
+      <button key={label} className={selected ? "is-selected" : ""} type="button" onClick={onClick}>
         {label}
       </button>
     )
@@ -423,52 +464,45 @@ export default function ContractGeneratorClient() {
     )
   }
 
-  function renderPayment() {
-    if (state.contractType === "debt_acknowledgment") {
-      return (
-        <section className="pricing-tool-step">
-          <span className="pricing-tool-step-number">Etapa 4</span>
-          <h2>Como será o pagamento?</h2>
-          <p>O pagamento da dívida foi definido na etapa anterior.</p>
-          {input("payment-method", "Forma de pagamento", state.payment.method, (value) => updatePayment({ method: value }))}
-        </section>
-      )
-    }
+  function renderPaymentAndDates() {
     return (
       <section className="pricing-tool-step">
         <span className="pricing-tool-step-number">Etapa 4</span>
-        <h2>Qual será o valor e como será pago?</h2>
-        <div className="pricing-tool-options">{paymentModes.map((mode) => optionButton(mode, state.payment.mode === mode, () => updatePayment({ mode })))}</div>
-        <div className="pricing-tool-field-grid">
-          {input("payment-totalAmount", state.payment.mode === "Por comissão" ? "Base ou valor estimado, opcional" : "Valor total", state.payment.totalAmount, (value) => updatePayment({ totalAmount: value }))}
-          {input("payment-method", "Forma de pagamento", state.payment.method, (value) => updatePayment({ method: value }))}
-          {state.payment.mode === "Entrada e saldo" ? input("payment-upfrontAmount", "Valor da entrada", state.payment.upfrontAmount, (value) => updatePayment({ upfrontAmount: value })) : null}
-          {state.payment.mode === "Entrada e saldo" ? input("payment-upfrontDate", "Data da entrada", state.payment.upfrontDate, (value) => updatePayment({ upfrontDate: value }), { type: "date" }) : null}
-          {state.payment.mode === "Parcelado" ? input("payment-installments", "Quantidade de parcelas", state.payment.installments, (value) => updatePayment({ installments: value }), { type: "number" }) : null}
-          {state.payment.mode === "Parcelado" ? input("payment-installmentAmount", "Valor das parcelas", state.payment.installmentAmount, (value) => updatePayment({ installmentAmount: value })) : null}
-          {state.payment.mode === "Parcelado" ? input("payment-firstDueDate", "Primeiro vencimento", state.payment.firstDueDate, (value) => updatePayment({ firstDueDate: value }), { type: "date" }) : null}
-          {state.payment.mode === "Mensal" ? input("payment-monthlyDueDay", "Dia de vencimento mensal", state.payment.monthlyDueDay, (value) => updatePayment({ monthlyDueDay: value }), { type: "number" }) : null}
-          {input("payment-pixKey", "Chave Pix, opcional", state.payment.pixKey, (value) => updatePayment({ pixKey: value }))}
-        </div>
-        {input("payment-bankDetails", "Dados bancários, opcional", state.payment.bankDetails, (value) => updatePayment({ bankDetails: value }), { multiline: true })}
-        {input("payment-notes", "Observações sobre pagamento", state.payment.notes, (value) => updatePayment({ notes: value }), { multiline: true })}
-        <h3 className="contract-tool-subtitle">Em caso de atraso, o que foi combinado?</h3>
-        <div className="pricing-tool-options">{lateModes.map((mode) => optionButton(mode, state.payment.lateMode === mode, () => updatePayment({ lateMode: mode })))}</div>
-        {state.payment.lateMode === "Multa e juros" ? (
-          <div className="pricing-tool-field-grid">
-            {input("payment-lateFine", "Multa por atraso (%)", state.payment.lateFine, (value) => updatePayment({ lateFine: value }), { type: "number" })}
-            {input("payment-monthlyInterest", "Juros mensais (%)", state.payment.monthlyInterest, (value) => updatePayment({ monthlyInterest: value }), { type: "number" })}
-          </div>
-        ) : null}
-      </section>
-    )
-  }
+        {state.contractType === "debt_acknowledgment" ? (
+          <>
+            <h2>Como será o pagamento?</h2>
+            <p>O pagamento da dívida foi definido na etapa anterior.</p>
+            {input("payment-method", "Forma de pagamento", state.payment.method, (value) => updatePayment({ method: value }))}
+          </>
+        ) : (
+          <>
+            <h2>Qual será o valor e como será pago?</h2>
+            <div className="pricing-tool-options">{paymentModes.map((mode) => optionButton(mode, state.payment.mode === mode, () => updatePayment({ mode })))}</div>
+            <div className="pricing-tool-field-grid">
+              {input("payment-totalAmount", state.payment.mode === "Por comissão" ? "Base ou valor estimado, opcional" : "Valor total", state.payment.totalAmount, (value) => updatePayment({ totalAmount: value }))}
+              {input("payment-method", "Forma de pagamento", state.payment.method, (value) => updatePayment({ method: value }))}
+              {state.payment.mode === "Entrada e saldo" ? input("payment-upfrontAmount", "Valor da entrada", state.payment.upfrontAmount, (value) => updatePayment({ upfrontAmount: value })) : null}
+              {state.payment.mode === "Entrada e saldo" ? input("payment-upfrontDate", "Data da entrada", state.payment.upfrontDate, (value) => updatePayment({ upfrontDate: value }), { type: "date" }) : null}
+              {state.payment.mode === "Parcelado" ? input("payment-installments", "Quantidade de parcelas", state.payment.installments, (value) => updatePayment({ installments: value }), { type: "number" }) : null}
+              {state.payment.mode === "Parcelado" ? input("payment-installmentAmount", "Valor das parcelas", state.payment.installmentAmount, (value) => updatePayment({ installmentAmount: value })) : null}
+              {state.payment.mode === "Parcelado" ? input("payment-firstDueDate", "Primeiro vencimento", state.payment.firstDueDate, (value) => updatePayment({ firstDueDate: value }), { type: "date" }) : null}
+              {state.payment.mode === "Mensal" ? input("payment-monthlyDueDay", "Dia de vencimento mensal", state.payment.monthlyDueDay, (value) => updatePayment({ monthlyDueDay: value }), { type: "number" }) : null}
+              {input("payment-pixKey", "Chave Pix, opcional", state.payment.pixKey, (value) => updatePayment({ pixKey: value }))}
+            </div>
+            {input("payment-bankDetails", "Dados bancários, opcional", state.payment.bankDetails, (value) => updatePayment({ bankDetails: value }), { multiline: true })}
+            {input("payment-notes", "Observações sobre pagamento", state.payment.notes, (value) => updatePayment({ notes: value }), { multiline: true })}
+            <h3 className="contract-tool-subtitle">Em caso de atraso, o que foi combinado?</h3>
+            <div className="pricing-tool-options">{lateModes.map((mode) => optionButton(mode, state.payment.lateMode === mode, () => updatePayment({ lateMode: mode })))}</div>
+            {state.payment.lateMode === "Multa e juros" ? (
+              <div className="pricing-tool-field-grid">
+                {input("payment-lateFine", "Multa por atraso (%)", state.payment.lateFine, (value) => updatePayment({ lateFine: value }), { type: "number" })}
+                {input("payment-monthlyInterest", "Juros mensais (%)", state.payment.monthlyInterest, (value) => updatePayment({ monthlyInterest: value }), { type: "number" })}
+              </div>
+            ) : null}
+          </>
+        )}
 
-  function renderDates() {
-    return (
-      <section className="pricing-tool-step">
-        <span className="pricing-tool-step-number">Etapa 5</span>
-        <h2>Quando começa e quando termina?</h2>
+        <h3 className="contract-tool-subtitle">Quando começa e quando termina?</h3>
         <div className="pricing-tool-field-grid">
           {input("dates-startDate", "Data de início", state.dates.startDate, (value) => updateDates({ startDate: value }), { type: "date" })}
           {input("dates-endDate", "Data de término", state.dates.endDate, (value) => updateDates({ endDate: value }), { type: "date" })}
@@ -517,9 +551,17 @@ export default function ContractGeneratorClient() {
         }
       })
     }
+    const terminationToggle = (item: string) => {
+      update((current) => {
+        const options = current.termination.options.includes(item)
+          ? current.termination.options.filter((value) => value !== item)
+          : [...current.termination.options.filter((value) => !(item.includes("multa") && value.includes("sem custo"))), item]
+        return { ...current, termination: { ...current.termination, options } }
+      })
+    }
     return (
       <section className="pricing-tool-step">
-        <span className="pricing-tool-step-number">Etapa 6</span>
+        <span className="pricing-tool-step-number">Etapa 5</span>
         <h2>O que cada lado precisa fazer?</h2>
         <div className="contract-tool-check-grid">
           <div>
@@ -542,27 +584,12 @@ export default function ContractGeneratorClient() {
           </div>
         </div>
         {input("responsibilities-custom", "Responsabilidade personalizada, opcional", state.responsibilities.custom, (value) => update((current) => ({ ...current, responsibilities: { ...current.responsibilities, custom: value } })), { multiline: true })}
-      </section>
-    )
-  }
 
-  function renderTermination() {
-    const toggle = (item: string) => {
-      update((current) => {
-        const options = current.termination.options.includes(item)
-          ? current.termination.options.filter((value) => value !== item)
-          : [...current.termination.options.filter((value) => !(item.includes("multa") && value.includes("sem custo"))), item]
-        return { ...current, termination: { ...current.termination, options } }
-      })
-    }
-    return (
-      <section className="pricing-tool-step">
-        <span className="pricing-tool-step-number">Etapa 7</span>
-        <h2>{state.contractType === "debt_acknowledgment" ? "O que acontecerá se alguma parcela não for paga?" : "O que acontece se alguém quiser encerrar o contrato?"}</h2>
+        <h3 className="contract-tool-subtitle">{state.contractType === "debt_acknowledgment" ? "O que acontecerá se alguma parcela não for paga?" : "O que acontece se alguém quiser encerrar o contrato?"}</h3>
         <div className="contract-tool-check-grid">
           {terminationOptions.map((item) => (
             <label className="hiring-tool-checkbox" key={item}>
-              <input type="checkbox" checked={state.termination.options.includes(item)} onChange={() => toggle(item)} />
+              <input type="checkbox" checked={state.termination.options.includes(item)} onChange={() => terminationToggle(item)} />
               {item}
             </label>
           ))}
@@ -593,25 +620,28 @@ export default function ContractGeneratorClient() {
       ["nonSolicit", "Não contratação direta", "Para parcerias ou equipes terceirizadas."],
       ["exclusivity", "Exclusividade", "Produto, serviço, território ou prazo exclusivo."],
     ]
+    const hasAnyOptionalClause = options.some(([key]) => state.optionalClauses[key] === true)
+
     return (
-      <section className="pricing-tool-step">
-        <span className="pricing-tool-step-number">Etapa 8</span>
-        <h2>Você precisa incluir alguma proteção adicional?</h2>
-        <div className="pricing-tool-option-cards pricing-tool-option-cards--compact">
-          {options.map(([key, title, description]) => (
-            <button key={String(key)} className={state.optionalClauses[key] === true ? "is-selected" : ""} type="button" onClick={() => toggle(key, state.optionalClauses[key] !== true)}>
-              <strong>{title}</strong>
-              <span>{description}</span>
-            </button>
-          ))}
+      <details className="pricing-tool-breakdown contract-tool-optional-clauses">
+        <summary>{hasAnyOptionalClause ? "Proteções adicionais selecionadas" : "Incluir alguma proteção adicional? (opcional)"}</summary>
+        <div className="pricing-tool-summary">
+          <div className="pricing-tool-option-cards pricing-tool-option-cards--compact">
+            {options.map(([key, title, description]) => (
+              <button key={String(key)} className={state.optionalClauses[key] === true ? "is-selected" : ""} type="button" onClick={() => toggle(key, state.optionalClauses[key] !== true)}>
+                <strong>{title}</strong>
+                <span>{description}</span>
+              </button>
+            ))}
+          </div>
+          {state.optionalClauses.materialUse ? input("optional-materialUseNotes", "Condições de uso do material", state.optionalClauses.materialUseNotes, (value) => toggle("materialUseNotes", value), { multiline: true }) : null}
+          {state.optionalClauses.imageUse ? input("optional-imageUseNotes", "Canais, prazo e remuneração do uso de imagem", state.optionalClauses.imageUseNotes, (value) => toggle("imageUseNotes", value), { multiline: true }) : null}
+          {state.optionalClauses.revisionLimit ? input("optional-revisionLimitNotes", "Quantidade de revisões e valor de extras", state.optionalClauses.revisionLimitNotes, (value) => toggle("revisionLimitNotes", value), { multiline: true }) : null}
+          {state.optionalClauses.warranty ? input("optional-warrantyNotes", "Prazo e cobertura da garantia", state.optionalClauses.warrantyNotes, (value) => toggle("warrantyNotes", value), { multiline: true }) : null}
+          {state.optionalClauses.nonSolicit ? input("optional-restrictionTerm", "Prazo da restrição", state.optionalClauses.restrictionTerm, (value) => toggle("restrictionTerm", value)) : null}
+          {state.optionalClauses.exclusivity ? input("optional-exclusivityNotes", "Quem fica exclusivo, território e prazo", state.optionalClauses.exclusivityNotes, (value) => toggle("exclusivityNotes", value), { multiline: true }) : null}
         </div>
-        {state.optionalClauses.materialUse ? input("optional-materialUseNotes", "Condições de uso do material", state.optionalClauses.materialUseNotes, (value) => toggle("materialUseNotes", value), { multiline: true }) : null}
-        {state.optionalClauses.imageUse ? input("optional-imageUseNotes", "Canais, prazo e remuneração do uso de imagem", state.optionalClauses.imageUseNotes, (value) => toggle("imageUseNotes", value), { multiline: true }) : null}
-        {state.optionalClauses.revisionLimit ? input("optional-revisionLimitNotes", "Quantidade de revisões e valor de extras", state.optionalClauses.revisionLimitNotes, (value) => toggle("revisionLimitNotes", value), { multiline: true }) : null}
-        {state.optionalClauses.warranty ? input("optional-warrantyNotes", "Prazo e cobertura da garantia", state.optionalClauses.warrantyNotes, (value) => toggle("warrantyNotes", value), { multiline: true }) : null}
-        {state.optionalClauses.nonSolicit ? input("optional-restrictionTerm", "Prazo da restrição", state.optionalClauses.restrictionTerm, (value) => toggle("restrictionTerm", value)) : null}
-        {state.optionalClauses.exclusivity ? input("optional-exclusivityNotes", "Quem fica exclusivo, território e prazo", state.optionalClauses.exclusivityNotes, (value) => toggle("exclusivityNotes", value), { multiline: true }) : null}
-      </section>
+      </details>
     )
   }
 
@@ -619,7 +649,7 @@ export default function ContractGeneratorClient() {
     const witnessTotal = state.signature.witnessCount === "two" ? 2 : state.signature.witnessCount === "one" ? 1 : 0
     return (
       <section className="pricing-tool-step">
-        <span className="pricing-tool-step-number">Etapa 9</span>
+        <span className="pricing-tool-step-number">Etapa 6</span>
         <h2>Onde e quando o contrato será assinado?</h2>
         <div className="pricing-tool-field-grid">
           {input("signature-city", "Cidade", state.signature.city, (value) => updateSignature({ city: value }))}
@@ -650,6 +680,9 @@ export default function ContractGeneratorClient() {
           </div>
         ))}
         <p>Você poderá preencher os dados das testemunhas agora ou manualmente depois.</p>
+
+        <h3 className="contract-tool-subtitle">Mais alguma coisa?</h3>
+        {renderOptional()}
       </section>
     )
   }
@@ -658,11 +691,8 @@ export default function ContractGeneratorClient() {
     if (step === 0) return renderChooseType()
     if (step === 1) return renderParties()
     if (step === 2) return renderDetails()
-    if (step === 3) return renderPayment()
-    if (step === 4) return renderDates()
-    if (step === 5) return renderResponsibilities()
-    if (step === 6) return renderTermination()
-    if (step === 7) return renderOptional()
+    if (step === 3) return renderPaymentAndDates()
+    if (step === 4) return renderResponsibilities()
     return renderSignature()
   }
 
@@ -748,7 +778,7 @@ export default function ContractGeneratorClient() {
         </div>
         <div className="contract-tool-review-grid">
           <div className="contract-tool-review-cards">
-            {["Tipo de contrato", "Participantes", "Objeto", "Valor", "Forma de pagamento", "Prazo", "Responsabilidades", "Cancelamento", "Proteções adicionais", "Assinatura"].map((title, index) => (
+            {["Tipo de contrato", "Participantes", "Objeto", "Pagamento e prazo", "Responsabilidades e cancelamento", "Assinatura e proteções"].map((title, index) => (
               <div className="contract-tool-review-card" key={title}>
                 <span>{title}</span>
                 <button type="button" onClick={() => {
@@ -760,38 +790,44 @@ export default function ContractGeneratorClient() {
               </div>
             ))}
           </div>
-          <article className="contract-tool-preview" id="contract-print-area">
-            <h2>{getContractTitle(state.contractType)}</h2>
-            {clauses.map((item) => (
-              <section key={item.id}>
-                <h3>{item.title}</h3>
-                {item.paragraphs.map((paragraph, index) => (
-                  <p key={index}>{paragraph}</p>
-                ))}
-              </section>
-            ))}
-            <section>
-              <h3>Assinaturas</h3>
-              {state.parties.map((party, index) => (
-                <div className="contract-tool-sign-line" key={index}>
-                  <span />
-                  <p>{party.name || `Parte ${index + 1}`}</p>
-                </div>
+          <ToolResultGate
+            unlocked={isAuthenticated}
+            redirectTo="/ferramentas/gerador-contrato"
+            message="Seu contrato já está pronto. Crie uma conta grátis para ver, copiar e baixar o PDF."
+          >
+            <article className="contract-tool-preview" id="contract-print-area">
+              <h2>{getContractTitle(state.contractType)}</h2>
+              {clauses.map((item) => (
+                <section key={item.id}>
+                  <h3>{item.title}</h3>
+                  {item.paragraphs.map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                  ))}
+                </section>
               ))}
-            </section>
-            {state.signature.witnessCount !== "none" ? (
               <section>
-                <h3>Testemunhas</h3>
-                {state.signature.witnesses.slice(0, state.signature.witnessCount === "two" ? 2 : 1).map((witness, index) => (
+                <h3>Assinaturas</h3>
+                {state.parties.map((party, index) => (
                   <div className="contract-tool-sign-line" key={index}>
                     <span />
-                    <p>{index + 1}. {witness.name || "Nome"} - CPF: {witness.document || "________________"}</p>
+                    <p>{party.name || `Parte ${index + 1}`}</p>
                   </div>
                 ))}
               </section>
-            ) : null}
-            <footer>{TOOL_NOTICE}</footer>
-          </article>
+              {state.signature.witnessCount !== "none" ? (
+                <section>
+                  <h3>Testemunhas</h3>
+                  {state.signature.witnesses.slice(0, state.signature.witnessCount === "two" ? 2 : 1).map((witness, index) => (
+                    <div className="contract-tool-sign-line" key={index}>
+                      <span />
+                      <p>{index + 1}. {witness.name || "Nome"} - CPF: {witness.document || "________________"}</p>
+                    </div>
+                  ))}
+                </section>
+              ) : null}
+              <footer>{TOOL_NOTICE}</footer>
+            </article>
+          </ToolResultGate>
         </div>
         {!validation.isValid && showErrors ? (
           <div className="pricing-tool-inline-note" role="alert">
@@ -828,68 +864,16 @@ export default function ContractGeneratorClient() {
   }
 
   return (
-    <main className="accounting-landing pricing-tool-site contract-tool-site">
-      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
-        <a className="accounting-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
-        </a>
-        <nav className="accounting-nav" aria-label="Navegação principal">
-          <a href="/#servicos">Serviços</a>
-          <a href="/#planos">Planos</a>
-          <a href="/#ferramentas">Ferramentas</a>
-          <a href="/#duvidas">Dúvidas</a>
-        </nav>
-        <div className="accounting-header-actions">
-          <a className="accounting-login" href="/login">Login</a>
-          <a className="accounting-header-cta" href="/diagnostico">
-            <span>Abrir CNPJ</span>
-            <span aria-hidden="true">›</span>
-          </a>
-        </div>
-      </header>
-
+    <ToolShell mainClassName="pricing-tool-site contract-tool-site">
       {screen === "intro" ? renderIntro() : null}
       {screen === "steps" ? renderSteps() : null}
       {screen === "review" ? renderReview() : null}
-
-      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
-        <div className="accounting-footer-inner">
-          <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
-            </a>
-            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
-          </div>
-          <nav className="accounting-footer-nav" aria-label="Links do rodapé">
-            <div>
-              <h2>Menu</h2>
-              <a href="/#servicos">Serviços</a>
-              <a href="/#planos">Planos</a>
-              <a href="/#ferramentas">Ferramentas</a>
-              <a href="/#duvidas">Dúvidas</a>
-              <a href="/login">Login</a>
-            </div>
-            <div>
-              <h2>Ferramentas</h2>
-              <a href="/ferramentas/gerador-contrato">Gerador de Contrato</a>
-              <a href="/ferramentas/simulador-rescisao">Simulador de Rescisão</a>
-              <a href="/ferramentas/simulador-contratacao">Simulador de Contratação</a>
-              <a href="/ferramentas/calculadora-precificacao">Calculadora de Precificação</a>
-            </div>
-            <div>
-              <h2>Redes sociais</h2>
-              <a href="#">Instagram</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">Facebook</a>
-              <a href="#">WhatsApp</a>
-            </div>
-          </nav>
-        </div>
-        <div className="accounting-footer-bottom">
-          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
-          <a href="/diagnostico">Abrir CNPJ</a>
-        </div>
-      </footer>
-    </main>
+      <AuthGateModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onAuthenticated={handleAuthenticated}
+        redirectTo="/ferramentas/gerador-contrato"
+      />
+    </ToolShell>
   )
 }

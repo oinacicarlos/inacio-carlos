@@ -17,6 +17,7 @@ export default function ResetPasswordClient() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
   const [hasRecoveryAccess, setHasRecoveryAccess] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -28,6 +29,13 @@ export default function ResetPasswordClient() {
     const openedFromRecoveryLink =
       window.location.href.includes('type=recovery') ||
       window.location.hash.includes('access_token')
+
+    async function checkIsAdmin() {
+      const { data, error: adminError } = await supabase.rpc('is_admin')
+      if (mounted && adminError === null) {
+        setIsAdmin(data === true)
+      }
+    }
 
     supabase.auth
       .getSession()
@@ -41,8 +49,10 @@ export default function ResetPasswordClient() {
           return
         }
 
-        setHasRecoveryAccess(openedFromRecoveryLink && Boolean(data.session))
+        const access = openedFromRecoveryLink && Boolean(data.session)
+        setHasRecoveryAccess(access)
         setReady(true)
+        if (access) void checkIsAdmin()
       })
       .catch(async error => {
         await clearInvalidLocalSession(error)
@@ -55,6 +65,7 @@ export default function ResetPasswordClient() {
       if (event === 'PASSWORD_RECOVERY') {
         setHasRecoveryAccess(Boolean(session))
         setReady(true)
+        if (session) void checkIsAdmin()
       }
     })
 
@@ -91,7 +102,7 @@ export default function ResetPasswordClient() {
     setPassword('')
     setConfirmPassword('')
     setMessage('Senha redefinida com sucesso.')
-    router.replace('/crm')
+    router.replace(isAdmin ? '/crm' : '/hub')
   }
 
   return (
@@ -103,7 +114,7 @@ export default function ResetPasswordClient() {
 
         <header className="password-reset-header">
           <h1>Redefinir senha</h1>
-          <p>Crie uma nova senha para voltar ao hub administrativo.</p>
+          <p>{isAdmin ? 'Crie uma nova senha para voltar ao hub administrativo.' : 'Crie uma nova senha para voltar ao seu hub.'}</p>
         </header>
 
         {!ready ? (

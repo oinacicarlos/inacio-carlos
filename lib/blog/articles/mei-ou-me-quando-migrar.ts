@@ -1,0 +1,118 @@
+import type { BlogArticle } from "@/lib/blog/types"
+
+export const article: BlogArticle = {
+  slug: "mei-ou-me-quando-migrar",
+  title: "MEI ou Microempresa (ME): quando migrar e o que muda",
+  metaTitle: "MEI ou ME: quando migrar e o que muda na prática",
+  metaDescription:
+    "Entenda a diferença entre MEI e Microempresa (ME), os sinais de que é hora de migrar e o que muda em impostos, funcionários e obrigações.",
+  excerpt:
+    "Todo MEI que cresce chega numa bifurcação: continuar como MEI ou virar Microempresa. Veja os sinais de que é hora de migrar e o que muda na prática.",
+  pillar: "mei",
+  coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
+  coverImageAlt: "Colegas discutindo gráficos de crescimento em um quadro branco",
+  publishedAt: "2026-02-11",
+  updatedAt: "2026-02-11",
+  readingTimeMinutes: 7,
+  sections: [
+    {
+      type: "paragraph",
+      text: "Quando o negócio começa a crescer, o MEI que antes era suficiente começa a apertar em algum ponto: o limite de faturamento, o número de funcionários, o tipo de atividade. É nesse momento que aparece a dúvida sobre migrar para Microempresa (ME). Entender a diferença entre as duas categorias ajuda a decidir com base em números, não em achismo.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "A diferença entre MEI e ME",
+      id: "diferenca-entre-mei-e-me",
+    },
+    {
+      type: "paragraph",
+      text: "O MEI (Microempreendedor Individual) é um enquadramento simplificado dentro do Simples Nacional, criado para formalizar quem trabalha sozinho com faturamento baixo. A ME (Microempresa) é uma categoria maior dentro do próprio Simples Nacional, com limite de faturamento bem mais alto, sem restrição rígida de número de funcionários e com um leque maior de atividades permitidas — mas também com uma rotina fiscal mais robusta.",
+    },
+    {
+      type: "table",
+      headers: ["Ponto", "MEI", "Microempresa (ME)"],
+      rows: [
+        ["Limite de faturamento anual", "Mais baixo, fixo por lei", "Bem mais alto"],
+        ["Funcionários", "No máximo 1", "Sem limite rígido"],
+        ["Tributação", "Valor fixo mensal (DAS)", "Percentual sobre o faturamento (Simples Nacional)"],
+        ["Obrigações contábeis", "Bem simplificadas", "Exigem contabilidade regular"],
+        ["Emissão de notas", "Permitida, com limites da atividade", "Mais ampla, conforme a atividade"],
+      ],
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Sinais de que é hora de migrar",
+      id: "sinais-de-que-e-hora-de-migrar",
+    },
+    {
+      type: "list",
+      items: [
+        "Seu faturamento já ultrapassou (ou está muito perto de ultrapassar) o limite anual do MEI.",
+        "Você precisa contratar mais de um funcionário.",
+        "Você quer exercer uma atividade que não está na lista permitida para MEI.",
+        "Você precisa ter sócio, o que o MEI não permite.",
+        "Seu negócio já lida com um volume de notas e clientes que pede uma estrutura contábil mais completa.",
+      ],
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "O que acontece se ultrapassar o limite sem migrar",
+      id: "o-que-acontece-se-ultrapassar-sem-migrar",
+    },
+    {
+      type: "paragraph",
+      text: "Ultrapassar o limite de faturamento do MEI não gera punição automática, mas obriga a um processo de desenquadramento — a saída do regime de MEI e a migração para o Simples Nacional como ME, com efeitos que podem ser retroativos ao mês em que o limite foi ultrapassado. Dependendo do quanto excedeu, pode haver cálculo de impostos sobre a diferença, o que torna a situação mais cara do que se a migração tivesse sido feita de forma planejada.",
+    },
+    {
+      type: "callout",
+      title: "Migrar antes costuma sair mais barato",
+      text: "Migrar de forma planejada, antes de estourar o limite, evita cálculo retroativo de impostos e dá tempo de organizar a contabilidade da nova categoria com calma — em vez de resolver tudo sob pressão de um prazo da Receita.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Como funciona a migração na prática",
+      id: "como-funciona-a-migracao",
+    },
+    {
+      type: "paragraph",
+      text: "A migração passa por três frentes: a comunicação de desenquadramento do MEI (feita pelo próprio empreendedor ou pelo contador), a opção formal pelo Simples Nacional como ME, e o ajuste da contabilidade — que passa a exigir escrituração regular, já que a ME não tem a mesma dispensa contábil simplificada do MEI. É nesse ponto que ter um contador acompanhando deixa de ser opcional na prática, mesmo sem ser uma exigência do MEI original.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Vale a pena migrar antes de ser obrigado?",
+      id: "vale-a-pena-migrar-antes",
+    },
+    {
+      type: "paragraph",
+      text: "Se os sinais de crescimento já apareceram — mais de um funcionário necessário, faturamento subindo mês a mês, necessidade de sócio — migrar de forma planejada tende a ser mais barato e menos estressante do que esperar o limite estourar. O primeiro passo prático costuma ser entender o custo real de ter mais funcionários, já que é o gatilho mais comum para a migração.",
+    },
+  ],
+  faq: [
+    {
+      question: "Migrar de MEI para ME é definitivo?",
+      answer:
+        "Sim, uma vez desenquadrado do MEI, o retorno para essa categoria não é automático — é preciso reabrir como MEI depois, caso o faturamento volte a se enquadrar nos limites, respeitando as regras vigentes na época.",
+    },
+    {
+      question: "Preciso de contador para migrar de MEI para ME?",
+      answer:
+        "Não é uma exigência legal para iniciar o processo de desenquadramento, mas a ME exige contabilidade regular a partir da migração, o que na prática torna o acompanhamento de um contador necessário para manter tudo em dia.",
+    },
+    {
+      question: "O que acontece com as notas fiscais já emitidas como MEI depois da migração?",
+      answer:
+        "Elas continuam válidas e fazem parte do seu histórico fiscal. A migração muda o enquadramento daí em diante — não invalida o que já foi emitido antes.",
+    },
+  ],
+  relatedTool: {
+    title: "Simulador de Contratação",
+    href: "/ferramentas/simulador-contratacao",
+    description: "Se a migração é por causa de funcionários, veja o custo estimado de contratar antes de decidir.",
+  },
+  relatedSlugs: ["mei-pode-ter-funcionario", "quanto-custa-um-contador-para-mei", "como-abrir-mei-passo-a-passo"],
+}

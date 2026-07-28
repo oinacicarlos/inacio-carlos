@@ -1,9 +1,24 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { BadgeCheck, Calculator, Info } from "lucide-react"
+import { ToolShell } from "@/components/tool-shell"
+import ToolResultGate from "@/components/tool-result-gate"
+import { createIdempotencyKey, recordToolUsage } from "@/lib/tool-usage/record-client"
+
+// Quanto tempo sem alterações até considerar a simulação "concluída" e
+// contar como uma utilização. Evita contar quem só abriu a página e saiu.
+const USAGE_SETTLE_DELAY_MS = 2500
 
 type Regime = "simplesRegular" | "simplesAnexoIv" | "presumidoReal"
+
+const DEFAULT_SALARY = "2500"
+const DEFAULT_REGIME: Regime = "simplesRegular"
+const DEFAULT_TRANSPORT = "220"
+const DEFAULT_DEDUCT_TRANSPORT = false
+const DEFAULT_MEAL = "550"
+const DEFAULT_HEALTH = "0"
+const DEFAULT_OTHER = "0"
 
 const regimeRates: Record<Regime, number> = {
   simplesRegular: 0,
@@ -52,15 +67,38 @@ function toNumber(value: string) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
-export default function HiringSimulatorClient() {
-  const [salary, setSalary] = useState("2500")
-  const [regime, setRegime] = useState<Regime>("simplesRegular")
+export default function HiringSimulatorClient({
+  trackUsage = false,
+  isAuthenticated = false,
+}: {
+  trackUsage?: boolean
+  isAuthenticated?: boolean
+}) {
+  const [salary, setSalary] = useState(DEFAULT_SALARY)
+  const [regime, setRegime] = useState<Regime>(DEFAULT_REGIME)
   const [taxRate, setTaxRate] = useState(String(regimeRates.simplesRegular))
-  const [transport, setTransport] = useState("220")
-  const [deductTransport, setDeductTransport] = useState(false)
-  const [meal, setMeal] = useState("550")
-  const [health, setHealth] = useState("0")
-  const [other, setOther] = useState("0")
+  const [transport, setTransport] = useState(DEFAULT_TRANSPORT)
+  const [deductTransport, setDeductTransport] = useState(DEFAULT_DEDUCT_TRANSPORT)
+  const [meal, setMeal] = useState(DEFAULT_MEAL)
+  const [health, setHealth] = useState(DEFAULT_HEALTH)
+  const [other, setOther] = useState(DEFAULT_OTHER)
+
+  const usageRecordedRef = useRef(false)
+  const idempotencyKeyRef = useRef<string | undefined>(undefined)
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = createIdempotencyKey()
+  }
+
+  // Só conta como utilização se o usuário de fato alterou algum campo — abrir
+  // a página com os valores padrão e sair não deve consumir o limite.
+  const isDirty =
+    salary !== DEFAULT_SALARY ||
+    regime !== DEFAULT_REGIME ||
+    transport !== DEFAULT_TRANSPORT ||
+    deductTransport !== DEFAULT_DEDUCT_TRANSPORT ||
+    meal !== DEFAULT_MEAL ||
+    health !== DEFAULT_HEALTH ||
+    other !== DEFAULT_OTHER
 
   const result = useMemo(() => {
     const baseSalary = Math.max(toNumber(salary), 0)
@@ -106,38 +144,31 @@ export default function HiringSimulatorClient() {
     }
   }, [deductTransport, health, meal, other, regime, salary, taxRate, transport])
 
+  useEffect(() => {
+    if (!trackUsage || usageRecordedRef.current || !isDirty || result.baseSalary <= 0) return
+
+    const timer = setTimeout(() => {
+      usageRecordedRef.current = true
+      recordToolUsage("simulador-contratacao", idempotencyKeyRef.current!)
+    }, USAGE_SETTLE_DELAY_MS)
+
+    return () => clearTimeout(timer)
+  }, [isDirty, result, trackUsage])
+
   const handleRegimeChange = (nextRegime: Regime) => {
     setRegime(nextRegime)
     setTaxRate(String(regimeRates[nextRegime]))
   }
 
   const showTaxRateField = regime !== "simplesRegular"
+  const regimeHelp: Record<Regime, string> = {
+    simplesRegular: "Empresas do Simples Nacional (fora do Anexo IV) não pagam encargo patronal adicional sobre a folha.",
+    simplesAnexoIv: "No Anexo IV, a empresa paga a parte patronal do INSS por fora do Simples — informe a alíquota se souber.",
+    presumidoReal: "No Lucro Presumido ou Real, os encargos patronais completos costumam ficar entre 26% e 30% do salário.",
+  }
 
   return (
-    <main className="accounting-landing hiring-tool-site">
-      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
-        <a className="accounting-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
-        </a>
-
-        <nav className="accounting-nav" aria-label="Navegação principal">
-          <a href="/#servicos">Serviços</a>
-          <a href="/#planos">Planos</a>
-          <a href="/#ferramentas">Ferramentas</a>
-          <a href="/#duvidas">Dúvidas</a>
-        </nav>
-
-        <div className="accounting-header-actions">
-          <a className="accounting-login" href="/login">
-            Login
-          </a>
-          <a className="accounting-header-cta" href="/diagnostico">
-            <span>Abrir CNPJ</span>
-            <span aria-hidden="true">›</span>
-          </a>
-        </div>
-      </header>
-
+    <ToolShell mainClassName="hiring-tool-site">
       <section className="hiring-tool-section" aria-labelledby="hiring-tool-title">
         <div className="hiring-tool-head">
           <span>
@@ -192,6 +223,7 @@ export default function HiringSimulatorClient() {
                   Presumido/Real
                 </button>
               </div>
+              <p className="hiring-tool-regime-help">{regimeHelp[regime]}</p>
             </div>
 
             {showTaxRateField ? (
@@ -204,6 +236,7 @@ export default function HiringSimulatorClient() {
                   value={taxRate}
                   onChange={event => setTaxRate(event.target.value)}
                 />
+                <small>Não sabe o valor exato? Deixe a estimativa acima e ajuste depois com seu contador.</small>
               </label>
             ) : null}
 
@@ -267,40 +300,42 @@ export default function HiringSimulatorClient() {
           </form>
 
           <aside className="hiring-tool-result" aria-label="Resultado da simulação">
-            <span>Custo médio mensal</span>
-            <strong data-testid="hiring-total">{formatCurrency(result.total)}</strong>
-            <p>
-              Aproximadamente <b data-testid="hiring-multiplier">{result.multiplier.toFixed(2).replace(".", ",")}x</b>{" "}
-              o salário bruto informado.
-            </p>
+            <ToolResultGate unlocked={isAuthenticated} redirectTo="/ferramentas/simulador-contratacao">
+              <span>Custo médio mensal</span>
+              <strong data-testid="hiring-total">{formatCurrency(result.total)}</strong>
+              <p>
+                Aproximadamente <b data-testid="hiring-multiplier">{result.multiplier.toFixed(2).replace(".", ",")}x</b>{" "}
+                o salário bruto informado.
+              </p>
 
-            <div className="hiring-tool-summary">
-              <div>
-                <span>Salário</span>
-                <strong data-testid="hiring-summary-salary">{formatCurrency(result.baseSalary)}</strong>
+              <div className="hiring-tool-summary">
+                <div>
+                  <span>Salário</span>
+                  <strong data-testid="hiring-summary-salary">{formatCurrency(result.baseSalary)}</strong>
+                </div>
+                <div>
+                  <span>Encargos</span>
+                  <strong data-testid="hiring-summary-employer-charges">{formatCurrency(result.employerCharges)}</strong>
+                </div>
+                <div>
+                  <span>Provisões</span>
+                  <strong data-testid="hiring-summary-provisions">{formatCurrency(result.baseProvisions)}</strong>
+                </div>
+                <div>
+                  <span>Benefícios</span>
+                  <strong data-testid="hiring-summary-benefits">{formatCurrency(result.benefits)}</strong>
+                </div>
+                <div className="is-highlighted">
+                  <span>Custo anual</span>
+                  <strong data-testid="hiring-summary-yearly">{formatCurrency(result.yearlyTotal)}</strong>
+                </div>
               </div>
-              <div>
-                <span>Encargos</span>
-                <strong data-testid="hiring-summary-employer-charges">{formatCurrency(result.employerCharges)}</strong>
-              </div>
-              <div>
-                <span>Provisões</span>
-                <strong data-testid="hiring-summary-provisions">{formatCurrency(result.baseProvisions)}</strong>
-              </div>
-              <div>
-                <span>Benefícios</span>
-                <strong data-testid="hiring-summary-benefits">{formatCurrency(result.benefits)}</strong>
-              </div>
-              <div className="is-highlighted">
-                <span>Custo anual</span>
-                <strong data-testid="hiring-summary-yearly">{formatCurrency(result.yearlyTotal)}</strong>
-              </div>
-            </div>
 
-            <div className="hiring-tool-note">
-              <Info size={17} strokeWidth={2.1} aria-hidden="true" />
-              <p>Estimativa para planejamento. O valor final pode variar conforme convenção coletiva e regime tributário.</p>
-            </div>
+              <div className="hiring-tool-note">
+                <Info size={17} strokeWidth={2.1} aria-hidden="true" />
+                <p>Estimativa para planejamento. O valor final pode variar conforme convenção coletiva e regime tributário.</p>
+              </div>
+            </ToolResultGate>
 
             <a className="hiring-tool-cta" href="/diagnostico">
               <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
@@ -309,49 +344,6 @@ export default function HiringSimulatorClient() {
           </aside>
         </div>
       </section>
-
-      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
-        <div className="accounting-footer-inner">
-          <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
-            </a>
-            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
-          </div>
-
-          <nav className="accounting-footer-nav" aria-label="Links do rodapé">
-            <div>
-              <h2>Menu</h2>
-              <a href="/#servicos">Serviços</a>
-              <a href="/#planos">Planos</a>
-              <a href="/#ferramentas">Ferramentas</a>
-              <a href="/#duvidas">Dúvidas</a>
-              <a href="/login">Login</a>
-            </div>
-
-            <div>
-              <h2>Ferramentas</h2>
-              <a href="/ferramentas/gerador-contrato">Gerador de Contrato</a>
-              <a href="/ferramentas/simulador-rescisao">Simulador de Rescisão</a>
-              <a href="/ferramentas/simulador-contratacao">Simulador de Contratação</a>
-              <a href="/ferramentas/calculadora-precificacao">Calculadora de Precificação</a>
-            </div>
-
-            <div>
-              <h2>Redes sociais</h2>
-              <a href="#">Instagram</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">Facebook</a>
-              <a href="#">WhatsApp</a>
-            </div>
-          </nav>
-        </div>
-
-        <div className="accounting-footer-bottom">
-          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
-          <a href="/diagnostico">Abrir CNPJ</a>
-        </div>
-      </footer>
-    </main>
+    </ToolShell>
   )
 }

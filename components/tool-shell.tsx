@@ -1,0 +1,98 @@
+import type { ReactNode } from "react"
+import ToolBackToHub from "@/components/tool-back-to-hub"
+
+type ToolShellProps = {
+  children: ReactNode
+  headerActions?: ReactNode
+  mainClassName?: string
+}
+
+const defaultHeaderActions = (
+  <>
+    <a className="accounting-login" href="/login">
+      Login
+    </a>
+    <a className="accounting-header-cta" href="/diagnostico">
+      <span>Abrir CNPJ</span>
+      <span aria-hidden="true">›</span>
+    </a>
+  </>
+)
+
+// Cabeçalho e rodapé compartilhados por todas as ferramentas — mesmo
+// cabeçalho da home, com o menu de âncoras, pra manter a sensação de estar
+// no mesmo site ao entrar numa ferramenta.
+export function ToolShell({ children, headerActions = defaultHeaderActions, mainClassName }: ToolShellProps) {
+  return (
+    <main className={`accounting-landing${mainClassName ? ` ${mainClassName}` : ""}`}>
+      <ToolBackToHub />
+      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
+        <a className="accounting-logo" href="/" aria-label="ContaFacil">
+          <span>Conta</span>Facil
+        </a>
+
+        <nav className="accounting-nav" aria-label="Navegação principal">
+          <a href="/#servicos">Serviços</a>
+          <a href="/#planos">Planos</a>
+          <a href="/#ferramentas">Ferramentas</a>
+          <a href="/blog">Blog</a>
+          <a href="/#duvidas">Dúvidas</a>
+        </nav>
+
+        <div className="accounting-header-actions">{headerActions}</div>
+      </header>
+
+      {children}
+
+      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
+        <div className="accounting-footer-inner">
+          <div className="accounting-footer-brand">
+            <a className="accounting-logo" href="/" aria-label="ContaFacil">
+              <span>Conta</span>Facil
+            </a>
+            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
+          </div>
+
+          <nav className="accounting-footer-nav" aria-label="Links do rodapé">
+            <div>
+              <h2>Menu</h2>
+              <a href="/#servicos">Serviços</a>
+              <a href="/#planos">Planos</a>
+              <a href="/#ferramentas">Ferramentas</a>
+              <a href="/blog">Blog</a>
+              <a href="/#duvidas">Dúvidas</a>
+              <a href="/login">Login</a>
+            </div>
+
+            <div>
+              <h2>Ferramentas</h2>
+              <a href="/ferramentas/gerador-contrato">Gerador de Contrato</a>
+              <a href="/ferramentas/simulador-rescisao">Simulador de Rescisão</a>
+              <a href="/ferramentas/simulador-contratacao">Simulador de Contratação</a>
+              <a href="/ferramentas/calculadora-precificacao">Calculadora de Precificação</a>
+            </div>
+
+            <div>
+              <h2>Redes sociais</h2>
+              <a href="#">Instagram</a>
+              <a href="#">LinkedIn</a>
+              <a href="#">Facebook</a>
+              <a href="#">WhatsApp</a>
+            </div>
+          </nav>
+        </div>
+
+        <div className="accounting-footer-bottom">
+          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
+          <a href="/diagnostico">Abrir CNPJ</a>
+        </div>
+      </footer>
+    </main>
+  )
+}
+
+export const paywallHeaderActions = (
+  <a className="accounting-login" href="/hub">
+    Meu hub
+  </a>
+)

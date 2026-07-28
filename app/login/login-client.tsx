@@ -1,8 +1,9 @@
 'use client'
 
 import { FormEvent, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { safeRedirectPath, buildAuthCallbackUrl } from '@/lib/safe-redirect'
 
 function isInvalidRefreshTokenError(error: unknown) {
   return error instanceof Error && error.message.toLowerCase().includes('refresh token')
@@ -13,8 +14,51 @@ async function clearInvalidLocalSession(error: unknown) {
   await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
 }
 
+function isCheckoutPlan(value: string | null): value is 'bronze' | 'prata' {
+  return value === 'bronze' || value === 'prata'
+}
+
+// Se o usuário chegou no login vindo de um clique em Bronze/Prata (não
+// estava autenticado ainda), retoma a contratação depois de entrar em vez
+// de simplesmente mandar pro destino padrão. Se veio de uma ferramenta
+// (?redirect=/ferramentas/...), volta pra lá. Sem nenhum dos dois, cai no
+// comportamento de sempre.
+async function goToDestinationOrResumeCheckout(
+  navigate: (path: string) => void,
+  checkoutPlan: string | null,
+  destination: string,
+) {
+  if (isCheckoutPlan(checkoutPlan)) {
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: checkoutPlan }),
+      })
+      const data = (await response.json()) as { url?: string }
+
+      if (response.ok && data.url) {
+        window.location.href = data.url
+        return
+      }
+    } catch {
+      // segue pro destino normalmente se a retomada do checkout falhar
+    }
+  }
+
+  navigate(destination)
+}
+
 export default function LoginClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const checkoutPlan = searchParams.get('checkout')
+  const rawRedirect = searchParams.get('redirect')
+  const destination = safeRedirectPath(rawRedirect, '/crm')
+  // O link pro cadastro só carrega o redirect quando ele veio de verdade da
+  // URL (ex.: alguém mandado de uma ferramenta) — sem isso, um cadastro novo
+  // não deve herdar o "/crm" que é o destino padrão só do login admin.
+  const signupHref = rawRedirect ? `/cadastro?redirect=${encodeURIComponent(safeRedirectPath(rawRedirect, '/hub'))}` : '/cadastro'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -30,11 +74,11 @@ export default function LoginClient() {
         }
 
         if (data.session) {
-          router.replace('/crm')
+          goToDestinationOrResumeCheckout(router.replace, checkoutPlan, destination)
         }
       })
       .catch(clearInvalidLocalSession)
-  }, [router])
+  }, [router, checkoutPlan, destination])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -60,7 +104,7 @@ export default function LoginClient() {
       return
     }
 
-    router.push('/crm')
+    await goToDestinationOrResumeCheckout(router.push, checkoutPlan, destination)
   }
 
   const handleGoogleLogin = async () => {
@@ -69,7 +113,7 @@ export default function LoginClient() {
     const { error: googleError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/crm`,
+        redirectTo: buildAuthCallbackUrl(window.location.origin, destination),
       },
     })
     setLoading(false)
@@ -144,7 +188,7 @@ export default function LoginClient() {
           </div>
 
           <p className="admin-login-terms">
-            Ainda não tem acesso? <a href="mailto:contatoinaciocarlos@gmail.com">Solicitar entrada</a>
+            Ainda não tem conta? <a href={signupHref}>Criar conta grátis</a>
           </p>
         </div>
       </section>
