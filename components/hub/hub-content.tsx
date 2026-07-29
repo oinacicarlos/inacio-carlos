@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Calculator,
   CreditCard,
   FileSignature,
+  FileStack,
   HelpCircle,
   Home,
   LogOut,
@@ -18,16 +19,18 @@ import {
 } from "lucide-react"
 import RequestsPanel from "@/components/hub/requests-panel"
 import SubscriptionPanel from "@/components/hub/subscription-panel"
+import OnboardingPanel from "@/components/hub/onboarding-panel"
 import type { PlanSlug } from "@/lib/plans"
 import type { ToolUsageStatus } from "@/lib/tool-usage/status"
 import type { ToolSlug } from "@/lib/tool-usage/tools"
 import { supabase } from "@/lib/supabaseClient"
 
-type Section = "visao-geral" | "ferramentas" | "solicitacoes" | "assinatura" | "conta"
+type Section = "visao-geral" | "ferramentas" | "processo" | "solicitacoes" | "assinatura" | "conta"
 
 const hubNavigation: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "visao-geral", label: "Visão geral", icon: Home },
   { id: "ferramentas", label: "Ferramentas", icon: Calculator },
+  { id: "processo", label: "Meu processo", icon: FileStack },
   { id: "solicitacoes", label: "Solicitações", icon: HelpCircle },
   { id: "assinatura", label: "Minha assinatura", icon: CreditCard },
   { id: "conta", label: "Minha conta", icon: UserRound },
@@ -111,6 +114,15 @@ export default function HubContent({
 }: HubContentProps) {
   const [activeSection, setActiveSection] = useState<Section>("visao-geral")
   const router = useRouter()
+
+  useEffect(() => {
+    // Suporte a /hub?tab=processo, usado no redirect pós-checkout e no
+    // redirect de cadastro/login pra quem clicou em comprar um produto
+    // avulso ainda deslogado. window.location em vez de useSearchParams
+    // pra não exigir um Suspense boundary nesse componente aninhado.
+    const tab = new URLSearchParams(window.location.search).get("tab")
+    if (tab === "processo") setActiveSection("processo")
+  }, [])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -217,6 +229,8 @@ export default function HubContent({
             </div>
           </section>
         )}
+
+        {activeSection === "processo" && <OnboardingPanel />}
 
         {activeSection === "solicitacoes" && <RequestsPanel />}
 

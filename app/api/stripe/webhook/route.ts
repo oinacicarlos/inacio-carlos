@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role"
 import { verifyStripeWebhookSignature } from "@/lib/stripe/webhook"
 import { isPlanSlug, resolvePlanFromPriceId, type PlanSlug } from "@/lib/stripe/plans"
+import { isProductSlug, type ProductSlug } from "@/lib/stripe/products"
+import { sendEmail } from "@/lib/email/resend"
+import { SOLUTI_VIDEO_LINK, CERTIFICADO_WHATSAPP_LINK } from "@/lib/onboarding/constants"
 
 // Status internos aceitos por client_hub_profiles.subscription_status
 // (ver supabase/create-client-hub.sql).
@@ -67,6 +70,14 @@ async function handleCheckoutSessionCompleted(
   supabase: ReturnType<typeof createServiceRoleSupabaseClient>,
   session: Record<string, unknown>,
 ) {
+  // Sessões de produto avulso (mode "payment") seguem um caminho totalmente
+  // diferente do de assinatura — nada de client_hub_profiles.current_plan
+  // aqui, isso vira uma linha em product_purchases + onboarding_intakes.
+  if (session.mode === "payment") {
+    await handleProductCheckoutCompleted(supabase, session)
+    return
+  }
+
   const userId = isString(session.client_reference_id) ? session.client_reference_id : null
   const customerId = isString(session.customer) ? session.customer : null
   const subscriptionId = isString(session.subscription) ? session.subscription : null
@@ -89,6 +100,90 @@ async function handleCheckoutSessionCompleted(
   }
 
   await applyProfileUpdate(supabase, userId, update)
+}
+
+const CERTIFICADO_EMAIL_SUBJECT = "Próximos passos: seu Certificado Digital PJ A1"
+const CERTIFICADO_EMAIL_TEXT = `Recebemos o pagamento do seu Certificado Digital PJ A1. Veja o passo a passo para emitir:
+
+Passo 1 — Acesse e preencha as informações desse link: ${SOLUTI_VIDEO_LINK}
+Passo 2 — Depois de preencher, você entrará na sala virtual de espera para ser atendido.
+Passo 3 — Na hora que você for atendido, confirme todas as informações (CPF, data de nascimento etc.).
+Passo 4 — No final da videoconferência, tire um print da SENHA PARA EMISSÃO e envie para o nosso WhatsApp: ${CERTIFICADO_WHATSAPP_LINK}
+
+Atendimento disponível de 8h às 16h30. Com esse certificado, você não vai precisar fazer outra videoconferência.
+
+Complete também os seus dados na aba "Meu processo" do hub para agilizarmos o restante do processo.`
+
+const ABERTURA_EMAIL_SUBJECT = "Recebemos o pagamento da abertura da sua empresa"
+const ABERTURA_EMAIL_TEXT = `Recebemos o pagamento para a legalização/abertura da sua empresa.
+
+Para seguir com o processo, acesse a aba "Meu processo" no seu hub e complete a triagem: CPF, o segmento de atuação, uma breve descrição do que você quer para o CNPJ, e o envio dos documentos necessários (identidade, certidão de casamento se tiver, comprovante de residência, IPTU do imóvel onde ficará a empresa e comprovante do bombeiro se tiver).
+
+Assim que recebermos tudo, damos sequência ao protocolo na Junta Comercial.`
+
+async function sendProductWelcomeEmail(email: string, product: ProductSlug) {
+  if (product === "certificado_pj_a1") {
+    await sendEmail({ to: email, subject: CERTIFICADO_EMAIL_SUBJECT, text: CERTIFICADO_EMAIL_TEXT })
+  } else {
+    await sendEmail({ to: email, subject: ABERTURA_EMAIL_SUBJECT, text: ABERTURA_EMAIL_TEXT })
+  }
+}
+
+async function handleProductCheckoutCompleted(
+  supabase: ReturnType<typeof createServiceRoleSupabaseClient>,
+  session: Record<string, unknown>,
+) {
+  const userId = isString(session.client_reference_id) ? session.client_reference_id : null
+  const metadata = (session.metadata as Record<string, unknown> | null) ?? null
+  const product: ProductSlug | null = isProductSlug(metadata?.product) ? (metadata!.product as ProductSlug) : null
+  const paymentIntentId = isString(session.payment_intent) ? session.payment_intent : null
+  const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null
+  const customerEmail = isString(session.customer_email) ? session.customer_email : null
+
+  if (!userId || !product) return
+
+  const { error: purchaseError } = await supabase.from("product_purchases").insert({
+    user_id: userId,
+    product,
+    stripe_checkout_session_id: isString(session.id) ? session.id : null,
+    stripe_payment_intent_id: paymentIntentId,
+    amount_total: amountTotal,
+  })
+  if (purchaseError) {
+    throw new Error(`product_purchases insert failed: ${purchaseError.message}`)
+  }
+
+  const { data: existingIntake } = await supabase
+    .from("onboarding_intakes")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  const wantsField = product === "certificado_pj_a1" ? "wants_certificado" : "wants_abertura_empresa"
+
+  if (existingIntake) {
+    const { error: updateError } = await supabase
+      .from("onboarding_intakes")
+      .update({ [wantsField]: true, updated_at: new Date().toISOString() })
+      .eq("id", existingIntake.id)
+    if (updateError) {
+      throw new Error(`onboarding_intakes update failed: ${updateError.message}`)
+    }
+  } else {
+    const { error: insertError } = await supabase.from("onboarding_intakes").insert({
+      user_id: userId,
+      [wantsField]: true,
+    })
+    if (insertError) {
+      throw new Error(`onboarding_intakes insert failed: ${insertError.message}`)
+    }
+  }
+
+  if (customerEmail) {
+    // E-mail é best-effort: se o Resend falhar, não desfaz o processamento
+    // do pagamento (já gravado acima) nem marca o evento pra reprocessar.
+    await sendProductWelcomeEmail(customerEmail, product).catch(() => null)
+  }
 }
 
 async function handleSubscriptionUpsert(

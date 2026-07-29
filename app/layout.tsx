@@ -2,7 +2,6 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
-import "@xyflow/react/dist/style.css"
 import "./globals.css"
 
 const inter = Inter({

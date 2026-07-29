@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_ROUTES = ['/crm', '/contabilidade', '/pfx', '/quadros', '/solicitacoes-clientes']
+const ADMIN_ROUTES = ['/contabilidade', '/pfx', '/solicitacoes-clientes', '/onboarding-clientes']
 const HUB_ROUTES = ['/hub']
 
 function matchesRoute(pathname: string, routes: string[]) {
@@ -71,15 +71,13 @@ export const config = {
   matcher: [
     '/hub',
     '/hub/:path*',
-    '/crm',
-    '/crm/:path*',
     '/contabilidade',
     '/contabilidade/:path*',
     '/pfx',
     '/pfx/:path*',
-    '/quadros',
-    '/quadros/:path*',
     '/solicitacoes-clientes',
     '/solicitacoes-clientes/:path*',
+    '/onboarding-clientes',
+    '/onboarding-clientes/:path*',
   ],
 }

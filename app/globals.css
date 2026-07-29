@@ -6347,22 +6347,36 @@ a:focus-visible {
 }
 
 .admin-dashboard-page {
+	--accounting-blue: #246bfd;
+	--accounting-blue-dark: #1559e6;
+	--accounting-ink: #0d1b2e;
+	--accounting-muted: #65758b;
+	--accounting-line: #e7ebf1;
+	--accounting-soft: #fbfcfe;
+	--background: #ffffff;
+	--foreground: #0d1b2e;
+	--foreground-soft: rgba(13, 27, 46, 0.78);
+	--foreground-muted: rgba(13, 27, 46, 0.52);
+	--line: rgba(13, 27, 46, 0.075);
+	--line-strong: rgba(13, 27, 46, 0.16);
+	color-scheme: light;
 	height: 100vh;
 	overflow: hidden;
 	display: grid;
 	grid-template-columns: 242px minmax(0, 1fr);
-	background: #060606;
+	background: #ffffff;
 	color: var(--foreground);
-	/* Cursor: bolinha branca (tema escuro padrão) */
-	cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='6' fill='%23ffffff'/%3E%3C/svg%3E") 9 9, auto;
+	font-family: var(--font-sans), Inter, Arial, Helvetica, sans-serif;
+	/* Cursor: bolinha azul (tema claro ContaFacil) */
+	cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='6' fill='%23246bfd'/%3E%3C/svg%3E") 9 9, auto;
 }
 
-/* Cursor "aceso" — bolinha branca maior com halo (tema escuro, em clicáveis) */
+/* Cursor "aceso" — bolinha azul maior com halo (tema claro, em clicáveis) */
 .admin-dashboard-page button,
 .admin-dashboard-page a,
 .admin-dashboard-page [role="button"],
 .admin-dashboard-page [role="menuitem"] {
-	cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='12' fill='%23ffffff' opacity='0.22'/%3E%3Ccircle cx='14' cy='14' r='8' fill='%23ffffff'/%3E%3C/svg%3E") 14 14, pointer;
+	cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='12' fill='%23246bfd' opacity='0.22'/%3E%3Ccircle cx='14' cy='14' r='8' fill='%23246bfd'/%3E%3C/svg%3E") 14 14, pointer;
 }
 
 /* Inputs/textareas mantém cursor de texto (sem bolinha) */
@@ -6387,8 +6401,8 @@ a:focus-visible {
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	border-right: 1px solid rgba(245, 245, 247, 0.09);
-	background: #070707;
+	border-right: 1px solid rgba(13, 27, 46, 0.09);
+	background: #fbfcfe;
 	padding: 10px 7px;
 	overflow: visible;
 }
@@ -6397,11 +6411,11 @@ a:focus-visible {
 .admin-module-button {
 	border: 0;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.78);
+	color: rgba(13, 27, 46, 0.78);
 }
 
 .admin-module-button:hover {
-	background: rgba(245, 245, 247, 0.11);
+	background: rgba(13, 27, 46, 0.11);
 	color: var(--foreground);
 }
 
@@ -6434,7 +6448,7 @@ a:focus-visible {
 }
 
 .admin-module-button.active {
-	background: rgba(245, 245, 247, 0.15);
+	background: rgba(13, 27, 46, 0.15);
 	color: var(--foreground);
 }
 
@@ -6477,7 +6491,7 @@ a:focus-visible {
 	justify-content: center;
 	gap: 10px;
 	padding: 8px 0;
-	border-top: 1px solid rgba(245, 245, 247, 0.07);
+	border-top: 1px solid rgba(13, 27, 46, 0.07);
 	border-right: 0;
 	border-bottom: 0;
 	border-left: 0;
@@ -6488,7 +6502,7 @@ a:focus-visible {
 }
 
 .admin-sidebar-user:hover {
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 }
 
 .admin-sidebar-avatar {
@@ -6526,7 +6540,7 @@ a:focus-visible {
 .admin-sidebar-user-name {
 	font-size: 13px;
 	font-weight: 500;
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -6534,7 +6548,7 @@ a:focus-visible {
 
 .admin-sidebar-user-role {
 	font-size: 10px;
-	color: rgba(245, 245, 247, 0.35);
+	color: rgba(13, 27, 46, 0.35);
 	white-space: nowrap;
 }
 
@@ -6545,8 +6559,8 @@ a:focus-visible {
 	z-index: 80;
 	width: 148px;
 	padding: 4px;
-	background: #1c1c1e;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	background: #f3f6fb;
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 10px;
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 	display: flex;
@@ -6564,7 +6578,7 @@ a:focus-visible {
 	background: transparent;
 	border: none;
 	border-radius: 7px;
-	color: rgba(245, 245, 247, 0.88);
+	color: rgba(13, 27, 46, 0.88);
 	font-size: 12px;
 	font-family: inherit;
 	cursor: pointer;
@@ -6572,7 +6586,7 @@ a:focus-visible {
 }
 
 .admin-profile-menu button:hover {
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 }
 
 .admin-profile-menu-icon {
@@ -6582,7 +6596,7 @@ a:focus-visible {
 	width: 16px;
 	height: 16px;
 	flex-shrink: 0;
-	color: rgba(245, 245, 247, 0.55);
+	color: rgba(13, 27, 46, 0.55);
 }
 
 .admin-profile-menu-icon svg {
@@ -6596,8 +6610,8 @@ a:focus-visible {
 
 .admin-profile-modal {
 	width: min(500px, calc(100vw - 32px));
-	background: #101010;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	background: #ffffff;
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 14px;
 	box-shadow: 0 18px 60px rgba(0, 0, 0, 0.64);
 	overflow: hidden;
@@ -6608,7 +6622,7 @@ a:focus-visible {
 	align-items: center;
 	gap: 12px;
 	padding: 18px 20px 14px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.07);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.07);
 }
 
 .admin-profile-modal-avatar {
@@ -6634,14 +6648,14 @@ a:focus-visible {
 }
 
 .admin-profile-modal-body strong {
-	color: rgba(245, 245, 247, 0.92);
+	color: rgba(13, 27, 46, 0.92);
 	font-size: 15px;
 	font-weight: 650;
 }
 
 .admin-profile-modal-body span {
 	margin-top: 2px;
-	color: rgba(245, 245, 247, 0.4);
+	color: rgba(13, 27, 46, 0.4);
 	font-size: 11px;
 }
 
@@ -6657,10 +6671,10 @@ a:focus-visible {
 	justify-content: center;
 	height: 30px;
 	padding: 0 10px;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.05);
-	color: rgba(245, 245, 247, 0.78);
+	background: rgba(13, 27, 46, 0.05);
+	color: rgba(13, 27, 46, 0.78);
 	font-size: 11px;
 	font-weight: 650;
 	cursor: pointer;
@@ -6668,7 +6682,7 @@ a:focus-visible {
 }
 
 .admin-profile-photo-action:hover {
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 	color: var(--foreground);
 }
 
@@ -6681,7 +6695,7 @@ a:focus-visible {
 	flex-direction: column;
 	gap: 12px;
 	padding: 16px 20px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.07);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.07);
 }
 
 .admin-profile-photo-preview {
@@ -6689,9 +6703,9 @@ a:focus-visible {
 	width: 176px;
 	height: 176px;
 	margin: 0 auto;
-	border: 1px solid rgba(245, 245, 247, 0.16);
+	border: 1px solid rgba(13, 27, 46, 0.16);
 	border-radius: 50%;
-	background: #050505;
+	background: #ffffff;
 	overflow: hidden;
 	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
 	cursor: grab;
@@ -6714,7 +6728,7 @@ a:focus-visible {
 
 .admin-profile-photo-hint {
 	margin: -4px 0 0;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 11px;
 	line-height: 1.35;
 	text-align: center;
@@ -6728,7 +6742,7 @@ a:focus-visible {
 	font-weight: 650;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 }
 
 .admin-profile-photo-editor input {
@@ -6751,15 +6765,15 @@ a:focus-visible {
 	font-weight: 650;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 }
 
 .admin-profile-fields input {
 	height: 36px;
 	padding: 0 11px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 	color: var(--foreground);
 	font-size: 13px;
 	font-weight: 450;
@@ -6770,19 +6784,19 @@ a:focus-visible {
 
 .admin-profile-fields input:focus {
 	outline: none;
-	border-color: rgba(245, 245, 247, 0.2);
+	border-color: rgba(13, 27, 46, 0.2);
 }
 
 .admin-profile-fields input::placeholder {
-	color: rgba(245, 245, 247, 0.25);
+	color: rgba(13, 27, 46, 0.25);
 }
 
 .admin-profile-reset-button {
 	height: 36px;
 	padding: 0 11px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 	color: var(--foreground);
 	font-size: 13px;
 	font-weight: 650;
@@ -6795,8 +6809,8 @@ a:focus-visible {
 }
 
 .admin-profile-reset-button:hover:not(:disabled) {
-	border-color: rgba(245, 245, 247, 0.2);
-	background: rgba(245, 245, 247, 0.07);
+	border-color: rgba(13, 27, 46, 0.2);
+	background: rgba(13, 27, 46, 0.07);
 }
 
 .admin-profile-reset-button:disabled {
@@ -6807,7 +6821,7 @@ a:focus-visible {
 .admin-profile-message {
 	margin: 0;
 	padding: 0 20px 4px;
-	color: rgba(245, 245, 247, 0.58);
+	color: rgba(13, 27, 46, 0.58);
 	font-size: 12px;
 	line-height: 1.4;
 }
@@ -6818,7 +6832,7 @@ a:focus-visible {
 	overflow: hidden;
 	display: grid;
 	place-items: center;
-	background: #000000;
+	background: #ffffff;
 }
 
 /* ── Padrão universal de margem para todos os módulos/abas ── */
@@ -6920,15 +6934,15 @@ a:focus-visible {
 	position: relative;
 	display: grid;
 	gap: 12px;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.055), rgba(245, 245, 247, 0.022));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.055), rgba(13, 27, 46, 0.022));
 	padding: 12px;
 	cursor: pointer;
 	overflow: hidden;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.045),
+		inset 0 1px 0 rgba(13, 27, 46, 0.045),
 		0 18px 46px rgba(0, 0, 0, 0.16);
 	transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -6938,16 +6952,16 @@ a:focus-visible {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(245, 245, 247, 0.14), transparent);
+	background: linear-gradient(90deg, transparent, rgba(13, 27, 46, 0.14), transparent);
 	pointer-events: none;
 }
 
 .board-card:hover {
-	border-color: rgba(245, 245, 247, 0.18);
+	border-color: rgba(13, 27, 46, 0.18);
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.072), rgba(245, 245, 247, 0.034));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.072), rgba(13, 27, 46, 0.034));
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 20px 52px rgba(0, 0, 0, 0.22);
 	transform: translateY(-1px);
 }
@@ -6957,12 +6971,12 @@ a:focus-visible {
 	min-width: 160px;
 	padding: 4px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.035)),
-		#141416;
-	border: 1px solid rgba(245, 245, 247, 0.14);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.08), rgba(13, 27, 46, 0.035)),
+		#ffffff;
+	border: 1px solid rgba(13, 27, 46, 0.14);
 	border-radius: 10px;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 18px 48px rgba(0,0,0,0.62);
 	display: flex;
 	flex-direction: column;
@@ -6975,14 +6989,14 @@ a:focus-visible {
 	background: transparent;
 	border: none;
 	border-radius: 7px;
-	color: rgba(245, 245, 247, 0.88);
+	color: rgba(13, 27, 46, 0.88);
 	font-size: 13px;
 	font-family: inherit;
 	cursor: pointer;
 	transition: background 0.1s;
 }
 .board-card-ctx-menu button:hover {
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 }
 .board-card-ctx-menu button.board-card-ctx-delete {
 	color: #f87171;
@@ -6995,15 +7009,15 @@ a:focus-visible {
 	position: relative;
 	min-height: 142px;
 	overflow: hidden;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 11px;
-	background-color: #090909;
+	background-color: #ffffff;
 	background-image:
 		radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08), transparent 38%),
-		radial-gradient(rgba(245, 245, 247, 0.16) 1px, transparent 1px);
+		radial-gradient(rgba(13, 27, 46, 0.16) 1px, transparent 1px);
 	background-size: auto, 14px 14px;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.035),
+		inset 0 1px 0 rgba(13, 27, 46, 0.035),
 		inset 0 -28px 42px rgba(0, 0, 0, 0.2);
 }
 
@@ -7015,7 +7029,7 @@ a:focus-visible {
 	border-radius: 7px;
 	border: 1px solid rgba(64, 184, 255, 0.35);
 	background: rgba(30, 30, 38, 0.9);
-	color: rgba(245, 245, 247, 0.82);
+	color: rgba(13, 27, 46, 0.82);
 	font-size: 9.5px;
 	font-weight: 650;
 	line-height: 1.3;
@@ -7096,7 +7110,7 @@ a:focus-visible {
 }
 
 .board-card span {
-	color: rgba(245, 245, 247, 0.5);
+	color: rgba(13, 27, 46, 0.5);
 	font-size: 10px;
 	font-weight: 750;
 	letter-spacing: 0.12em;
@@ -7113,32 +7127,32 @@ a:focus-visible {
 
 .board-card p {
 	margin: 5px 0 0;
-	color: rgba(245, 245, 247, 0.5);
+	color: rgba(13, 27, 46, 0.5);
 	font-size: 11px;
 	font-weight: 520;
 }
 
 .board-editor-header button,
 .board-toolbar button {
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.82);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.82);
 	font-family: inherit;
 	font-size: 12px;
 	font-weight: 650;
 }
 
 .board-editor-header button:hover {
-	border-color: rgba(245, 245, 247, 0.28);
-	background: rgba(245, 245, 247, 0.14);
+	border-color: rgba(13, 27, 46, 0.28);
+	background: rgba(13, 27, 46, 0.14);
 	color: var(--foreground);
 }
 
 .board-toolbar button:hover {
-	border-color: rgba(245, 245, 247, 0.28);
-	background: rgba(245, 245, 247, 0.14);
-	color: #f5f5f7;
+	border-color: rgba(13, 27, 46, 0.28);
+	background: rgba(13, 27, 46, 0.14);
+	color: #0d1b2e;
 }
 
 .board-card-info {
@@ -7155,10 +7169,10 @@ a:focus-visible {
 .board-card-action-primary {
 	flex: 1;
 	height: 30px;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.82);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.82);
 	font-family: inherit;
 	font-size: 12px;
 	font-weight: 650;
@@ -7166,8 +7180,8 @@ a:focus-visible {
 }
 
 .board-card-action-primary:hover {
-	border-color: rgba(245, 245, 247, 0.28);
-	background: rgba(245, 245, 247, 0.14);
+	border-color: rgba(13, 27, 46, 0.28);
+	background: rgba(13, 27, 46, 0.14);
 	color: var(--foreground);
 }
 
@@ -7177,19 +7191,19 @@ a:focus-visible {
 	justify-content: center;
 	width: 30px;
 	height: 30px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 8px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.5);
+	color: rgba(13, 27, 46, 0.5);
 	cursor: pointer;
 	padding: 0;
 	flex-shrink: 0;
 }
 
 .board-card-action-icon:hover {
-	border-color: rgba(245, 245, 247, 0.24);
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.9);
+	border-color: rgba(13, 27, 46, 0.24);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.9);
 }
 
 .board-card-action-icon:disabled {
@@ -7210,9 +7224,9 @@ a:focus-visible {
 .board-card-rename-input {
 	width: 100%;
 	height: 26px;
-	border: 1px solid rgba(245, 245, 247, 0.22);
+	border: 1px solid rgba(13, 27, 46, 0.22);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.055);
+	background: rgba(13, 27, 46, 0.055);
 	color: var(--foreground);
 	font-size: 14px;
 	font-weight: 700;
@@ -7224,7 +7238,7 @@ a:focus-visible {
 
 .board-card-rename-input:focus {
 	border-color: rgba(99, 102, 241, 0.38);
-	background: rgba(245, 245, 247, 0.075);
+	background: rgba(13, 27, 46, 0.075);
 }
 
 .board-editor {
@@ -7245,7 +7259,7 @@ a:focus-visible {
 
 .board-editor-header p {
 	margin: 0;
-	color: rgba(245, 245, 247, 0.48);
+	color: rgba(13, 27, 46, 0.48);
 	font-size: 10px;
 	font-weight: 650;
 	letter-spacing: 0.12em;
@@ -7269,7 +7283,7 @@ a:focus-visible {
 }
 
 .board-header-name:hover {
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 }
 
 .board-header-rename-input {
@@ -7278,9 +7292,9 @@ a:focus-visible {
 	width: 100%;
 	max-width: 280px;
 	height: 28px;
-	border: 1px solid rgba(245, 245, 247, 0.22);
+	border: 1px solid rgba(13, 27, 46, 0.22);
 	border-radius: 5px;
-	background: rgba(245, 245, 247, 0.06);
+	background: rgba(13, 27, 46, 0.06);
 	color: var(--foreground);
 	font-size: 15px;
 	font-weight: 650;
@@ -7290,7 +7304,7 @@ a:focus-visible {
 
 .board-header-rename-input:focus {
 	outline: none;
-	border-color: rgba(245, 245, 247, 0.4);
+	border-color: rgba(13, 27, 46, 0.4);
 }
 
 .board-save-and-back {
@@ -7328,7 +7342,7 @@ a:focus-visible {
 	display: inline-block;
 	width: 1px;
 	height: 18px;
-	background: rgba(245, 245, 247, 0.15);
+	background: rgba(13, 27, 46, 0.15);
 	margin: 0 4px;
 	vertical-align: middle;
 }
@@ -7357,7 +7371,7 @@ a:focus-visible {
 
 .board-hdr-delete {
 	border-color: rgba(220, 53, 53, 0.18) !important;
-	color: rgba(245, 245, 247, 0.45) !important;
+	color: rgba(13, 27, 46, 0.45) !important;
 }
 
 .board-hdr-delete:hover {
@@ -7370,22 +7384,22 @@ a:focus-visible {
 	position: relative;
 	min-height: 640px;
 	overflow: hidden;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 14px;
 	background:
-		radial-gradient(circle at 1px 1px, rgba(245, 245, 247, 0.075) 1px, transparent 0) 0 0 / 24px 24px,
-		radial-gradient(circle at 24% 10%, rgba(245, 245, 247, 0.045), transparent 28%),
-		radial-gradient(circle at 78% 0%, rgba(245, 245, 247, 0.028), transparent 24%),
-		linear-gradient(180deg, rgba(245, 245, 247, 0.028), rgba(245, 245, 247, 0.006)),
-		#070707;
+		radial-gradient(circle at 1px 1px, rgba(13, 27, 46, 0.075) 1px, transparent 0) 0 0 / 24px 24px,
+		radial-gradient(circle at 24% 10%, rgba(13, 27, 46, 0.045), transparent 28%),
+		radial-gradient(circle at 78% 0%, rgba(13, 27, 46, 0.028), transparent 24%),
+		linear-gradient(180deg, rgba(13, 27, 46, 0.028), rgba(13, 27, 46, 0.006)),
+		#fbfcfe;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.04),
+		inset 0 1px 0 rgba(13, 27, 46, 0.04),
 		0 18px 46px rgba(0, 0, 0, 0.16);
 }
 
 .board-canvas-shell .react-flow {
 	background: transparent;
-	color: #f5f5f7;
+	color: #0d1b2e;
 }
 
 .board-canvas-shell .react-flow__background {
@@ -7403,13 +7417,13 @@ a:focus-visible {
 	gap: 4px;
 	padding: 4px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.035)),
+		linear-gradient(180deg, rgba(13, 27, 46, 0.08), rgba(13, 27, 46, 0.035)),
 		rgba(18, 18, 20, 0.92);
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 10px;
 	backdrop-filter: blur(8px);
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 12px 34px rgba(0,0,0,0.42);
 }
 .board-tool-btn {
@@ -7421,34 +7435,34 @@ a:focus-visible {
 	border: 1px solid transparent;
 	border-radius: 7px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.5);
+	color: rgba(13, 27, 46, 0.5);
 	cursor: pointer;
 	transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 .board-tool-btn svg { width: 18px; height: 18px; }
 .board-tool-btn:hover {
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.85);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.85);
 }
 .board-tool-btn.active {
 	background: rgba(99, 102, 241, 0.18);
 	border-color: rgba(99, 102, 241, 0.34);
-	color: #f5f5f7;
+	color: #0d1b2e;
 }
 
 .board-canvas-shell .react-flow__controls {
 	overflow: hidden;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 10px;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.04),
+		inset 0 1px 0 rgba(13, 27, 46, 0.04),
 		0 12px 34px rgba(0, 0, 0, 0.36);
 }
 
 .board-canvas-shell .react-flow__controls button {
-	border-bottom: 1px solid rgba(245, 245, 247, 0.06);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.06);
 	background: rgba(20, 20, 22, 0.95);
-	color: rgba(245, 245, 247, 0.82);
+	color: rgba(13, 27, 46, 0.82);
 }
 
 .board-canvas-shell .react-flow__controls button:hover {
@@ -7465,13 +7479,13 @@ a:focus-visible {
 	z-index: 1000;
 	width: 216px;
 	padding: 4px;
-	border: 1px solid rgba(245, 245, 247, 0.14);
+	border: 1px solid rgba(13, 27, 46, 0.14);
 	border-radius: 12px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.032)),
+		linear-gradient(180deg, rgba(13, 27, 46, 0.08), rgba(13, 27, 46, 0.032)),
 		rgba(14, 14, 14, 0.98);
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 18px 52px rgba(0, 0, 0, 0.66);
 	backdrop-filter: blur(12px);
 	animation: ctx-appear 0.1s ease-out;
@@ -7497,7 +7511,7 @@ a:focus-visible {
 	border: none;
 	border-radius: 6px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.55);
+	color: rgba(13, 27, 46, 0.55);
 	font-size: 11px;
 	font-weight: 600;
 	letter-spacing: 0.04em;
@@ -7506,13 +7520,13 @@ a:focus-visible {
 }
 
 .board-ctx-category-header:hover {
-	background: rgba(245, 245, 247, 0.06);
-	color: rgba(245, 245, 247, 0.9);
+	background: rgba(13, 27, 46, 0.06);
+	color: rgba(13, 27, 46, 0.9);
 }
 
 .board-ctx-category-header.open {
-	color: #f5f5f7;
-	background: rgba(245, 245, 247, 0.05);
+	color: #0d1b2e;
+	background: rgba(13, 27, 46, 0.05);
 }
 
 .board-ctx-category-header svg {
@@ -7540,7 +7554,7 @@ a:focus-visible {
 	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.3);
+	color: rgba(13, 27, 46, 0.3);
 	padding: 4px 8px 3px;
 }
 
@@ -7560,10 +7574,10 @@ a:focus-visible {
 	width: 56px;
 	min-height: 56px;
 	padding: 6px 4px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 8px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.06), rgba(245, 245, 247, 0.025));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.06), rgba(13, 27, 46, 0.025));
 	cursor: pointer;
 	transition: background 0.12s, border-color 0.12s;
 }
@@ -7577,7 +7591,7 @@ a:focus-visible {
 .board-context-source-btn span {
 	font-size: 9px;
 	line-height: 1;
-	color: rgba(245, 245, 247, 0.65);
+	color: rgba(13, 27, 46, 0.65);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -7600,7 +7614,7 @@ a:focus-visible {
 
 .board-context-menu-sep {
 	height: 1px;
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 	margin: 4px 0;
 }
 
@@ -7613,7 +7627,7 @@ a:focus-visible {
 	border: none;
 	border-radius: 6px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.82);
+	color: rgba(13, 27, 46, 0.82);
 	font-size: 12px;
 	text-align: left;
 	cursor: pointer;
@@ -7621,8 +7635,8 @@ a:focus-visible {
 }
 
 .board-context-item:hover {
-	background: rgba(245, 245, 247, 0.08);
-	color: #f5f5f7;
+	background: rgba(13, 27, 46, 0.08);
+	color: #0d1b2e;
 }
 
 .board-context-item svg {
@@ -7654,10 +7668,10 @@ a:focus-visible {
 	align-items: center;
 	justify-content: center;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.11), rgba(245, 245, 247, 0.045));
-	border: 2px solid rgba(245, 245, 247, 0.18);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.11), rgba(13, 27, 46, 0.045));
+	border: 2px solid rgba(13, 27, 46, 0.18);
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.08),
+		inset 0 1px 0 rgba(13, 27, 46, 0.08),
 		0 12px 28px rgba(0, 0, 0, 0.28);
 	transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -7666,7 +7680,7 @@ a:focus-visible {
 	width: 22px;
 	height: 22px;
 	fill: none;
-	stroke: rgba(245, 245, 247, 0.85);
+	stroke: rgba(13, 27, 46, 0.85);
 	stroke-width: 1.8;
 	stroke-linecap: round;
 	stroke-linejoin: round;
@@ -7675,7 +7689,7 @@ a:focus-visible {
 .board-circle-node-label {
 	font-size: 11px;
 	font-weight: 650;
-	color: rgba(245, 245, 247, 0.85);
+	color: rgba(13, 27, 46, 0.85);
 	text-align: center;
 	line-height: 1;
 	text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
@@ -7683,7 +7697,7 @@ a:focus-visible {
 
 .board-circle-node-metric {
 	font-size: 9px;
-	color: rgba(245, 245, 247, 0.45);
+	color: rgba(13, 27, 46, 0.45);
 	text-align: center;
 }
 
@@ -7695,7 +7709,7 @@ a:focus-visible {
 }
 
 .board-circle-node:hover .board-circle-node-icon {
-	border-color: rgba(245, 245, 247, 0.35);
+	border-color: rgba(13, 27, 46, 0.35);
 	transform: translateY(-1px);
 }
 
@@ -7806,11 +7820,11 @@ a:focus-visible {
 	align-items: center;
 	justify-content: center;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.1), rgba(245, 245, 247, 0.035)),
+		linear-gradient(180deg, rgba(13, 27, 46, 0.1), rgba(13, 27, 46, 0.035)),
 		rgba(30, 30, 30, 0.9);
-	border: 2px solid rgba(245, 245, 247, 0.15);
+	border: 2px solid rgba(13, 27, 46, 0.15);
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.08),
+		inset 0 1px 0 rgba(13, 27, 46, 0.08),
 		0 14px 32px rgba(0, 0, 0, 0.34);
 	transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -7847,7 +7861,7 @@ a:focus-visible {
 .board-source-node-label {
 	font-size: 11px;
 	font-weight: 650;
-	color: rgba(245, 245, 247, 0.85);
+	color: rgba(13, 27, 46, 0.85);
 	text-align: center;
 	line-height: 1;
 	text-shadow: 0 1px 8px rgba(0, 0, 0, 0.42);
@@ -8046,7 +8060,7 @@ a:focus-visible {
 	border: 1px solid rgba(245, 158, 11, 0.42);
 	border-radius: 11px;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 14px 32px rgba(0,0,0,0.3);
 	display: flex;
 	overflow: hidden;
@@ -8108,13 +8122,13 @@ a:focus-visible {
 .board-flow-node {
 	position: relative;
 	width: 155px;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 11px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.075), rgba(245, 245, 247, 0.026)),
-		#0d0d0f;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.075), rgba(13, 27, 46, 0.026)),
+		#ffffff;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 16px 36px rgba(0, 0, 0, 0.28);
 	transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -8129,8 +8143,8 @@ a:focus-visible {
 	align-items: center;
 	gap: 4px;
 	height: 17px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.075);
-	background: rgba(245, 245, 247, 0.045);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.075);
+	background: rgba(13, 27, 46, 0.045);
 	padding: 0 7px;
 }
 
@@ -8171,7 +8185,7 @@ a:focus-visible {
 .board-flow-node-body strong {
 	max-width: 100%;
 	overflow: hidden;
-	color: rgba(245, 245, 247, 0.94);
+	color: rgba(13, 27, 46, 0.94);
 	font-size: 11.5px;
 	font-weight: 720;
 	letter-spacing: -0.01em;
@@ -8195,7 +8209,7 @@ a:focus-visible {
 
 .board-flow-node-desc {
 	font-size: 9.5px;
-	color: rgba(245, 245, 247, 0.56);
+	color: rgba(13, 27, 46, 0.56);
 	margin: 0;
 	line-height: 1.45;
 	text-align: left;
@@ -8203,22 +8217,22 @@ a:focus-visible {
 	padding: 0 2px;
 	white-space: pre-wrap;
 	word-break: break-word;
-	border-top: 1px solid rgba(245, 245, 247, 0.075);
+	border-top: 1px solid rgba(13, 27, 46, 0.075);
 	padding-top: 5px;
 }
 
 .board-node-handle {
 	width: 9px;
 	height: 9px;
-	border: 2px solid #060606;
+	border: 2px solid #ffffff;
 	background: #6366f1;
-	box-shadow: 0 0 0 1px rgba(245, 245, 247, 0.22), 0 0 14px rgba(99, 102, 241, 0.24);
+	box-shadow: 0 0 0 1px rgba(13, 27, 46, 0.22), 0 0 14px rgba(99, 102, 241, 0.24);
 	transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
 }
 
 .board-node-handle:hover {
 	transform: scale(1.22);
-	box-shadow: 0 0 0 2px rgba(245, 245, 247, 0.26), 0 0 18px rgba(99, 102, 241, 0.4);
+	box-shadow: 0 0 0 2px rgba(13, 27, 46, 0.26), 0 0 18px rgba(99, 102, 241, 0.4);
 }
 
 /* ── Animated cable edges ─────────────────────────────── */
@@ -8288,7 +8302,7 @@ a:focus-visible {
 }
 
 .board-flow-node:hover {
-	border-color: rgba(245, 245, 247, 0.2);
+	border-color: rgba(13, 27, 46, 0.2);
 	transform: translateY(-1px);
 }
 
@@ -8505,25 +8519,25 @@ a:focus-visible {
 /* Dark board editor visual system */
 .board-flow-node[data-kind] {
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.05), rgba(245, 245, 247, 0.018)),
-		#0c0c0e;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.05), rgba(13, 27, 46, 0.018)),
+		#ffffff;
 	border-color: rgba(129, 140, 248, 0.36);
-	color: #f5f5f7;
+	color: #0d1b2e;
 }
 
 .board-flow-node[data-kind] .board-flow-window {
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.07), rgba(245, 245, 247, 0.02));
-	border-color: rgba(245, 245, 247, 0.09);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.07), rgba(13, 27, 46, 0.02));
+	border-color: rgba(13, 27, 46, 0.09);
 }
 
 .board-flow-node[data-kind] .board-flow-node-body strong {
-	color: rgba(245, 245, 247, 0.95);
+	color: rgba(13, 27, 46, 0.95);
 }
 
 .board-flow-node[data-kind] .board-flow-node-desc {
-	color: rgba(245, 245, 247, 0.56);
-	border-top-color: rgba(245, 245, 247, 0.075);
+	color: rgba(13, 27, 46, 0.56);
+	border-top-color: rgba(13, 27, 46, 0.075);
 }
 
 .board-flow-node[data-kind] .board-flow-node-body svg {
@@ -8540,8 +8554,8 @@ a:focus-visible {
 .board-flow-node[data-kind="Aguardar"],
 .board-flow-node[data-kind="Notificação"] {
 	background:
-		linear-gradient(180deg, rgba(245, 158, 11, 0.14), rgba(245, 245, 247, 0.018)),
-		#0c0c0e;
+		linear-gradient(180deg, rgba(245, 158, 11, 0.14), rgba(13, 27, 46, 0.018)),
+		#ffffff;
 	border-color: rgba(245, 158, 11, 0.52);
 }
 
@@ -8558,8 +8572,8 @@ a:focus-visible {
 .board-flow-node[data-kind="WhatsApp"],
 .board-flow-node[data-kind="Obrigado"] {
 	background:
-		linear-gradient(180deg, rgba(34, 197, 94, 0.13), rgba(245, 245, 247, 0.018)),
-		#0c0c0e;
+		linear-gradient(180deg, rgba(34, 197, 94, 0.13), rgba(13, 27, 46, 0.018)),
+		#ffffff;
 	border-color: rgba(34, 197, 94, 0.5);
 }
 
@@ -8576,8 +8590,8 @@ a:focus-visible {
 .board-flow-node[data-kind="Order Bump"],
 .board-flow-node[data-kind="SMS"] {
 	background:
-		linear-gradient(180deg, rgba(59, 130, 246, 0.14), rgba(245, 245, 247, 0.018)),
-		#0c0c0e;
+		linear-gradient(180deg, rgba(59, 130, 246, 0.14), rgba(13, 27, 46, 0.018)),
+		#ffffff;
 	border-color: rgba(59, 130, 246, 0.52);
 }
 
@@ -8592,8 +8606,8 @@ a:focus-visible {
 .board-flow-node[data-kind="Opt-in"],
 .board-flow-node[data-kind="Início"] {
 	background:
-		linear-gradient(180deg, rgba(139, 92, 246, 0.15), rgba(245, 245, 247, 0.018)),
-		#0c0c0e;
+		linear-gradient(180deg, rgba(139, 92, 246, 0.15), rgba(13, 27, 46, 0.018)),
+		#ffffff;
 	border-color: rgba(139, 92, 246, 0.54);
 }
 
@@ -8658,11 +8672,11 @@ a:focus-visible {
 	display: grid;
 	place-items: center;
 	min-height: 136px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.04), rgba(245, 245, 247, 0.018));
-	color: rgba(245, 245, 247, 0.42);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.04), rgba(13, 27, 46, 0.018));
+	color: rgba(13, 27, 46, 0.42);
 	font-size: 12px;
 	font-weight: 600;
 	margin: 0;
@@ -8690,14 +8704,14 @@ a:focus-visible {
 .board-delete-warning {
 	font-size: 11px;
 	font-weight: 500;
-	color: rgba(245, 245, 247, 0.6);
+	color: rgba(13, 27, 46, 0.6);
 	align-self: center;
 }
 
 .board-dirty-badge {
 	font-size: 10px;
 	font-weight: 500;
-	color: rgba(245, 245, 247, 0.45);
+	color: rgba(13, 27, 46, 0.45);
 	letter-spacing: 0.01em;
 	align-self: center;
 }
@@ -8725,7 +8739,7 @@ a:focus-visible {
 
 .board-delete-btn {
 	border-color: rgba(220, 53, 53, 0.18) !important;
-	color: rgba(245, 245, 247, 0.55) !important;
+	color: rgba(13, 27, 46, 0.55) !important;
 }
 
 .board-delete-btn:hover {
@@ -8747,18 +8761,18 @@ a:focus-visible {
 .board-node-panel {
 	width: 220px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.08), rgba(245, 245, 247, 0.032)),
-		#111113;
-	border: 1px solid rgba(245, 245, 247, 0.14);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.08), rgba(13, 27, 46, 0.032)),
+		#ffffff;
+	border: 1px solid rgba(13, 27, 46, 0.14);
 	border-radius: 12px;
 	padding: 14px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 18px 52px rgba(0, 0, 0, 0.56);
-	color: #f5f5f7;
+	color: #0d1b2e;
 }
 
 .board-node-panel-header {
@@ -8770,7 +8784,7 @@ a:focus-visible {
 .board-node-panel-header > span {
 	font-size: 10px;
 	font-weight: 650;
-	color: rgba(245, 245, 247, 0.48);
+	color: rgba(13, 27, 46, 0.48);
 	text-transform: uppercase;
 	letter-spacing: 0.11em;
 }
@@ -8784,14 +8798,14 @@ a:focus-visible {
 	border: none;
 	border-radius: 6px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.46);
+	color: rgba(13, 27, 46, 0.46);
 	padding: 0;
 	cursor: pointer;
 }
 
 .board-node-panel-header button:hover {
-	background: rgba(245, 245, 247, 0.08);
-	color: #f5f5f7;
+	background: rgba(13, 27, 46, 0.08);
+	color: #0d1b2e;
 }
 
 .board-node-panel-header button svg {
@@ -8809,7 +8823,7 @@ a:focus-visible {
 	align-items: center;
 	gap: 8px;
 	padding: 16px 0 12px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.075);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.075);
 	margin-bottom: 4px;
 }
 
@@ -8836,7 +8850,7 @@ a:focus-visible {
 .board-node-panel-source-preview span {
 	font-size: 12px;
 	font-weight: 600;
-	color: rgba(245, 245, 247, 0.7);
+	color: rgba(13, 27, 46, 0.7);
 	letter-spacing: 0.02em;
 }
 
@@ -8855,7 +8869,7 @@ a:focus-visible {
 .board-node-panel-source-preview[data-kind="Hubla"]    { --src-color: #bef264; }
 
 .board-node-panel-source-preview span {
-	color: var(--src-color, rgba(245, 245, 247, 0.7));
+	color: var(--src-color, rgba(13, 27, 46, 0.7));
 }
 
 .board-node-panel form {
@@ -8870,16 +8884,16 @@ a:focus-visible {
 	gap: 4px;
 	font-size: 11px;
 	font-weight: 650;
-	color: rgba(245, 245, 247, 0.52);
+	color: rgba(13, 27, 46, 0.52);
 }
 
 .board-node-panel-field input,
 .board-node-panel-field select {
 	height: 30px;
-	border: 1px solid rgba(245, 245, 247, 0.11);
+	border: 1px solid rgba(13, 27, 46, 0.11);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.055);
-	color: #f5f5f7;
+	background: rgba(13, 27, 46, 0.055);
+	color: #0d1b2e;
 	font-size: 12px;
 	font-family: inherit;
 	padding: 0 9px;
@@ -8889,13 +8903,13 @@ a:focus-visible {
 .board-node-panel-field input:focus,
 .board-node-panel-field select:focus {
 	border-color: rgba(99, 102, 241, 0.42);
-	background: rgba(245, 245, 247, 0.075);
+	background: rgba(13, 27, 46, 0.075);
 }
 
 .board-node-panel-hint {
 	margin: 0;
 	font-size: 10px;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	line-height: 1.4;
 }
 
@@ -8963,18 +8977,18 @@ a:focus-visible {
 	justify-content: center;
 	width: 30px;
 	height: 30px;
-	border: 1px solid rgba(245, 245, 247, 0.13);
+	border: 1px solid rgba(13, 27, 46, 0.13);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.04);
-	color: rgba(245, 245, 247, 0.54);
+	background: rgba(13, 27, 46, 0.04);
+	color: rgba(13, 27, 46, 0.54);
 	cursor: pointer;
 	padding: 0;
 	font-family: inherit;
 }
 
 .board-node-panel-duplicate:hover {
-	background: rgba(245, 245, 247, 0.1);
-	color: rgba(245, 245, 247, 0.9);
+	background: rgba(13, 27, 46, 0.1);
+	color: rgba(13, 27, 46, 0.9);
 }
 
 .board-node-panel-duplicate svg {
@@ -9101,7 +9115,7 @@ a:focus-visible {
 	background:
 		radial-gradient(circle at 24% 10%, rgba(99, 102, 241, 0.055), transparent 28%),
 		radial-gradient(circle at 78% 0%, rgba(16, 185, 129, 0.035), transparent 24%),
-		#060606;
+		#ffffff;
 }
 
 .crm-module {
@@ -9125,7 +9139,7 @@ a:focus-visible {
 	overflow-y: auto;
 	padding: 14px 0 0;
 	scrollbar-width: thin;
-	scrollbar-color: rgba(245, 245, 247, 0.09) transparent;
+	scrollbar-color: rgba(13, 27, 46, 0.09) transparent;
 }
 
 .crm-module-header {
@@ -9139,7 +9153,7 @@ a:focus-visible {
 
 .crm-module-header p {
 	margin: 0;
-	color: rgba(245, 245, 247, 0.48);
+	color: rgba(13, 27, 46, 0.48);
 	font-size: 10px;
 	font-weight: 650;
 	letter-spacing: 0.12em;
@@ -9167,25 +9181,25 @@ a:focus-visible {
 .crm-add-btn {
 	height: 32px;
 	padding: 0 14px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 8px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.1), rgba(245, 245, 247, 0.055));
-	color: rgba(245, 245, 247, 0.86);
+		linear-gradient(180deg, rgba(13, 27, 46, 0.1), rgba(13, 27, 46, 0.055));
+	color: rgba(13, 27, 46, 0.86);
 	font-size: 12px;
 	font-weight: 650;
 	white-space: nowrap;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.08),
+		inset 0 1px 0 rgba(13, 27, 46, 0.08),
 		0 10px 24px rgba(0, 0, 0, 0.18);
 	transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
 }
 
 .crm-add-btn:hover {
-	border-color: rgba(245, 245, 247, 0.2);
+	border-color: rgba(13, 27, 46, 0.2);
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.14), rgba(245, 245, 247, 0.075));
-	color: #f5f5f7;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.14), rgba(13, 27, 46, 0.075));
+	color: #0d1b2e;
 	transform: translateY(-1px);
 }
 
@@ -9212,7 +9226,7 @@ a:focus-visible {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 13px;
 }
 
@@ -9229,7 +9243,7 @@ a:focus-visible {
 	overflow-x: auto;
 	padding-bottom: 20px;
 	scrollbar-width: thin;
-	scrollbar-color: rgba(245, 245, 247, 0.09) transparent;
+	scrollbar-color: rgba(13, 27, 46, 0.09) transparent;
 }
 
 /* ── Column ─────────────────────────────────────────────── */
@@ -9240,13 +9254,13 @@ a:focus-visible {
 	min-width: 220px;
 	display: flex;
 	flex-direction: column;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.045), rgba(245, 245, 247, 0.018));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.045), rgba(13, 27, 46, 0.018));
 	overflow: hidden;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.04),
+		inset 0 1px 0 rgba(13, 27, 46, 0.04),
 		0 18px 46px rgba(0, 0, 0, 0.16);
 	transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -9256,13 +9270,13 @@ a:focus-visible {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(245, 245, 247, 0.12), transparent);
+	background: linear-gradient(90deg, transparent, rgba(13, 27, 46, 0.12), transparent);
 	pointer-events: none;
 }
 
 .crm-column.drag-over {
 	border-color: rgba(99, 102, 241, 0.42);
-	background: linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(245, 245, 247, 0.025));
+	background: linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(13, 27, 46, 0.025));
 	box-shadow:
 		inset 0 0 0 1px rgba(99, 102, 241, 0.16),
 		0 20px 52px rgba(0, 0, 0, 0.22);
@@ -9273,8 +9287,8 @@ a:focus-visible {
 	align-items: center;
 	justify-content: space-between;
 	padding: 11px 13px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.075);
-	background: rgba(245, 245, 247, 0.018);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.075);
+	background: rgba(13, 27, 46, 0.018);
 	flex-shrink: 0;
 }
 
@@ -9300,8 +9314,8 @@ a:focus-visible {
 .crm-column-count {
 	font-size: 11px;
 	font-weight: 700;
-	color: rgba(245, 245, 247, 0.42);
-	background: rgba(245, 245, 247, 0.075);
+	color: rgba(13, 27, 46, 0.42);
+	background: rgba(13, 27, 46, 0.075);
 	border-radius: 20px;
 	padding: 2px 8px;
 	line-height: 1.1;
@@ -9317,7 +9331,7 @@ a:focus-visible {
 .crm-column-empty {
 	font-size: 11px;
 	font-weight: 550;
-	color: rgba(245, 245, 247, 0.26);
+	color: rgba(13, 27, 46, 0.26);
 	text-align: center;
 	padding: 20px 0;
 }
@@ -9327,17 +9341,17 @@ a:focus-visible {
 .crm-lead-card {
 	position: relative;
 	padding: 11px 12px 0;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 11px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.06), rgba(245, 245, 247, 0.028));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.06), rgba(13, 27, 46, 0.028));
 	cursor: pointer;
 	transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
 	outline: none;
 	user-select: none;
 	overflow: hidden;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.045),
+		inset 0 1px 0 rgba(13, 27, 46, 0.045),
 		0 12px 28px rgba(0, 0, 0, 0.18);
 }
 
@@ -9352,11 +9366,11 @@ a:focus-visible {
 }
 
 .crm-lead-card:hover {
-	border-color: rgba(245, 245, 247, 0.17);
+	border-color: rgba(13, 27, 46, 0.17);
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.075), rgba(245, 245, 247, 0.036));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.075), rgba(13, 27, 46, 0.036));
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.06),
+		inset 0 1px 0 rgba(13, 27, 46, 0.06),
 		0 16px 34px rgba(0, 0, 0, 0.24);
 	transform: translateY(-1px);
 }
@@ -9368,7 +9382,7 @@ a:focus-visible {
 .crm-lead-card.selected {
 	border-color: rgba(99, 102, 241, 0.45);
 	background:
-		linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(245, 245, 247, 0.03));
+		linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(13, 27, 46, 0.03));
 	box-shadow:
 		inset 0 0 0 1px rgba(99, 102, 241, 0.12),
 		0 18px 38px rgba(0, 0, 0, 0.24);
@@ -9387,7 +9401,7 @@ a:focus-visible {
 .crm-lead-card.crm-status-qualified.selected {
 	border-color: rgba(16, 185, 129, 0.6);
 	background:
-		linear-gradient(180deg, rgba(16, 185, 129, 0.11), rgba(245, 245, 247, 0.03));
+		linear-gradient(180deg, rgba(16, 185, 129, 0.11), rgba(13, 27, 46, 0.03));
 }
 .crm-lead-card.crm-status-disqualified {
 	border-color: rgba(239, 68, 68, 0.3);
@@ -9408,7 +9422,7 @@ a:focus-visible {
 	font-weight: 750;
 	letter-spacing: 0.085em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.45);
+	color: rgba(13, 27, 46, 0.45);
 	margin-bottom: 3px;
 	white-space: nowrap;
 	overflow: hidden;
@@ -9445,19 +9459,19 @@ a:focus-visible {
 	width: 7.5px;
 	height: 7.5px;
 	border-radius: 50%;
-	border: 1px solid rgba(245, 245, 247, 0.18);
-	background: rgba(245, 245, 247, 0.018);
+	border: 1px solid rgba(13, 27, 46, 0.18);
+	background: rgba(13, 27, 46, 0.018);
 	transition: background 0.15s, border-color 0.15s;
 }
 
 .crm-dot.done {
-	background: rgba(245, 245, 247, 0.55);
+	background: rgba(13, 27, 46, 0.55);
 	border-color: transparent;
 }
 
 /* Qualification dots */
 .crm-dot.qualif {
-	border-color: rgba(245, 245, 247, 0.15);
+	border-color: rgba(13, 27, 46, 0.15);
 }
 .crm-dot.qualif.yes {
 	background: #10b981;
@@ -9491,7 +9505,7 @@ a:focus-visible {
 
 .crm-card-progress {
 	height: 3px;
-	background: rgba(245, 245, 247, 0.075);
+	background: rgba(13, 27, 46, 0.075);
 	margin: 0 -12px;
 }
 
@@ -9520,7 +9534,7 @@ a:focus-visible {
 
 .crm-card-age {
 	font-size: 10px;
-	color: rgba(245, 245, 247, 0.28);
+	color: rgba(13, 27, 46, 0.28);
 }
 
 .crm-card-actions {
@@ -9535,13 +9549,13 @@ a:focus-visible {
 	width: 23px;
 	height: 23px;
 	border-radius: 6px;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	transition: color 0.15s, background 0.15s;
 }
 
 .crm-card-action:hover {
 	color: var(--foreground);
-	background: rgba(245, 245, 247, 0.09);
+	background: rgba(13, 27, 46, 0.09);
 }
 
 .crm-card-action svg { width: 12px; height: 12px; }
@@ -9553,14 +9567,14 @@ a:focus-visible {
 	flex: 0 0 clamp(320px, 27vw, 380px);
 	display: flex;
 	flex-direction: column;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.035), rgba(245, 245, 247, 0.012)),
-		#070707;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.035), rgba(13, 27, 46, 0.012)),
+		#fbfcfe;
 	overflow: hidden;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.045),
+		inset 0 1px 0 rgba(13, 27, 46, 0.045),
 		0 22px 64px rgba(0, 0, 0, 0.32);
 	animation: crm-panel-in 0.2s ease;
 }
@@ -9575,8 +9589,8 @@ a:focus-visible {
 	justify-content: space-between;
 	gap: 12px;
 	padding: 14px 16px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.08);
-	background: rgba(245, 245, 247, 0.018);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.08);
+	background: rgba(13, 27, 46, 0.018);
 	flex-shrink: 0;
 }
 
@@ -9608,7 +9622,7 @@ a:focus-visible {
 .crm-panel-title span {
 	display: block;
 	font-size: 11px;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 }
 
 .crm-panel-close {
@@ -9620,26 +9634,26 @@ a:focus-visible {
 	border: none;
 	border-radius: 7px;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.4);
+	color: rgba(13, 27, 46, 0.4);
 	flex-shrink: 0;
 	transition: background 0.15s, color 0.15s;
 }
 
-.crm-panel-close:hover { background: rgba(245, 245, 247, 0.08); color: var(--foreground); }
+.crm-panel-close:hover { background: rgba(13, 27, 46, 0.08); color: var(--foreground); }
 .crm-panel-close svg { width: 14px; height: 14px; }
 
 .crm-panel-body {
 	flex: 1;
 	overflow-y: auto;
 	scrollbar-width: thin;
-	scrollbar-color: rgba(245, 245, 247, 0.07) transparent;
+	scrollbar-color: rgba(13, 27, 46, 0.07) transparent;
 }
 
 /* Progress bar at top of panel */
 .crm-panel-progress-wrap {
 	position: relative;
 	height: 4px;
-	background: rgba(245, 245, 247, 0.06);
+	background: rgba(13, 27, 46, 0.06);
 	flex-shrink: 0;
 }
 
@@ -9657,7 +9671,7 @@ a:focus-visible {
 	font-size: 9px;
 	font-weight: 650;
 	letter-spacing: 0.06em;
-	color: rgba(245, 245, 247, 0.35);
+	color: rgba(13, 27, 46, 0.35);
 }
 
 /* Status banners */
@@ -9691,7 +9705,7 @@ a:focus-visible {
 /* Panel sections */
 .crm-panel-section {
 	padding: 14px 16px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.055);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.055);
 }
 
 .crm-panel-label {
@@ -9700,21 +9714,21 @@ a:focus-visible {
 	font-weight: 650;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 }
 
 .crm-panel-label-sub {
 	font-weight: 500;
 	text-transform: none;
 	letter-spacing: 0;
-	color: rgba(245, 245, 247, 0.3);
+	color: rgba(13, 27, 46, 0.3);
 }
 
 .crm-saving-indicator {
 	font-weight: 400;
 	text-transform: none;
 	letter-spacing: 0;
-	color: rgba(245, 245, 247, 0.28);
+	color: rgba(13, 27, 46, 0.28);
 }
 
 /* ── Contact buttons ─────────────────────────────────────── */
@@ -9759,7 +9773,7 @@ a:focus-visible {
 
 .crm-contact-info span {
 	font-size: 11px;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 }
 
 /* ── Qualification ───────────────────────────────────────── */
@@ -9780,16 +9794,16 @@ a:focus-visible {
 
 .crm-qualif-label {
 	font-size: 12px;
-	color: rgba(245, 245, 247, 0.7);
+	color: rgba(13, 27, 46, 0.7);
 	flex: 1;
 	min-width: 0;
 }
 
 .crm-qualif-toggle {
 	display: flex;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 	overflow: hidden;
 	flex-shrink: 0;
 }
@@ -9799,7 +9813,7 @@ a:focus-visible {
 	padding: 0 10px;
 	border: none;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 11px;
 	font-weight: 650;
 	cursor: pointer;
@@ -9807,10 +9821,10 @@ a:focus-visible {
 }
 
 .crm-qualif-btn + .crm-qualif-btn {
-	border-left: 1px solid rgba(245, 245, 247, 0.1);
+	border-left: 1px solid rgba(13, 27, 46, 0.1);
 }
 
-.crm-qualif-btn:hover { background: rgba(245, 245, 247, 0.07); color: var(--foreground); }
+.crm-qualif-btn:hover { background: rgba(13, 27, 46, 0.07); color: var(--foreground); }
 
 .crm-qualif-btn.active-yes {
 	background: rgba(16, 185, 129, 0.18);
@@ -9838,26 +9852,26 @@ a:focus-visible {
 	padding: 7px 8px;
 	border: 1px solid transparent;
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.018);
+	background: rgba(13, 27, 46, 0.018);
 	text-align: left;
 	cursor: pointer;
 	transition: background 0.13s, border-color 0.13s;
 }
 
 .crm-checklist-item:hover {
-	border-color: rgba(245, 245, 247, 0.065);
-	background: rgba(245, 245, 247, 0.045);
+	border-color: rgba(13, 27, 46, 0.065);
+	background: rgba(13, 27, 46, 0.045);
 }
 
 .crm-checklist-item.done .crm-check-label {
-	color: rgba(245, 245, 247, 0.35);
+	color: rgba(13, 27, 46, 0.35);
 	text-decoration: line-through;
 }
 
 .crm-check-box {
 	width: 17px;
 	height: 17px;
-	border: 1.5px solid rgba(245, 245, 247, 0.22);
+	border: 1.5px solid rgba(13, 27, 46, 0.22);
 	border-radius: 5px;
 	display: flex;
 	align-items: center;
@@ -9877,7 +9891,7 @@ a:focus-visible {
 
 .crm-check-label {
 	font-size: 12px;
-	color: rgba(245, 245, 247, 0.75);
+	color: rgba(13, 27, 46, 0.75);
 	transition: color 0.13s;
 }
 
@@ -9887,12 +9901,12 @@ a:focus-visible {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.045);
+	background: rgba(13, 27, 46, 0.045);
 	padding: 0 10px;
 	height: 36px;
-	box-shadow: inset 0 1px 0 rgba(245, 245, 247, 0.025);
+	box-shadow: inset 0 1px 0 rgba(13, 27, 46, 0.025);
 }
 
 .crm-stage-select-dot {
@@ -9919,9 +9933,9 @@ a:focus-visible {
 	width: 100%;
 	min-height: 84px;
 	padding: 9px 10px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 	color: var(--foreground);
 	font-size: 12px;
 	line-height: 1.55;
@@ -9932,16 +9946,16 @@ a:focus-visible {
 .crm-notes-input:focus {
 	outline: none;
 	border-color: rgba(99, 102, 241, 0.32);
-	background: rgba(245, 245, 247, 0.055);
+	background: rgba(13, 27, 46, 0.055);
 }
-.crm-notes-input::placeholder { color: rgba(245, 245, 247, 0.25); }
+.crm-notes-input::placeholder { color: rgba(13, 27, 46, 0.25); }
 
 /* ── Activity log ────────────────────────────────────────── */
 
 .crm-activity-empty {
 	margin: 0;
 	font-size: 12px;
-	color: rgba(245, 245, 247, 0.28);
+	color: rgba(13, 27, 46, 0.28);
 }
 
 .crm-activity-list { display: flex; flex-direction: column; }
@@ -9950,7 +9964,7 @@ a:focus-visible {
 	display: flex;
 	gap: 9px;
 	padding: 9px 0;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.05);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.05);
 }
 
 .crm-activity-item:last-child { border-bottom: none; }
@@ -9963,8 +9977,8 @@ a:focus-visible {
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	color: rgba(245, 245, 247, 0.45);
-	background: rgba(245, 245, 247, 0.06);
+	color: rgba(13, 27, 46, 0.45);
+	background: rgba(13, 27, 46, 0.06);
 }
 
 .crm-activity-icon svg { width: 12px; height: 12px; }
@@ -9972,7 +9986,7 @@ a:focus-visible {
 .crm-act-call     { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
 .crm-act-whatsapp { background: rgba(16, 185, 129, 0.12); color: #34d399; }
 .crm-act-email    { background: rgba(99, 102, 241, 0.12); color: #a5b4fc; }
-.crm-act-note     { background: rgba(245, 245, 247, 0.07); color: rgba(245, 245, 247, 0.45); }
+.crm-act-note     { background: rgba(13, 27, 46, 0.07); color: rgba(13, 27, 46, 0.45); }
 
 .crm-activity-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
@@ -9981,11 +9995,11 @@ a:focus-visible {
 	font-weight: 650;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 }
 
-.crm-activity-text { font-size: 12px; color: rgba(245, 245, 247, 0.75); word-break: break-word; }
-.crm-activity-date { font-size: 10px; color: rgba(245, 245, 247, 0.25); }
+.crm-activity-text { font-size: 12px; color: rgba(13, 27, 46, 0.75); word-break: break-word; }
+.crm-activity-date { font-size: 10px; color: rgba(13, 27, 46, 0.25); }
 
 /* ── Danger zone ─────────────────────────────────────────── */
 
@@ -10010,7 +10024,7 @@ a:focus-visible {
 .crm-delete-btn svg { width: 13px; height: 13px; }
 
 .crm-delete-confirm { display: flex; flex-direction: column; gap: 10px; }
-.crm-delete-confirm span { font-size: 12px; color: rgba(245, 245, 247, 0.65); }
+.crm-delete-confirm span { font-size: 12px; color: rgba(13, 27, 46, 0.65); }
 .crm-delete-confirm-actions { display: flex; gap: 6px; }
 
 .crm-delete-yes {
@@ -10021,11 +10035,11 @@ a:focus-visible {
 .crm-delete-yes:hover { background: #ef4444; }
 
 .crm-delete-no {
-	height: 30px; padding: 0 12px; border: 1px solid rgba(245, 245, 247, 0.1);
-	border-radius: 7px; background: transparent; color: rgba(245, 245, 247, 0.55);
+	height: 30px; padding: 0 12px; border: 1px solid rgba(13, 27, 46, 0.1);
+	border-radius: 7px; background: transparent; color: rgba(13, 27, 46, 0.55);
 	font-size: 12px; font-weight: 600; transition: all 0.15s;
 }
-.crm-delete-no:hover { border-color: rgba(245, 245, 247, 0.2); color: var(--foreground); }
+.crm-delete-no:hover { border-color: rgba(13, 27, 46, 0.2); color: var(--foreground); }
 
 /* ── Add Lead Modal ──────────────────────────────────────── */
 
@@ -10043,11 +10057,11 @@ a:focus-visible {
 .crm-modal {
 	width: min(520px, 100%);
 	max-height: calc(100vh - 48px);
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.03), rgba(245, 245, 247, 0.012)),
-		#070707;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.03), rgba(13, 27, 46, 0.012)),
+		#fbfcfe;
 	overflow: auto;
 	box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 	animation: crm-modal-in 0.18s ease;
@@ -10062,7 +10076,7 @@ a:focus-visible {
 	align-items: center;
 	justify-content: space-between;
 	padding: 18px 20px 14px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.08);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.08);
 }
 
 .crm-modal-header h3 { margin: 0; font-size: 15px; font-weight: 650; }
@@ -10070,10 +10084,10 @@ a:focus-visible {
 .crm-modal-close {
 	display: flex; align-items: center; justify-content: center;
 	width: 28px; height: 28px; border: none; border-radius: 7px;
-	background: transparent; color: rgba(245, 245, 247, 0.4);
+	background: transparent; color: rgba(13, 27, 46, 0.4);
 	transition: background 0.15s, color 0.15s;
 }
-.crm-modal-close:hover { background: rgba(245, 245, 247, 0.08); color: var(--foreground); }
+.crm-modal-close:hover { background: rgba(13, 27, 46, 0.08); color: var(--foreground); }
 .crm-modal-close svg { width: 14px; height: 14px; }
 
 /* ── Resolution Badge ── */
@@ -10098,7 +10112,7 @@ a:focus-visible {
 /* ── Resolution Modal ── */
 .crm-resolution-modal {
 	background: #111;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 14px;
 	padding: 24px 20px 20px;
 	display: flex;
@@ -10143,13 +10157,13 @@ a:focus-visible {
 .crm-resolution-cancel {
 	background: transparent;
 	border: none;
-	color: rgba(245, 245, 247, 0.35);
+	color: rgba(13, 27, 46, 0.35);
 	font-size: 12px;
 	cursor: pointer;
 	padding: 0;
 }
-.crm-resolution-cancel:hover { color: rgba(245, 245, 247, 0.6); }
-.crm-column-resolution { border-color: rgba(245, 245, 247, 0.07); }
+.crm-resolution-cancel:hover { color: rgba(13, 27, 46, 0.6); }
+.crm-column-resolution { border-color: rgba(13, 27, 46, 0.07); }
 
 .crm-modal-form {
 	display: flex;
@@ -10166,7 +10180,7 @@ a:focus-visible {
 	font-weight: 650;
 	letter-spacing: 0.1em;
 	text-transform: uppercase;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 }
 
 .crm-modal-form input,
@@ -10174,9 +10188,9 @@ a:focus-visible {
 .crm-modal-form textarea {
 	height: 36px;
 	padding: 0 11px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 	color: var(--foreground);
 	font-family: inherit;
 	font-size: 13px;
@@ -10196,11 +10210,11 @@ a:focus-visible {
 .crm-modal-form select:focus,
 .crm-modal-form textarea:focus {
 	outline: none;
-	border-color: rgba(245, 245, 247, 0.2);
+	border-color: rgba(13, 27, 46, 0.2);
 }
 
 .crm-modal-form input::placeholder,
-.crm-modal-form textarea::placeholder { color: rgba(245, 245, 247, 0.25); }
+.crm-modal-form textarea::placeholder { color: rgba(13, 27, 46, 0.25); }
 
 .crm-modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .crm-modal-error { margin: 0; font-size: 12px; color: #f87171; }
@@ -10210,10 +10224,10 @@ a:focus-visible {
   display: flex;
   align-items: center;
   padding: 0 11px;
-  border: 1px solid rgba(245, 245, 247, 0.08);
+  border: 1px solid rgba(13, 27, 46, 0.08);
   border-radius: 9px;
-  background: rgba(245, 245, 247, 0.025);
-  color: rgba(245, 245, 247, 0.52);
+  background: rgba(13, 27, 46, 0.025);
+  color: rgba(13, 27, 46, 0.52);
   font-size: 12px;
   font-weight: 650;
   line-height: 1.35;
@@ -10235,9 +10249,9 @@ a:focus-visible {
 	justify-content: space-between;
 	gap: 14px;
 	padding: 10px 11px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 }
 
 .crm-import-template div {
@@ -10248,14 +10262,14 @@ a:focus-visible {
 }
 
 .crm-import-template strong {
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	font-size: 12px;
 	font-weight: 650;
 	letter-spacing: -0.01em;
 }
 
 .crm-import-template span {
-	color: rgba(245, 245, 247, 0.46);
+	color: rgba(13, 27, 46, 0.46);
 	font-size: 10px;
 	font-weight: 500;
 	letter-spacing: 0;
@@ -10271,10 +10285,10 @@ a:focus-visible {
 	flex-shrink: 0;
 	height: 30px;
 	padding: 0 10px;
-	border: 1px solid rgba(245, 245, 247, 0.14);
+	border: 1px solid rgba(13, 27, 46, 0.14);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.92);
-	color: #060606;
+	background: rgba(13, 27, 46, 0.92);
+	color: #ffffff;
 	font-size: 11px;
 	font-weight: 650;
 	white-space: nowrap;
@@ -10284,7 +10298,7 @@ a:focus-visible {
 
 .crm-import-template button:hover {
 	background: #ffffff;
-	border-color: rgba(245, 245, 247, 0.22);
+	border-color: rgba(13, 27, 46, 0.22);
 }
 
 .crm-import-template button svg {
@@ -10304,7 +10318,7 @@ a:focus-visible {
 }
 
 .crm-import-file-label {
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 	font-size: 10px;
 	font-weight: 650;
 	letter-spacing: 0.1em;
@@ -10317,9 +10331,9 @@ a:focus-visible {
 	gap: 10px;
 	min-height: 36px;
 	padding: 4px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 }
 
 .crm-import-upload button {
@@ -10329,25 +10343,25 @@ a:focus-visible {
 	flex-shrink: 0;
 	height: 28px;
 	padding: 0 10px;
-	border: 1px solid rgba(245, 245, 247, 0.12);
+	border: 1px solid rgba(13, 27, 46, 0.12);
 	border-radius: 7px;
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.8);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.8);
 	font-size: 11px;
 	font-weight: 650;
 	transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .crm-import-upload button:hover {
-	background: rgba(245, 245, 247, 0.12);
-	border-color: rgba(245, 245, 247, 0.2);
+	background: rgba(13, 27, 46, 0.12);
+	border-color: rgba(13, 27, 46, 0.2);
 	color: var(--foreground);
 }
 
 .crm-import-upload span {
 	min-width: 0;
 	overflow: hidden;
-	color: rgba(245, 245, 247, 0.48);
+	color: rgba(13, 27, 46, 0.48);
 	font-size: 12px;
 	font-weight: 500;
 	text-overflow: ellipsis;
@@ -10364,14 +10378,14 @@ a:focus-visible {
 	flex-direction: column;
 	gap: 4px;
 	padding: 10px 11px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 }
 
 .crm-import-summary span,
 .crm-import-warnings span {
-	color: rgba(245, 245, 247, 0.46);
+	color: rgba(13, 27, 46, 0.46);
 	font-size: 11px;
 	font-weight: 600;
 	letter-spacing: 0;
@@ -10380,7 +10394,7 @@ a:focus-visible {
 }
 
 .crm-import-summary strong {
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	font-size: 13px;
 	font-weight: 650;
 	letter-spacing: -0.01em;
@@ -10388,7 +10402,7 @@ a:focus-visible {
 
 .crm-import-summary p {
 	margin: 0;
-	color: rgba(245, 245, 247, 0.52);
+	color: rgba(13, 27, 46, 0.52);
 	font-size: 12px;
 	font-weight: 500;
 	letter-spacing: 0;
@@ -10409,20 +10423,20 @@ a:focus-visible {
 	justify-content: flex-end;
 	gap: 8px;
 	padding: 12px 20px 18px;
-	border-top: 1px solid rgba(245, 245, 247, 0.07);
+	border-top: 1px solid rgba(13, 27, 46, 0.07);
 }
 
 .crm-modal-cancel {
 	height: 34px; padding: 0 14px;
-	border: 1px solid rgba(245, 245, 247, 0.1); border-radius: 9px;
-	background: transparent; color: rgba(245, 245, 247, 0.55); font-size: 12px; font-weight: 600;
+	border: 1px solid rgba(13, 27, 46, 0.1); border-radius: 9px;
+	background: transparent; color: rgba(13, 27, 46, 0.55); font-size: 12px; font-weight: 600;
 	transition: all 0.15s;
 }
-.crm-modal-cancel:hover { border-color: rgba(245, 245, 247, 0.2); color: var(--foreground); }
+.crm-modal-cancel:hover { border-color: rgba(13, 27, 46, 0.2); color: var(--foreground); }
 
 .crm-modal-submit {
 	height: 34px; padding: 0 16px; border: none; border-radius: 9px;
-	background: rgba(245, 245, 247, 0.92); color: #060606; font-size: 12px; font-weight: 650;
+	background: rgba(13, 27, 46, 0.92); color: #ffffff; font-size: 12px; font-weight: 650;
 	transition: background 0.15s;
 }
 .crm-modal-submit:hover:not(:disabled) { background: #ffffff; }
@@ -10453,12 +10467,12 @@ a:focus-visible {
 	gap: 10px;
 	min-height: 54px;
 	padding: 12px 13px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 13px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.045), rgba(245, 245, 247, 0.018));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.045), rgba(13, 27, 46, 0.018));
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.04),
+		inset 0 1px 0 rgba(13, 27, 46, 0.04),
 		0 18px 42px rgba(0, 0, 0, 0.14);
 	overflow: hidden;
 }
@@ -10468,11 +10482,11 @@ a:focus-visible {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(245, 245, 247, 0.12), transparent);
+	background: linear-gradient(90deg, transparent, rgba(13, 27, 46, 0.12), transparent);
 }
 
 .pfx-summary-card span {
-	color: rgba(245, 245, 247, 0.43);
+	color: rgba(13, 27, 46, 0.43);
 	font-size: 10px;
 	font-weight: 700;
 	letter-spacing: 0.08em;
@@ -10480,7 +10494,7 @@ a:focus-visible {
 }
 
 .pfx-summary-card strong {
-	color: rgba(245, 245, 247, 0.92);
+	color: rgba(13, 27, 46, 0.92);
 	font-size: 19px;
 	font-weight: 760;
 	letter-spacing: -0.03em;
@@ -10489,12 +10503,12 @@ a:focus-visible {
 .pfx-table-card {
 	position: relative;
 	min-height: 260px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 14px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.04), rgba(245, 245, 247, 0.014));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.04), rgba(13, 27, 46, 0.014));
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.04),
+		inset 0 1px 0 rgba(13, 27, 46, 0.04),
 		0 22px 56px rgba(0, 0, 0, 0.18);
 	overflow: auto;
 }
@@ -10504,7 +10518,7 @@ a:focus-visible {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(245, 245, 247, 0.13), transparent);
+	background: linear-gradient(90deg, transparent, rgba(13, 27, 46, 0.13), transparent);
 	pointer-events: none;
 }
 
@@ -10512,27 +10526,43 @@ a:focus-visible {
 	width: 100%;
 	min-width: 880px;
 	border-collapse: collapse;
+	table-layout: fixed;
 }
+
+.pfx-table th:nth-child(1), .pfx-table td:nth-child(1) { width: 22%; }
+.pfx-table th:nth-child(2), .pfx-table td:nth-child(2) { width: 6%; }
+.pfx-table th:nth-child(3), .pfx-table td:nth-child(3) { width: 16%; }
+.pfx-table th:nth-child(4), .pfx-table td:nth-child(4) { width: 12%; }
+.pfx-table th:nth-child(5), .pfx-table td:nth-child(5) { width: 22%; }
+.pfx-table th:nth-child(6), .pfx-table td:nth-child(6) { width: 12%; }
+.pfx-table th:nth-child(7), .pfx-table td:nth-child(7) { width: 10%; text-align: center; }
 
 .pfx-table th,
 .pfx-table td {
 	padding: 12px 14px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.06);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.06);
 	text-align: left;
 	vertical-align: middle;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pfx-table td {
+	height: 52px;
 }
 
 .pfx-table th {
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 9.5px;
 	font-weight: 760;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
-	background: rgba(245, 245, 247, 0.018);
+	background: rgba(13, 27, 46, 0.018);
 }
 
 .pfx-table td {
-	color: rgba(245, 245, 247, 0.68);
+	color: rgba(13, 27, 46, 0.68);
 	font-size: 12px;
 	font-weight: 590;
 }
@@ -10544,7 +10574,7 @@ a:focus-visible {
 
 .pfx-table tbody tr:hover,
 .pfx-table tbody tr.selected {
-	background: rgba(245, 245, 247, 0.045);
+	background: rgba(13, 27, 46, 0.045);
 }
 
 .pfx-table tbody tr.selected {
@@ -10559,14 +10589,18 @@ a:focus-visible {
 }
 
 .pfx-client-cell strong {
-	color: rgba(245, 245, 247, 0.9);
+	max-width: 100%;
+	color: rgba(13, 27, 46, 0.9);
 	font-size: 13px;
 	font-weight: 720;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .pfx-client-cell span {
-	max-width: 220px;
-	color: rgba(245, 245, 247, 0.34);
+	max-width: 100%;
+	color: rgba(13, 27, 46, 0.34);
 	font-size: 10.5px;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -10579,14 +10613,17 @@ a:focus-visible {
 .pfx-validity-badge {
 	display: inline-flex;
 	align-items: center;
+	max-width: 100%;
 	min-height: 22px;
 	padding: 3px 8px;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.14);
 	border-radius: 999px;
-	background: rgba(245, 245, 247, 0.045);
-	color: rgba(245, 245, 247, 0.62);
+	background: rgba(13, 27, 46, 0.055);
+	color: rgba(13, 27, 46, 0.72);
 	font-size: 10.5px;
 	font-weight: 700;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
@@ -10611,7 +10648,7 @@ a:focus-visible {
 }
 
 .pfx-validity-badge.status-missing {
-	color: rgba(245, 245, 247, 0.4);
+	color: rgba(13, 27, 46, 0.4);
 }
 
 .pfx-row-whatsapp {
@@ -10639,7 +10676,7 @@ a:focus-visible {
 }
 
 .pfx-muted {
-	color: rgba(245, 245, 247, 0.26);
+	color: rgba(13, 27, 46, 0.26);
 	font-size: 11px;
 }
 
@@ -10654,12 +10691,12 @@ a:focus-visible {
 }
 
 .pfx-empty-state strong {
-	color: rgba(245, 245, 247, 0.72);
+	color: rgba(13, 27, 46, 0.72);
 	font-size: 13px;
 }
 
 .pfx-empty-state span {
-	color: rgba(245, 245, 247, 0.34);
+	color: rgba(13, 27, 46, 0.34);
 	font-size: 11px;
 }
 
@@ -10672,7 +10709,7 @@ a:focus-visible {
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
-	background: rgba(245, 245, 247, 0.35);
+	background: rgba(13, 27, 46, 0.35);
 	flex-shrink: 0;
 	box-shadow: 0 0 16px currentColor;
 }
@@ -10687,21 +10724,21 @@ a:focus-visible {
 	flex-direction: column;
 	gap: 8px;
 	padding: 14px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 12px;
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.045), rgba(245, 245, 247, 0.018));
+		linear-gradient(180deg, rgba(13, 27, 46, 0.045), rgba(13, 27, 46, 0.018));
 }
 
 .pfx-panel-hero strong {
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	font-size: 13px;
 	font-weight: 720;
 	word-break: break-word;
 }
 
 .pfx-panel-hero span:not(.pfx-validity-badge) {
-	color: rgba(245, 245, 247, 0.4);
+	color: rgba(13, 27, 46, 0.4);
 	font-size: 11px;
 }
 
@@ -10712,10 +10749,10 @@ a:focus-visible {
 	justify-content: center;
 	gap: 7px;
 	height: 32px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.06);
-	color: rgba(245, 245, 247, 0.78);
+	background: rgba(13, 27, 46, 0.06);
+	color: rgba(13, 27, 46, 0.78);
 	font-size: 12px;
 	font-weight: 650;
 	transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -10723,9 +10760,9 @@ a:focus-visible {
 
 .pfx-download-link:hover,
 .pfx-edit-btn:hover {
-	border-color: rgba(245, 245, 247, 0.2);
-	background: rgba(245, 245, 247, 0.1);
-	color: #f5f5f7;
+	border-color: rgba(13, 27, 46, 0.2);
+	background: rgba(13, 27, 46, 0.1);
+	color: #0d1b2e;
 }
 
 .pfx-edit-btn {
@@ -10765,7 +10802,7 @@ a:focus-visible {
 	justify-content: space-between;
 	gap: 12px;
 	padding-bottom: 8px;
-	border-bottom: 1px solid rgba(245, 245, 247, 0.06);
+	border-bottom: 1px solid rgba(13, 27, 46, 0.06);
 }
 
 .pfx-detail-list div:last-child {
@@ -10774,7 +10811,7 @@ a:focus-visible {
 }
 
 .pfx-detail-list span {
-	color: rgba(245, 245, 247, 0.36);
+	color: rgba(13, 27, 46, 0.36);
 	font-size: 10px;
 	font-weight: 720;
 	letter-spacing: 0.09em;
@@ -10782,7 +10819,7 @@ a:focus-visible {
 }
 
 .pfx-detail-list strong {
-	color: rgba(245, 245, 247, 0.78);
+	color: rgba(13, 27, 46, 0.78);
 	font-size: 11.5px;
 	font-weight: 650;
 	text-align: right;
@@ -10790,7 +10827,7 @@ a:focus-visible {
 
 .pfx-notes {
 	margin: 0;
-	color: rgba(245, 245, 247, 0.56);
+	color: rgba(13, 27, 46, 0.56);
 	font-size: 12px;
 	line-height: 1.45;
 }
@@ -10821,10 +10858,10 @@ a:focus-visible {
 .routine-tabs button {
 	height: 30px;
 	padding: 0 12px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 999px;
-	background: rgba(245, 245, 247, 0.035);
-	color: rgba(245, 245, 247, 0.48);
+	background: rgba(13, 27, 46, 0.035);
+	color: rgba(13, 27, 46, 0.48);
 	font-size: 11px;
 	font-weight: 700;
 	transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -10832,9 +10869,9 @@ a:focus-visible {
 
 .routine-tabs button:hover,
 .routine-tabs button.active {
-	border-color: rgba(245, 245, 247, 0.16);
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.9);
+	border-color: rgba(13, 27, 46, 0.16);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.9);
 }
 
 .routine-summary-grid {
@@ -10853,10 +10890,10 @@ a:focus-visible {
 .routine-month-control {
 	height: 34px;
 	width: 100%;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.035);
-	color: rgba(245, 245, 247, 0.78);
+	background: rgba(13, 27, 46, 0.035);
+	color: rgba(13, 27, 46, 0.78);
 	font-family: inherit;
 	font-size: 12px;
 	font-weight: 600;
@@ -10866,7 +10903,7 @@ a:focus-visible {
 
 .routine-filters input:focus,
 .routine-filters select:focus {
-	border-color: rgba(245, 245, 247, 0.2);
+	border-color: rgba(13, 27, 46, 0.2);
 }
 
 .routine-month-control {
@@ -10880,8 +10917,8 @@ a:focus-visible {
 .routine-month-control input {
 	height: 100%;
 	border: 0;
-	border-left: 1px solid rgba(245, 245, 247, 0.08);
-	border-right: 1px solid rgba(245, 245, 247, 0.08);
+	border-left: 1px solid rgba(13, 27, 46, 0.08);
+	border-right: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 0;
 	background: transparent;
 }
@@ -10890,7 +10927,7 @@ a:focus-visible {
 	height: 100%;
 	border: 0;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.72);
+	color: rgba(13, 27, 46, 0.72);
 	font-family: inherit;
 	font-size: 18px;
 	font-weight: 760;
@@ -10898,8 +10935,8 @@ a:focus-visible {
 }
 
 .routine-month-control button:hover {
-	background: rgba(245, 245, 247, 0.07);
-	color: rgba(245, 245, 247, 0.95);
+	background: rgba(13, 27, 46, 0.07);
+	color: rgba(13, 27, 46, 0.95);
 }
 
 .routine-table-card {
@@ -11014,7 +11051,7 @@ a:focus-visible {
 
 .routine-table-title {
 	padding: 13px 14px 0;
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 	font-size: 10px;
 	font-weight: 760;
 	letter-spacing: 0.12em;
@@ -11030,9 +11067,9 @@ a:focus-visible {
 	min-height: 24px;
 	padding: 0 9px;
 	border-radius: 999px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
-	background: rgba(245, 245, 247, 0.045);
-	color: rgba(245, 245, 247, 0.72);
+	border: 1px solid rgba(13, 27, 46, 0.08);
+	background: rgba(13, 27, 46, 0.045);
+	color: rgba(13, 27, 46, 0.72);
 	font-size: 11px;
 	font-weight: 700;
 }
@@ -11044,7 +11081,7 @@ a:focus-visible {
 }
 
 .routine-status-badge.inativo {
-	color: rgba(245, 245, 247, 0.46);
+	color: rgba(13, 27, 46, 0.46);
 }
 
 .routine-competence-badge {
@@ -11054,7 +11091,7 @@ a:focus-visible {
 	min-height: 24px;
 	padding: 0 9px;
 	border-radius: 999px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	font-size: 11px;
 	font-weight: 760;
 	white-space: nowrap;
@@ -11102,9 +11139,9 @@ a:focus-visible {
 .routine-open-btn {
 	height: 28px;
 	border-radius: 8px;
-	border: 1px solid rgba(245, 245, 247, 0.09);
-	background: rgba(245, 245, 247, 0.04);
-	color: rgba(245, 245, 247, 0.72);
+	border: 1px solid rgba(13, 27, 46, 0.09);
+	background: rgba(13, 27, 46, 0.04);
+	color: rgba(13, 27, 46, 0.72);
 	font-family: inherit;
 	font-size: 11px;
 	font-weight: 700;
@@ -11114,9 +11151,9 @@ a:focus-visible {
 
 .routine-row-actions button:hover,
 .routine-open-btn:hover {
-	border-color: rgba(245, 245, 247, 0.18);
-	background: rgba(245, 245, 247, 0.075);
-	color: rgba(245, 245, 247, 0.94);
+	border-color: rgba(13, 27, 46, 0.18);
+	background: rgba(13, 27, 46, 0.075);
+	color: rgba(13, 27, 46, 0.94);
 }
 
 .routine-row-actions svg {
@@ -11138,7 +11175,7 @@ a:focus-visible {
 	width: 100%;
 	border: 0;
 	background: transparent;
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	font-family: inherit;
 	font-size: inherit;
 	font-weight: 760;
@@ -11151,7 +11188,7 @@ a:focus-visible {
 }
 
 .routine-clickable-row:hover .routine-client-open {
-	color: #f5f5f7;
+	color: #0d1b2e;
 }
 
 .routine-quick-modal {
@@ -11164,13 +11201,13 @@ a:focus-visible {
 	justify-content: space-between;
 	gap: 14px;
 	padding: 10px 11px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 12px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 }
 
 .routine-quick-toolbar span {
-	color: rgba(245, 245, 247, 0.56);
+	color: rgba(13, 27, 46, 0.56);
 	font-size: 12px;
 	font-weight: 680;
 }
@@ -11183,10 +11220,10 @@ a:focus-visible {
 
 .routine-quick-toolbar button {
 	height: 28px;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.045);
-	color: rgba(245, 245, 247, 0.78);
+	background: rgba(13, 27, 46, 0.045);
+	color: rgba(13, 27, 46, 0.78);
 	font-family: inherit;
 	font-size: 11px;
 	font-weight: 720;
@@ -11196,9 +11233,9 @@ a:focus-visible {
 }
 
 .routine-quick-toolbar button:hover {
-	border-color: rgba(245, 245, 247, 0.18);
-	background: rgba(245, 245, 247, 0.075);
-	color: rgba(245, 245, 247, 0.94);
+	border-color: rgba(13, 27, 46, 0.18);
+	background: rgba(13, 27, 46, 0.075);
+	color: rgba(13, 27, 46, 0.94);
 }
 
 .routine-quick-client-list {
@@ -11212,9 +11249,9 @@ a:focus-visible {
 .routine-quick-client-list > p {
 	margin: 0;
 	padding: 18px 12px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 12px;
-	color: rgba(245, 245, 247, 0.48);
+	color: rgba(13, 27, 46, 0.48);
 	font-size: 12px;
 	font-weight: 650;
 	text-align: center;
@@ -11226,23 +11263,23 @@ a:focus-visible {
 	gap: 10px;
 	margin: 0;
 	padding: 10px 11px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 12px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 	cursor: pointer;
 	transition: background 0.15s, border-color 0.15s;
 }
 
 .routine-quick-client:hover {
-	border-color: rgba(245, 245, 247, 0.14);
-	background: rgba(245, 245, 247, 0.045);
+	border-color: rgba(13, 27, 46, 0.14);
+	background: rgba(13, 27, 46, 0.045);
 }
 
 .routine-quick-client input {
 	flex: 0 0 auto;
 	width: 16px;
 	height: 16px;
-	accent-color: #f5f5f7;
+	accent-color: #0d1b2e;
 }
 
 .routine-quick-client span {
@@ -11255,7 +11292,7 @@ a:focus-visible {
 .routine-quick-client strong {
 	max-width: 100%;
 	overflow: hidden;
-	color: rgba(245, 245, 247, 0.9);
+	color: rgba(13, 27, 46, 0.9);
 	font-size: 12px;
 	font-weight: 760;
 	text-overflow: ellipsis;
@@ -11265,7 +11302,7 @@ a:focus-visible {
 .routine-quick-client em {
 	max-width: 100%;
 	overflow: hidden;
-	color: rgba(245, 245, 247, 0.46);
+	color: rgba(13, 27, 46, 0.46);
 	font-size: 10.5px;
 	font-style: normal;
 	font-weight: 650;
@@ -11278,9 +11315,9 @@ a:focus-visible {
 	flex-direction: column;
 	gap: 9px;
 	padding: 11px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 12px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 }
 
 .routine-documents-header {
@@ -11291,7 +11328,7 @@ a:focus-visible {
 }
 
 .routine-documents-header span {
-	color: rgba(245, 245, 247, 0.5);
+	color: rgba(13, 27, 46, 0.5);
 	font-size: 11px;
 	font-weight: 760;
 	letter-spacing: 0.1em;
@@ -11306,10 +11343,10 @@ a:focus-visible {
 	width: auto;
 	margin: 0;
 	padding: 0 10px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.055);
-	color: rgba(245, 245, 247, 0.84);
+	background: rgba(13, 27, 46, 0.055);
+	color: rgba(13, 27, 46, 0.84);
 	font-size: 11px;
 	font-weight: 750;
 	cursor: pointer;
@@ -11332,15 +11369,15 @@ a:focus-visible {
 	max-width: 100%;
 	min-height: 28px;
 	padding: 0 7px 0 10px;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 999px;
-	background: rgba(245, 245, 247, 0.04);
+	background: rgba(13, 27, 46, 0.04);
 }
 
 .routine-document-chip a {
 	max-width: 190px;
 	overflow: hidden;
-	color: rgba(245, 245, 247, 0.82);
+	color: rgba(13, 27, 46, 0.82);
 	font-size: 11px;
 	font-weight: 700;
 	text-decoration: none;
@@ -11356,15 +11393,15 @@ a:focus-visible {
 	height: 18px;
 	border: 0;
 	border-radius: 999px;
-	background: rgba(245, 245, 247, 0.08);
-	color: rgba(245, 245, 247, 0.66);
+	background: rgba(13, 27, 46, 0.08);
+	color: rgba(13, 27, 46, 0.66);
 	font-size: 14px;
 	line-height: 1;
 }
 
 .routine-documents-field p {
 	margin: 0;
-	color: rgba(245, 245, 247, 0.4);
+	color: rgba(13, 27, 46, 0.4);
 	font-size: 12px;
 	font-weight: 650;
 }
@@ -11382,9 +11419,9 @@ a:focus-visible {
 	align-items: center;
 	gap: 12px;
 	padding: 13px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 14px;
-	background: linear-gradient(180deg, rgba(245, 245, 247, 0.045), rgba(245, 245, 247, 0.014));
+	background: linear-gradient(180deg, rgba(13, 27, 46, 0.045), rgba(13, 27, 46, 0.014));
 }
 
 .routine-checklist-header div {
@@ -11395,7 +11432,7 @@ a:focus-visible {
 }
 
 .routine-checklist-header span {
-	color: rgba(245, 245, 247, 0.42);
+	color: rgba(13, 27, 46, 0.42);
 	font-size: 10px;
 	font-weight: 760;
 	letter-spacing: 0.1em;
@@ -11403,7 +11440,7 @@ a:focus-visible {
 }
 
 .routine-checklist-header strong {
-	color: rgba(245, 245, 247, 0.92);
+	color: rgba(13, 27, 46, 0.92);
 	font-size: 16px;
 	font-weight: 760;
 	letter-spacing: -0.02em;
@@ -11411,10 +11448,10 @@ a:focus-visible {
 
 .routine-checklist-header button {
 	height: 32px;
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 9px;
-	background: rgba(245, 245, 247, 0.045);
-	color: rgba(245, 245, 247, 0.82);
+	background: rgba(13, 27, 46, 0.045);
+	color: rgba(13, 27, 46, 0.82);
 	font-size: 11px;
 	font-weight: 750;
 	padding: 0 12px;
@@ -11434,9 +11471,9 @@ a:focus-visible {
 	align-items: center;
 	gap: 10px;
 	padding: 10px;
-	border: 1px solid rgba(245, 245, 247, 0.07);
+	border: 1px solid rgba(13, 27, 46, 0.07);
 	border-radius: 12px;
-	background: rgba(245, 245, 247, 0.025);
+	background: rgba(13, 27, 46, 0.025);
 }
 
 .routine-checklist-title {
@@ -11456,7 +11493,7 @@ a:focus-visible {
 
 .routine-checklist-title strong {
 	min-width: 0;
-	color: rgba(245, 245, 247, 0.86);
+	color: rgba(13, 27, 46, 0.86);
 	font-size: 12px;
 	font-weight: 750;
 	overflow: hidden;
@@ -11467,7 +11504,7 @@ a:focus-visible {
 .routine-checklist-title em {
 	flex: none;
 	font-style: normal;
-	color: rgba(245, 245, 247, 0.34);
+	color: rgba(13, 27, 46, 0.34);
 	font-size: 10px;
 	font-weight: 700;
 	letter-spacing: 0.08em;
@@ -11483,10 +11520,10 @@ a:focus-visible {
 .routine-file-control {
 	height: 32px;
 	width: 100%;
-	border: 1px solid rgba(245, 245, 247, 0.09);
+	border: 1px solid rgba(13, 27, 46, 0.09);
 	border-radius: 8px;
-	background: rgba(245, 245, 247, 0.035);
-	color: rgba(245, 245, 247, 0.72);
+	background: rgba(13, 27, 46, 0.035);
+	color: rgba(13, 27, 46, 0.72);
 	font-family: inherit;
 	font-size: 11px;
 	font-weight: 650;
@@ -11509,7 +11546,7 @@ a:focus-visible {
 }
 
 .routine-checklist-item > span {
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 11px;
 	font-weight: 650;
 }
@@ -11523,13 +11560,13 @@ a:focus-visible {
 	display: grid;
 	gap: 4px;
 	padding: 10px 12px;
-	border: 1px solid rgba(245, 245, 247, 0.08);
+	border: 1px solid rgba(13, 27, 46, 0.08);
 	border-radius: 10px;
-	background: rgba(245, 245, 247, 0.03);
+	background: rgba(13, 27, 46, 0.03);
 }
 
 .routine-email-meta span {
-	color: rgba(245, 245, 247, 0.38);
+	color: rgba(13, 27, 46, 0.38);
 	font-size: 10px;
 	font-weight: 760;
 	letter-spacing: 0.12em;
@@ -11537,7 +11574,7 @@ a:focus-visible {
 }
 
 .routine-email-meta strong {
-	color: rgba(245, 245, 247, 0.84);
+	color: rgba(13, 27, 46, 0.84);
 	font-size: 12px;
 	font-weight: 720;
 	word-break: break-word;
@@ -13468,14 +13505,14 @@ a:focus-visible {
 	gap: 10px;
 	background: rgba(20, 20, 20, 0.92);
 	backdrop-filter: blur(10px);
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	border-radius: 100px;
 	padding: 6px 10px;
 	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 .board-align-count {
 	font-size: 11px;
-	color: rgba(245, 245, 247, 0.55);
+	color: rgba(13, 27, 46, 0.55);
 	padding: 0 4px 0 6px;
 	letter-spacing: .02em;
 }
@@ -13484,7 +13521,7 @@ a:focus-visible {
 	align-items: center;
 	gap: 2px;
 	padding: 0 6px;
-	border-left: 1px solid rgba(245, 245, 247, 0.08);
+	border-left: 1px solid rgba(13, 27, 46, 0.08);
 }
 .board-align-group:first-of-type { border-left: none; }
 .board-align-btn {
@@ -13496,13 +13533,13 @@ a:focus-visible {
 	background: transparent;
 	border: none;
 	border-radius: 6px;
-	color: rgba(245, 245, 247, 0.7);
+	color: rgba(13, 27, 46, 0.7);
 	cursor: pointer;
 	transition: background .12s, color .12s;
 }
 .board-align-btn svg { width: 18px; height: 18px; }
 .board-align-btn:hover:not(:disabled) {
-	background: rgba(245, 245, 247, 0.08);
+	background: rgba(13, 27, 46, 0.08);
 	color: #fff;
 }
 .board-align-btn:disabled {
@@ -13515,9 +13552,9 @@ a:focus-visible {
 	margin-top: 2px;
 	font-size: 10px;
 	line-height: 1.2;
-	color: rgba(245, 245, 247, 0.55);
-	background: rgba(245, 245, 247, 0.06);
-	border: 1px solid rgba(245, 245, 247, 0.1);
+	color: rgba(13, 27, 46, 0.55);
+	background: rgba(13, 27, 46, 0.06);
+	border: 1px solid rgba(13, 27, 46, 0.1);
 	padding: 2px 7px;
 	border-radius: 100px;
 	max-width: 140px;
@@ -13529,12 +13566,12 @@ a:focus-visible {
 
 /* ── Custom logo node (URL) ─────────────────────────────── */
 .board-source-node[data-kind="Custom"] .board-source-node-icon {
-	border-color: rgba(245, 245, 247, 0.25);
+	border-color: rgba(13, 27, 46, 0.25);
 	background: rgba(20, 20, 20, 0.9);
 }
 .board-source-node[data-kind="Custom"]:hover .board-source-node-icon {
-	border-color: rgba(245, 245, 247, 0.6);
-	box-shadow: 0 0 0 4px rgba(245,245,247,0.08), 0 4px 16px rgba(0,0,0,0.5);
+	border-color: rgba(13, 27, 46, 0.6);
+	box-shadow: 0 0 0 4px rgba(13, 27, 46, 0.08), 0 4px 16px rgba(0,0,0,0.5);
 }
 .board-source-node[data-kind="Custom"] .board-node-handle { background: #c4c4c8; border-color: #c4c4c8; }
 
@@ -13542,18 +13579,18 @@ a:focus-visible {
 .board-circle-node[data-kind] .board-circle-node-icon,
 .board-source-node[data-kind] .board-source-node-icon {
 	background:
-		linear-gradient(180deg, rgba(245, 245, 247, 0.105), rgba(245, 245, 247, 0.038)),
-		#101012 !important;
-	border-color: rgba(245, 245, 247, 0.17) !important;
+		linear-gradient(180deg, rgba(13, 27, 46, 0.105), rgba(13, 27, 46, 0.038)),
+		#ffffff !important;
+	border-color: rgba(13, 27, 46, 0.17) !important;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.08),
+		inset 0 1px 0 rgba(13, 27, 46, 0.08),
 		0 14px 30px rgba(0, 0, 0, 0.34) !important;
 }
 
 .board-circle-node[data-kind] .board-circle-node-icon svg,
 .board-source-node[data-kind] .board-source-node-icon svg {
-	color: rgba(245, 245, 247, 0.82) !important;
-	stroke: rgba(245, 245, 247, 0.82) !important;
+	color: rgba(13, 27, 46, 0.82) !important;
+	stroke: rgba(13, 27, 46, 0.82) !important;
 }
 
 .board-source-node[data-kind] .board-source-node-icon img {
@@ -13568,7 +13605,7 @@ a:focus-visible {
 }
 
 .board-source-node[data-kind="Custom"] .board-custom-logo-wrap {
-	background: rgba(245, 245, 247, 0.96);
+	background: rgba(13, 27, 46, 0.96);
 	box-shadow:
 		inset 0 0 0 1px rgba(6, 6, 6, 0.06),
 		0 8px 18px rgba(0, 0, 0, 0.28);
@@ -13576,9 +13613,9 @@ a:focus-visible {
 
 .board-circle-node[data-kind]:hover .board-circle-node-icon,
 .board-source-node[data-kind]:hover .board-source-node-icon {
-	border-color: rgba(245, 245, 247, 0.34) !important;
+	border-color: rgba(13, 27, 46, 0.34) !important;
 	box-shadow:
-		inset 0 1px 0 rgba(245, 245, 247, 0.1),
+		inset 0 1px 0 rgba(13, 27, 46, 0.1),
 		0 16px 34px rgba(0, 0, 0, 0.42) !important;
 }
 
@@ -13594,7 +13631,7 @@ a:focus-visible {
 .board-circle-node[data-kind] .board-node-handle {
 	background: #818cf8 !important;
 	border-color: #818cf8 !important;
-	box-shadow: 0 0 0 1px rgba(245, 245, 247, 0.18), 0 0 12px rgba(129, 140, 248, 0.28);
+	box-shadow: 0 0 0 1px rgba(13, 27, 46, 0.18), 0 0 12px rgba(129, 140, 248, 0.28);
 }
 
 /* Override do tamanho default de img dentro do icon, para o logo custom respeitar size inline */
@@ -13623,8 +13660,8 @@ a:focus-visible {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: rgba(245,245,247,0.5);
-	border: 1px dashed rgba(245,245,247,0.25);
+	color: rgba(13, 27, 46, 0.5);
+	border: 1px dashed rgba(13, 27, 46, 0.25);
 }
 .board-custom-logo-placeholder svg {
 	width: 60% !important;
@@ -13659,7 +13696,7 @@ a:focus-visible {
 	transition: border-color .15s;
 }
 .board-custom-logo-body input[type="url"]:focus {
-	border-color: rgba(245,245,247,0.4);
+	border-color: rgba(13, 27, 46, 0.4);
 }
 .board-custom-logo-preview {
 	display: flex;
@@ -13683,7 +13720,7 @@ a:focus-visible {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border: 2px solid rgba(245,245,247,0.15);
+	border: 2px solid rgba(13, 27, 46, 0.15);
 }
 .board-custom-logo-preview-circle img {
 	width: 100%;
