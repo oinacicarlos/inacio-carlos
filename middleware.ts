@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_ROUTES = ['/contabilidade', '/pfx', '/solicitacoes-clientes', '/onboarding-clientes']
+const ADMIN_ROUTES = ['/clientes', '/pfx', '/solicitacoes-clientes', '/onboarding-clientes']
+const LEGACY_ADMIN_ROUTES = ['/crm', '/contabilidade']
 const HUB_ROUTES = ['/hub']
 
 function matchesRoute(pathname: string, routes: string[]) {
@@ -18,9 +19,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isAdminRoute = matchesRoute(pathname, ADMIN_ROUTES)
+  const isLegacyAdminRoute = matchesRoute(pathname, LEGACY_ADMIN_ROUTES)
   const isHubRoute = matchesRoute(pathname, HUB_ROUTES)
 
-  if (!isAdminRoute && !isHubRoute) {
+  if (!isAdminRoute && !isLegacyAdminRoute && !isHubRoute) {
     return NextResponse.next()
   }
 
@@ -55,12 +57,20 @@ export async function middleware(request: NextRequest) {
     return redirectPreservingCookies(request, response, '/login')
   }
 
-  if (isAdminRoute) {
+  if (isHubRoute && pathname !== '/hub') {
+    return redirectPreservingCookies(request, response, '/hub')
+  }
+
+  if (isAdminRoute || isLegacyAdminRoute) {
     const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
     const isConfirmedAdmin = adminError === null && isAdmin === true
 
     if (!isConfirmedAdmin) {
       return redirectPreservingCookies(request, response, '/hub')
+    }
+
+    if (isLegacyAdminRoute) {
+      return redirectPreservingCookies(request, response, '/clientes')
     }
   }
 
@@ -71,6 +81,10 @@ export const config = {
   matcher: [
     '/hub',
     '/hub/:path*',
+    '/crm',
+    '/crm/:path*',
+    '/clientes',
+    '/clientes/:path*',
     '/contabilidade',
     '/contabilidade/:path*',
     '/pfx',

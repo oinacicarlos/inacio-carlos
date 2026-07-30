@@ -13,12 +13,20 @@ import {
 } from '@/lib/client-requests/constants'
 import {
   ABERTURA_STATUS_LABELS,
+  ALTERACAO_STATUS_LABELS,
   CERTIFICADO_STATUS_LABELS,
   DOCUMENT_BUCKET,
   DOCUMENT_FIELDS,
+  ESTADO_CIVIL_LABELS,
+  MEI_STATUS_LABELS,
+  REGIME_BENS_LABELS,
   type AberturaStatus,
+  type AlteracaoStatus,
   type CertificadoStatus,
   type DocumentField,
+  type EstadoCivil,
+  type MeiStatus,
+  type RegimeBens,
 } from '@/lib/onboarding/constants'
 
 type AdminModule =
@@ -92,6 +100,8 @@ type RoutineRegime = 'MEI' | 'Simples Nacional'
 type RoutineClientStatus = 'Ativo' | 'Inativo'
 type RoutineItemStatus = 'Pendente' | 'Não precisa' | 'Anexado' | 'Enviado'
 type RoutineArea = 'Clientes' | 'Competências'
+type RoutineDepartment = 'Obrigatoriedade' | 'Fiscal' | 'Atualização Cadastral' | 'Departamento Pessoal' | 'Obrigações específicas'
+type RoutineAttachmentCategory = 'socios' | 'endereco' | 'contratos' | 'cnpj_inscricoes' | 'licencas' | 'procuracao'
 
 type RoutineClientDocument = {
   id: string
@@ -109,12 +119,29 @@ type RoutineClient = {
   partnerCpf: string
   regime: RoutineRegime
   hasPayroll: boolean
+  hasEmployees: boolean
+  hasProLabore: boolean
+  issuesInvoices: boolean
+  needsFiscalTracking: boolean
   whatsapp: string
   email: string
   monthlyFee: number
   notes: string
   status: RoutineClientStatus
   documents: RoutineClientDocument[]
+  createdAt: string
+  updatedAt: string
+}
+
+type RoutineClientAttachment = {
+  id: string
+  clientId: string
+  category: RoutineAttachmentCategory
+  displayName: string
+  fileName: string
+  storagePath: string
+  mimeType: string
+  fileSize: number
   createdAt: string
   updatedAt: string
 }
@@ -131,12 +158,56 @@ type RoutineItem = {
   id: string
   competenceId: string
   routineName: string
+  department: RoutineDepartment
+  category: string
   status: RoutineItemStatus
   fileName: string
   fileUrl: string
   notes: string
+  requiresFile: boolean
+  isCustom: boolean
+  customObligationId: string
+  sortOrder: number
   sentAt: string
   updatedAt: string
+}
+
+type RoutineClientCustomObligation = {
+  id: string
+  clientId: string
+  name: string
+  department: RoutineDepartment
+  category: string
+  requiresFile: boolean
+  active: boolean
+  notes: string
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+type RoutineDefinition = {
+  name: string
+  department: RoutineDepartment
+  category: string
+  regimes: RoutineRegime[]
+  requiresFile: boolean
+  sortOrder: number
+  requiresPayroll?: boolean
+  requiresInvoices?: boolean
+  requiresFiscalTracking?: boolean
+}
+
+type RoutineItemInsertPayload = {
+  competence_id: string
+  routine_name: string
+  department: RoutineDepartment
+  category: string
+  requires_file: boolean
+  is_custom: boolean
+  custom_obligation_id: string | null
+  sort_order: number
+  status: RoutineItemStatus
 }
 
 type RoutineCompetenceStatus = 'Enviado' | 'Inacabado'
@@ -149,6 +220,10 @@ type RoutineClientRow = {
   partner_cpf?: string
   regime: string
   has_payroll?: boolean
+  has_employees?: boolean
+  has_pro_labore?: boolean
+  issues_invoices?: boolean
+  needs_fiscal_tracking?: boolean
   whatsapp: string
   email: string
   monthly_fee: number
@@ -171,11 +246,44 @@ type RoutineItemRow = {
   id: string
   competence_id: string
   routine_name: string
+  department?: string
+  category?: string
   status: string
   file_name: string
   file_url: string
   notes: string
+  requires_file?: boolean
+  is_custom?: boolean
+  custom_obligation_id?: string | null
+  sort_order?: number | null
   sent_at: string | null
+  updated_at: string
+}
+
+type RoutineClientCustomObligationRow = {
+  id: string
+  client_id: string
+  name: string
+  department: string
+  category: string
+  requires_file: boolean | null
+  active: boolean | null
+  notes: string | null
+  sort_order: number | null
+  created_at: string
+  updated_at: string
+}
+
+type RoutineClientAttachmentRow = {
+  id: string
+  client_id: string
+  category: string
+  display_name: string
+  file_name: string
+  storage_path: string
+  mime_type: string | null
+  file_size: number | null
+  created_at: string
   updated_at: string
 }
 
@@ -186,6 +294,10 @@ type RoutineClientFormData = {
   partnerCpf: string
   regime: RoutineRegime
   hasPayroll: boolean
+  hasEmployees: boolean
+  hasProLabore: boolean
+  issuesInvoices: boolean
+  needsFiscalTracking: boolean
   whatsapp: string
   email: string
   monthlyFee: number
@@ -197,23 +309,53 @@ type RoutineClientFormData = {
 const ROUTINE_CLIENTS_TABLE = 'routine_clients'
 const ROUTINE_COMPETENCES_TABLE = 'routine_competences'
 const ROUTINE_ITEMS_TABLE = 'routine_items'
+const ROUTINE_CLIENT_CUSTOM_OBLIGATIONS_TABLE = 'routine_client_custom_obligations'
+const ROUTINE_CLIENT_ATTACHMENTS_TABLE = 'routine_client_attachments'
+const ROUTINE_CLIENT_ATTACHMENTS_BUCKET = 'routine-client-attachments'
+const ROUTINE_ATTACHMENT_LIMIT_BYTES = 10 * 1024 * 1024
 
 const ROUTINE_AREAS: RoutineArea[] = ['Clientes', 'Competências']
 const ROUTINE_REGIMES: RoutineRegime[] = ['MEI', 'Simples Nacional']
 const ROUTINE_ITEM_STATUSES: RoutineItemStatus[] = ['Pendente', 'Não precisa', 'Anexado', 'Enviado']
-const ROUTINE_NAMES = [
-  'Extrato Bancário',
-  'Soma de NFe',
-  'Fechamento de Folha',
-  'Folha/FGTS & DCTFWEB',
-  'PGDAS/DAS-MEI',
-  'DAE',
-  'Situação Fiscal',
-  'Certidão',
-  'CNPJ',
-  'Simples Nacional',
-  'Serasa',
+const ROUTINE_DEPARTMENTS: RoutineDepartment[] = ['Obrigatoriedade', 'Fiscal', 'Atualização Cadastral', 'Departamento Pessoal', 'Obrigações específicas']
+const ROUTINE_ATTACHMENT_CATEGORIES: Array<{
+  key: RoutineAttachmentCategory
+  label: string
+  description: string
+}> = [
+  { key: 'socios', label: 'Sócios', description: 'Documentos dos sócios, CPF, RG e dados pessoais.' },
+  { key: 'endereco', label: 'Endereço', description: 'Comprovantes, IPTU, contrato de locação e afins.' },
+  { key: 'contratos', label: 'Contratos', description: 'Contrato social, alterações e documentos societários.' },
+  { key: 'cnpj_inscricoes', label: 'CNPJ e Inscrições', description: 'Cartão CNPJ, inscrição municipal e estadual.' },
+  { key: 'licencas', label: 'Licenças', description: 'Alvarás, licenças e autorizações específicas.' },
+  { key: 'procuracao', label: 'Procuração', description: 'Procurações digitais, autorizações e acessos.' },
 ]
+const ROUTINE_DEFINITIONS: RoutineDefinition[] = [
+  { name: 'DAS', department: 'Obrigatoriedade', category: 'Obrigação mensal', regimes: ['MEI'], requiresFile: true, sortOrder: 10 },
+
+  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['MEI'], requiresFile: true, requiresInvoices: true, sortOrder: 100 },
+  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 100 },
+  { name: 'Declaração Simples', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 110 },
+  { name: 'Recibo de Declaração', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 120 },
+  { name: 'Guia PGDAS', department: 'Fiscal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 130 },
+  { name: 'Optante Simples', department: 'Fiscal', category: 'Conferência', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 140 },
+
+  { name: 'Cartão CNPJ', department: 'Atualização Cadastral', category: 'Cadastro', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 200 },
+  { name: 'QSA', department: 'Atualização Cadastral', category: 'Cadastro', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 210 },
+  { name: 'Certidão CADIN', department: 'Atualização Cadastral', category: 'Certidões', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 220 },
+  { name: 'Situação Fiscal', department: 'Atualização Cadastral', category: 'Certidões', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 230 },
+  { name: 'Serasa', department: 'Atualização Cadastral', category: 'Conferência', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 240 },
+
+  { name: 'Folha de PG', department: 'Departamento Pessoal', category: 'Folha', regimes: ['MEI'], requiresFile: true, requiresPayroll: true, sortOrder: 300 },
+  { name: 'DAE', department: 'Departamento Pessoal', category: 'Guias', regimes: ['MEI'], requiresFile: true, requiresPayroll: true, sortOrder: 310 },
+  { name: 'Folha de PG', department: 'Departamento Pessoal', category: 'Folha', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 300 },
+  { name: 'Extrato Mensal de Folha', department: 'Departamento Pessoal', category: 'Folha', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 310 },
+  { name: 'Guia FGTS', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 320 },
+  { name: 'Guia INSS', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 330 },
+  { name: 'Relatório de Consignado', department: 'Departamento Pessoal', category: 'Relatórios', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 340 },
+  { name: 'Detalhamento de Guia', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 350 },
+]
+const ROUTINE_NAMES = Array.from(new Set(ROUTINE_DEFINITIONS.map(definition => definition.name)))
 
 const ROUTINE_STATUS_DOT: Record<RoutineItemStatus, string> = {
   'Pendente': '#f59e0b',
@@ -291,6 +433,10 @@ function normalizePfxWhatsapp(value: string) {
 }
 
 function mapRoutineClient(row: RoutineClientRow): RoutineClient {
+  const hasEmployees = row.has_employees === true
+  const hasProLabore = row.has_pro_labore === true
+  const hasPayroll = row.has_payroll === true || hasEmployees || hasProLabore
+
   return {
     id: row.id,
     name: row.name ?? '',
@@ -298,7 +444,11 @@ function mapRoutineClient(row: RoutineClientRow): RoutineClient {
     partnerName: row.partner_name ?? '',
     partnerCpf: row.partner_cpf ?? '',
     regime: row.regime === 'Simples Nacional' ? 'Simples Nacional' : 'MEI',
-    hasPayroll: row.has_payroll === true,
+    hasPayroll,
+    hasEmployees,
+    hasProLabore,
+    issuesInvoices: row.issues_invoices !== false,
+    needsFiscalTracking: row.needs_fiscal_tracking !== false,
     whatsapp: row.whatsapp ?? '',
     email: row.email ?? '',
     monthlyFee: Number(row.monthly_fee ?? 0),
@@ -327,26 +477,88 @@ function parseRoutineClientDocuments(value: unknown): RoutineClientDocument[] {
   })
 }
 
-function isRoutineApplicableToClient(client: RoutineClient | null | undefined, routineName: string) {
+function normalizeRoutineDepartment(value: string | null | undefined): RoutineDepartment {
+  return ROUTINE_DEPARTMENTS.includes(value as RoutineDepartment) ? value as RoutineDepartment : 'Atualização Cadastral'
+}
+
+function getRoutineDefinitionByName(name: string, client?: RoutineClient | null) {
+  return ROUTINE_DEFINITIONS.find(definition =>
+    definition.name === name && (!client || definition.regimes.includes(client.regime))
+  ) ?? ROUTINE_DEFINITIONS.find(definition => definition.name === name)
+}
+
+function isRoutineDefinitionApplicableToClient(client: RoutineClient | null | undefined, definition: RoutineDefinition) {
   if (!client) return false
+  if (!definition.regimes.includes(client.regime)) return false
+  if (definition.requiresPayroll && !(client.hasPayroll || client.hasEmployees || client.hasProLabore)) return false
+  if (definition.requiresInvoices && !client.issuesInvoices) return false
+  if (definition.requiresFiscalTracking && !client.needsFiscalTracking) return false
+  return true
+}
 
-  const isPayrollClosing = routineName === 'Fechamento de Folha'
-  const isDae = routineName === 'DAE'
-  const isFgtsDctfWeb = routineName === 'Folha/FGTS & DCTFWEB'
-  const isPayrollRoutine = isPayrollClosing || isDae || isFgtsDctfWeb
-
-  if (!isPayrollRoutine) return true
-  if (!client.hasPayroll) return false
-
-  if (client.regime === 'MEI') {
-    return isPayrollClosing || isDae
-  }
-
-  return isPayrollClosing || isFgtsDctfWeb
+function isRoutineApplicableToClient(client: RoutineClient | null | undefined, routineName: string) {
+  const definition = getRoutineDefinitionByName(routineName, client)
+  if (!definition) return true
+  return isRoutineDefinitionApplicableToClient(client, definition)
 }
 
 function getApplicableRoutineNames(client: RoutineClient | null | undefined) {
-  return ROUTINE_NAMES.filter(routineName => isRoutineApplicableToClient(client, routineName))
+  return ROUTINE_DEFINITIONS
+    .filter(definition => isRoutineDefinitionApplicableToClient(client, definition))
+    .map(definition => definition.name)
+}
+
+function getApplicableRoutineDefinitions(client: RoutineClient | null | undefined) {
+  return ROUTINE_DEFINITIONS.filter(definition => isRoutineDefinitionApplicableToClient(client, definition))
+}
+
+function getRoutineItemDepartment(item: Pick<RoutineItem, 'routineName' | 'department'>, client?: RoutineClient | null) {
+  if (item.department) return item.department
+  return getRoutineDefinitionByName(item.routineName, client)?.department ?? 'Atualização Cadastral'
+}
+
+function getRoutineItemCategory(item: Pick<RoutineItem, 'routineName' | 'category'>, client?: RoutineClient | null) {
+  if (item.category) return item.category
+  return getRoutineDefinitionByName(item.routineName, client)?.category ?? 'Rotina mensal'
+}
+
+function buildRoutineItemsPayload(
+  client: RoutineClient | null | undefined,
+  competenceId: string,
+  customObligations: RoutineClientCustomObligation[]
+): RoutineItemInsertPayload[] {
+  const standardPayload = getApplicableRoutineDefinitions(client).map(definition => ({
+    competence_id: competenceId,
+    routine_name: definition.name,
+    department: definition.department,
+    category: definition.category,
+    requires_file: definition.requiresFile,
+    is_custom: false,
+    custom_obligation_id: null,
+    sort_order: definition.sortOrder,
+    status: 'Pendente' as RoutineItemStatus,
+  }))
+
+  const customPayload = customObligations
+    .filter(obligation => obligation.active && (!client || obligation.clientId === client.id))
+    .map((obligation, index) => ({
+      competence_id: competenceId,
+      routine_name: obligation.name,
+      department: obligation.department,
+      category: obligation.category || 'Personalizada',
+      requires_file: obligation.requiresFile,
+      is_custom: true,
+      custom_obligation_id: obligation.id,
+      sort_order: obligation.sortOrder || 900 + index,
+      status: 'Pendente' as RoutineItemStatus,
+    }))
+
+  return [...standardPayload, ...customPayload]
+}
+
+function isRoutineItemApplicableToClient(client: RoutineClient | null | undefined, item: RoutineItem) {
+  if (item.isCustom) return true
+  return isRoutineApplicableToClient(client, item.routineName)
 }
 
 function mapRoutineCompetence(row: RoutineCompetenceRow): RoutineCompetence {
@@ -363,18 +575,69 @@ function mapRoutineItem(row: RoutineItemRow): RoutineItem {
   const status = ROUTINE_ITEM_STATUSES.includes(row.status as RoutineItemStatus)
     ? row.status as RoutineItemStatus
     : 'Pendente'
+  const fallbackDefinition = getRoutineDefinitionByName(row.routine_name ?? '')
 
   return {
     id: row.id,
     competenceId: row.competence_id,
     routineName: row.routine_name ?? '',
+    department: normalizeRoutineDepartment(row.department ?? fallbackDefinition?.department),
+    category: row.category ?? fallbackDefinition?.category ?? 'Rotina mensal',
     status,
     fileName: row.file_name ?? '',
     fileUrl: row.file_url ?? '',
     notes: row.notes ?? '',
+    requiresFile: row.requires_file ?? fallbackDefinition?.requiresFile ?? true,
+    isCustom: row.is_custom === true,
+    customObligationId: row.custom_obligation_id ?? '',
+    sortOrder: Number(row.sort_order ?? fallbackDefinition?.sortOrder ?? 500),
     sentAt: row.sent_at ?? '',
     updatedAt: row.updated_at,
   }
+}
+
+function mapRoutineClientCustomObligation(row: RoutineClientCustomObligationRow): RoutineClientCustomObligation {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    name: row.name ?? '',
+    department: normalizeRoutineDepartment(row.department),
+    category: row.category ?? 'Personalizada',
+    requiresFile: row.requires_file !== false,
+    active: row.active !== false,
+    notes: row.notes ?? '',
+    sortOrder: Number(row.sort_order ?? 900),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function mapRoutineClientAttachment(row: RoutineClientAttachmentRow): RoutineClientAttachment {
+  const category = ROUTINE_ATTACHMENT_CATEGORIES.some(item => item.key === row.category)
+    ? row.category as RoutineAttachmentCategory
+    : 'contratos'
+
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    category,
+    displayName: row.display_name || row.file_name || 'Documento',
+    fileName: row.file_name || row.display_name || 'documento',
+    storagePath: row.storage_path,
+    mimeType: row.mime_type ?? '',
+    fileSize: Number(row.file_size ?? 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function sanitizeRoutineAttachmentFileName(name: string) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 120) || 'documento'
 }
 
 function maskRoutineCnpj(value: string) {
@@ -467,7 +730,7 @@ function formatRoutineSentDate(value: string) {
 }
 
 function buildRoutineMessage(client: RoutineClient, competence: RoutineCompetence, items: RoutineItem[]) {
-  const applicableItems = items.filter(item => isRoutineApplicableToClient(client, item.routineName))
+  const applicableItems = items.filter(item => isRoutineItemApplicableToClient(client, item))
   const attached = applicableItems.filter(item => item.status === 'Anexado' || item.status === 'Enviado').map(item => item.routineName)
   const pending = applicableItems.filter(item => item.status === 'Pendente').map(item => item.routineName)
   const skipped = applicableItems.filter(item => item.status === 'Não precisa').map(item => item.routineName)
@@ -490,7 +753,7 @@ function buildRoutineMessage(client: RoutineClient, competence: RoutineCompetenc
 }
 
 function getRoutineCompetenceStatus(client: RoutineClient | null | undefined, items: RoutineItem[]): RoutineCompetenceStatus {
-  const applicableItems = items.filter(item => isRoutineApplicableToClient(client, item.routineName))
+  const applicableItems = items.filter(item => isRoutineItemApplicableToClient(client, item))
   if (!applicableItems.length) return 'Inacabado'
   return applicableItems.every(item => item.status === 'Enviado' || item.status === 'Não precisa') ? 'Enviado' : 'Inacabado'
 }
@@ -551,16 +814,17 @@ function getPfxWhatsappUrl(client: PfxClient, intent: PfxWhatsAppIntent) {
 
 const MODULES: Array<{
   name: AdminModule
+  label: string
   icon: 'routines' | 'pfx' | 'clients'
 }> = [
-  { name: 'Contabilidade', icon: 'routines' },
-  { name: 'PFX', icon: 'pfx' },
-  { name: 'Solicitacoes', icon: 'clients' },
-  { name: 'Onboarding', icon: 'clients' },
+  { name: 'Contabilidade', label: 'Clientes', icon: 'routines' },
+  { name: 'PFX', label: 'PFX', icon: 'pfx' },
+  { name: 'Solicitacoes', label: 'Solicitações', icon: 'clients' },
+  { name: 'Onboarding', label: 'Onboarding', icon: 'clients' },
 ]
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
-  Contabilidade: '/contabilidade',
+  Contabilidade: '/clientes',
   PFX: '/pfx',
   Solicitacoes: '/solicitacoes-clientes',
   Onboarding: '/onboarding-clientes',
@@ -951,7 +1215,7 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
                 }
               }}
               type="button"
-              title={module.name}
+              title={module.label}
             >
               <span className="module-icon-wrap">
                 <ModuleIcon type={module.icon} />
@@ -1139,7 +1403,10 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
         ) : activeModule === 'Solicitacoes' ? (
           <ClientRequestsAdminModule />
         ) : activeModule === 'Onboarding' ? (
-          <OnboardingAdminModule />
+          <>
+            <OnboardingAdminModule />
+            <PresumidoRealLeadsModule />
+          </>
         ) : (
           <div className="admin-module-empty">
             <h2 id="active-module-title">{activeModule}</h2>
@@ -1154,6 +1421,8 @@ function RoutineControlModule() {
   const [clients, setClients] = useState<RoutineClient[]>([])
   const [competences, setCompetences] = useState<RoutineCompetence[]>([])
   const [items, setItems] = useState<RoutineItem[]>([])
+  const [customObligations, setCustomObligations] = useState<RoutineClientCustomObligation[]>([])
+  const [attachments, setAttachments] = useState<RoutineClientAttachment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeArea, setActiveArea] = useState<RoutineArea>('Clientes')
@@ -1161,9 +1430,13 @@ function RoutineControlModule() {
   const [regimeFilter, setRegimeFilter] = useState<'Todos' | RoutineRegime>('Todos')
   const [payrollFilter, setPayrollFilter] = useState<'Todos' | 'Sim' | 'Não'>('Todos')
   const [competenceClientFilter, setCompetenceClientFilter] = useState('Todos')
+  const [competenceRegimeFilter, setCompetenceRegimeFilter] = useState<'Todos' | RoutineRegime>('Todos')
+  const [competencePayrollFilter, setCompetencePayrollFilter] = useState<'Todos' | 'Sim' | 'Não'>('Todos')
+  const [competenceStatusFilter, setCompetenceStatusFilter] = useState<'Todos' | RoutineCompetenceStatus>('Todos')
   const [competenceMonthFilter, setCompetenceMonthFilter] = useState(getCurrentRoutineCompetenceMonth().slice(0, 7))
   const [selectedCompetenceId, setSelectedCompetenceId] = useState<string | null>(null)
   const [clientModal, setClientModal] = useState<RoutineClient | null | 'new'>(null)
+  const [attachmentsClient, setAttachmentsClient] = useState<RoutineClient | null>(null)
   const [competenceModalOpen, setCompetenceModalOpen] = useState(false)
   const [quickCompetenceModalOpen, setQuickCompetenceModalOpen] = useState(false)
   const [messageModalOpen, setMessageModalOpen] = useState(false)
@@ -1181,7 +1454,7 @@ function RoutineControlModule() {
     ])
 
     if (clientsResult.error || competencesResult.error || itemsResult.error) {
-      setError('Não consegui carregar a Contabilidade. Execute o SQL de criação das tabelas.')
+      setError('Não consegui carregar Clientes. Execute o SQL de criação das tabelas.')
       setLoading(false)
       return
     }
@@ -1189,6 +1462,31 @@ function RoutineControlModule() {
     setClients((clientsResult.data ?? []).map(row => mapRoutineClient(row as RoutineClientRow)))
     setCompetences((competencesResult.data ?? []).map(row => mapRoutineCompetence(row as RoutineCompetenceRow)))
     setItems((itemsResult.data ?? []).map(row => mapRoutineItem(row as RoutineItemRow)))
+
+    const attachmentsResult = await supabase
+      .from(ROUTINE_CLIENT_ATTACHMENTS_TABLE)
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    const customObligationsResult = await supabase
+      .from(ROUTINE_CLIENT_CUSTOM_OBLIGATIONS_TABLE)
+      .select('*')
+      .order('sort_order', { ascending: true })
+
+    if (attachmentsResult.error) {
+      setAttachments([])
+      setError('Clientes carregados. Execute o SQL de anexos para liberar as pastas de documentos.')
+    } else {
+      setAttachments((attachmentsResult.data ?? []).map(row => mapRoutineClientAttachment(row as RoutineClientAttachmentRow)))
+    }
+
+    if (customObligationsResult.error) {
+      setCustomObligations([])
+      setError('Clientes carregados. Execute o SQL de competências para liberar obrigações específicas.')
+    } else {
+      setCustomObligations((customObligationsResult.data ?? []).map(row => mapRoutineClientCustomObligation(row as RoutineClientCustomObligationRow)))
+    }
+
     setLoading(false)
   }
 
@@ -1199,11 +1497,21 @@ function RoutineControlModule() {
   const selectedItems = selectedCompetence ? items.filter(item => item.competenceId === selectedCompetence.id) : []
   const selectedVisibleItems = selectedClient
     ? selectedItems.filter(item =>
-        isRoutineApplicableToClient(selectedClient, item.routineName) ||
+        isRoutineItemApplicableToClient(selectedClient, item) ||
         item.status !== 'Pendente' ||
         Boolean(item.fileName || item.notes || item.sentAt)
+      ).sort((a, b) =>
+        ROUTINE_DEPARTMENTS.indexOf(getRoutineItemDepartment(a, selectedClient)) - ROUTINE_DEPARTMENTS.indexOf(getRoutineItemDepartment(b, selectedClient)) ||
+        a.sortOrder - b.sortOrder ||
+        a.routineName.localeCompare(b.routineName)
       )
     : selectedItems
+  const selectedItemsByDepartment = selectedClient
+    ? ROUTINE_DEPARTMENTS.map(department => ({
+        department,
+        items: selectedVisibleItems.filter(item => getRoutineItemDepartment(item, selectedClient) === department),
+      })).filter(group => group.items.length > 0)
+    : []
 
   const getClient = (clientId: string) => clients.find(client => client.id === clientId) ?? null
   const getCompetenceItems = (competenceId: string) => items.filter(item => item.competenceId === competenceId)
@@ -1221,11 +1529,189 @@ function RoutineControlModule() {
   const filteredCompetences = useMemo(() => {
     const month = competenceMonthFilter ? normalizeRoutineCompetenceMonth(competenceMonthFilter) : ''
     return competences.filter(competence => {
+      const client = getClient(competence.clientId)
+      const competenceItems = getCompetenceItems(competence.id)
+      const competenceStatus = getRoutineCompetenceStatus(client, competenceItems)
       const matchesClient = competenceClientFilter === 'Todos' || competence.clientId === competenceClientFilter
       const matchesMonth = !month || competence.competenceMonth === month
-      return matchesClient && matchesMonth
+      const matchesRegime = competenceRegimeFilter === 'Todos' || client?.regime === competenceRegimeFilter
+      const matchesPayroll = competencePayrollFilter === 'Todos' || (competencePayrollFilter === 'Sim' ? Boolean(client?.hasPayroll) : !client?.hasPayroll)
+      const matchesStatus = competenceStatusFilter === 'Todos' || competenceStatus === competenceStatusFilter
+      return matchesClient && matchesMonth && matchesRegime && matchesPayroll && matchesStatus
     })
-  }, [competences, competenceClientFilter, competenceMonthFilter])
+  }, [competences, clients, items, competenceClientFilter, competenceRegimeFilter, competencePayrollFilter, competenceStatusFilter, competenceMonthFilter])
+
+  const getClientAttachmentCount = (clientId: string) => attachments.filter(attachment => attachment.clientId === clientId).length
+
+  const getClientCustomObligations = (clientId: string) => customObligations.filter(obligation => obligation.clientId === clientId && obligation.active)
+
+  const handleAddCustomObligation = async (
+    client: RoutineClient,
+    draft: {
+      name: string
+      department: RoutineDepartment
+      category: string
+      requiresFile: boolean
+      notes: string
+    }
+  ) => {
+    const cleanName = draft.name.trim()
+    if (!cleanName) throw new Error('Informe o nome da obrigação específica.')
+
+    const { data, error: insertError } = await supabase
+      .from(ROUTINE_CLIENT_CUSTOM_OBLIGATIONS_TABLE)
+      .insert({
+        client_id: client.id,
+        name: cleanName,
+        department: draft.department,
+        category: draft.category.trim() || 'Personalizada',
+        requires_file: draft.requiresFile,
+        active: true,
+        notes: draft.notes.trim(),
+        sort_order: 900 + getClientCustomObligations(client.id).length,
+      })
+      .select('*')
+      .single()
+
+    if (insertError || !data) {
+      throw new Error(insertError?.message || 'Não consegui criar a obrigação específica.')
+    }
+
+    const createdObligation = mapRoutineClientCustomObligation(data as RoutineClientCustomObligationRow)
+    setCustomObligations(current => [...current, createdObligation])
+
+    if (selectedCompetence?.clientId === client.id) {
+      const [payload] = buildRoutineItemsPayload(client, selectedCompetence.id, [createdObligation]).filter(item => item.custom_obligation_id === createdObligation.id)
+      if (payload) {
+        const { data: itemData } = await supabase.from(ROUTINE_ITEMS_TABLE).insert(payload).select('*')
+        if (itemData?.length) {
+          setItems(current => [...itemData.map(row => mapRoutineItem(row as RoutineItemRow)), ...current])
+        }
+      }
+    }
+  }
+
+  const handleDeleteCustomObligation = async (obligation: RoutineClientCustomObligation) => {
+    const { error: deleteError } = await supabase
+      .from(ROUTINE_CLIENT_CUSTOM_OBLIGATIONS_TABLE)
+      .delete()
+      .eq('id', obligation.id)
+
+    if (deleteError) {
+      throw new Error(deleteError.message || 'Não consegui remover a obrigação específica.')
+    }
+
+    setCustomObligations(current => current.filter(currentObligation => currentObligation.id !== obligation.id))
+  }
+
+  const handleUploadClientAttachments = async (
+    client: RoutineClient,
+    category: RoutineAttachmentCategory,
+    files: File[]
+  ) => {
+    if (!files.length) return
+
+    const oversizedFile = files.find(file => file.size > ROUTINE_ATTACHMENT_LIMIT_BYTES)
+    if (oversizedFile) {
+      throw new Error(`O arquivo ${oversizedFile.name} passou de 10MB.`)
+    }
+
+    const createdAttachments: RoutineClientAttachment[] = []
+
+    for (const file of files) {
+      const safeName = sanitizeRoutineAttachmentFileName(file.name)
+      const storagePath = `${client.id}/${category}/${Date.now()}-${genId()}-${safeName}`
+      const { error: uploadError } = await supabase.storage
+        .from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET)
+        .upload(storagePath, file)
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Não consegui enviar o arquivo.')
+      }
+
+      const { data, error: insertError } = await supabase
+        .from(ROUTINE_CLIENT_ATTACHMENTS_TABLE)
+        .insert({
+          client_id: client.id,
+          category,
+          display_name: file.name,
+          file_name: file.name,
+          storage_path: storagePath,
+          mime_type: file.type || null,
+          file_size: file.size,
+        })
+        .select('*')
+        .single()
+
+      if (insertError || !data) {
+        await supabase.storage.from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET).remove([storagePath])
+        throw new Error(insertError?.message || 'Arquivo enviado, mas não consegui registrar o anexo.')
+      }
+
+      createdAttachments.push(mapRoutineClientAttachment(data as RoutineClientAttachmentRow))
+    }
+
+    setAttachments(current => [...createdAttachments, ...current])
+  }
+
+  const handleDownloadClientAttachment = async (attachment: RoutineClientAttachment) => {
+    const { data, error: downloadError } = await supabase.storage
+      .from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET)
+      .createSignedUrl(attachment.storagePath, 60 * 5)
+
+    if (downloadError || !data?.signedUrl) {
+      throw new Error(downloadError?.message || 'Não consegui gerar o link de download.')
+    }
+
+    const link = document.createElement('a')
+    link.href = data.signedUrl
+    link.download = attachment.displayName || attachment.fileName
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  const handleRenameClientAttachment = async (attachment: RoutineClientAttachment, nextName: string) => {
+    const cleanName = nextName.trim()
+    if (!cleanName) throw new Error('Informe um nome para o anexo.')
+
+    const updatedAt = new Date().toISOString()
+    const { data, error: renameError } = await supabase
+      .from(ROUTINE_CLIENT_ATTACHMENTS_TABLE)
+      .update({ display_name: cleanName, updated_at: updatedAt })
+      .eq('id', attachment.id)
+      .select('*')
+      .single()
+
+    if (renameError || !data) {
+      throw new Error(renameError?.message || 'Não consegui renomear o anexo.')
+    }
+
+    const renamedAttachment = mapRoutineClientAttachment(data as RoutineClientAttachmentRow)
+    setAttachments(current => current.map(currentAttachment => currentAttachment.id === attachment.id ? renamedAttachment : currentAttachment))
+  }
+
+  const handleDeleteClientAttachment = async (attachment: RoutineClientAttachment) => {
+    const { error: deleteStorageError } = await supabase.storage
+      .from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET)
+      .remove([attachment.storagePath])
+
+    if (deleteStorageError) {
+      throw new Error(deleteStorageError.message || 'Não consegui excluir o arquivo.')
+    }
+
+    const { error: deleteRowError } = await supabase
+      .from(ROUTINE_CLIENT_ATTACHMENTS_TABLE)
+      .delete()
+      .eq('id', attachment.id)
+
+    if (deleteRowError) {
+      throw new Error(deleteRowError.message || 'Arquivo excluído, mas não consegui remover o registro.')
+    }
+
+    setAttachments(current => current.filter(currentAttachment => currentAttachment.id !== attachment.id))
+  }
 
   const handleSaveClient = async (formData: RoutineClientFormData, clientId?: string) => {
     const payload = {
@@ -1235,6 +1721,10 @@ function RoutineControlModule() {
       partner_cpf: formData.partnerCpf,
       regime: formData.regime,
       has_payroll: formData.hasPayroll,
+      has_employees: formData.hasEmployees,
+      has_pro_labore: formData.hasProLabore,
+      issues_invoices: formData.issuesInvoices,
+      needs_fiscal_tracking: formData.needsFiscalTracking,
       whatsapp: formData.whatsapp,
       email: formData.email,
       monthly_fee: formData.monthlyFee,
@@ -1284,11 +1774,7 @@ function RoutineControlModule() {
 
     const createdCompetence = mapRoutineCompetence(data as RoutineCompetenceRow)
     const client = clients.find(entry => entry.id === clientId) ?? null
-    const routinePayload = getApplicableRoutineNames(client).map(routineName => ({
-      competence_id: createdCompetence.id,
-      routine_name: routineName,
-      status: 'Pendente',
-    }))
+    const routinePayload = buildRoutineItemsPayload(client, createdCompetence.id, getClientCustomObligations(clientId))
     const { data: createdItems, error: itemsError } = await supabase.from(ROUTINE_ITEMS_TABLE).insert(routinePayload).select('*')
 
     if (itemsError) throw new Error('Competência criada, mas não consegui gerar a checklist.')
@@ -1333,11 +1819,7 @@ function RoutineControlModule() {
     const createdCompetences = data.map(row => mapRoutineCompetence(row as RoutineCompetenceRow))
     const routinePayload = createdCompetences.flatMap(competence => {
       const client = clients.find(entry => entry.id === competence.clientId) ?? null
-      return getApplicableRoutineNames(client).map(routineName => ({
-        competence_id: competence.id,
-        routine_name: routineName,
-        status: 'Pendente',
-      }))
+      return buildRoutineItemsPayload(client, competence.id, getClientCustomObligations(competence.clientId))
     })
 
     let createdItems: RoutineItem[] = []
@@ -1385,16 +1867,18 @@ function RoutineControlModule() {
     const competence = competences.find(entry => entry.id === competenceId)
     const client = competence ? clients.find(entry => entry.id === competence.clientId) : null
     const existingItems = items.filter(item => item.competenceId === competenceId)
-    const existingNames = new Set(existingItems.map(item => item.routineName))
-    const missingRoutineNames = getApplicableRoutineNames(client).filter(routineName => !existingNames.has(routineName))
+    const existingKeys = new Set(existingItems.map(item => item.customObligationId ? `custom:${item.customObligationId}` : `standard:${item.routineName}`))
+    const missingPayload = competence
+      ? buildRoutineItemsPayload(client, competenceId, getClientCustomObligations(competence.clientId))
+          .filter(item => {
+            const customId = typeof item.custom_obligation_id === 'string' ? item.custom_obligation_id : ''
+            const key = customId ? `custom:${customId}` : `standard:${item.routine_name}`
+            return !existingKeys.has(key)
+          })
+      : []
 
-    if (missingRoutineNames.length) {
-      const payload = missingRoutineNames.map(routineName => ({
-        competence_id: competenceId,
-        routine_name: routineName,
-        status: 'Pendente',
-      }))
-      const { data } = await supabase.from(ROUTINE_ITEMS_TABLE).insert(payload).select('*')
+    if (missingPayload.length) {
+      const { data } = await supabase.from(ROUTINE_ITEMS_TABLE).insert(missingPayload).select('*')
       if (data?.length) {
         setItems(current => [...data.map(row => mapRoutineItem(row as RoutineItemRow)), ...current])
       }
@@ -1412,7 +1896,7 @@ function RoutineControlModule() {
   }
 
   const handleExportRoutineClients = async () => {
-    const headers = ['Cliente', 'Sócio', 'CPF', 'CNPJ', 'Regime', 'Folha', 'WhatsApp', 'E-mail', 'Mensalidade', 'Observação']
+    const headers = ['Cliente', 'Sócio', 'CPF', 'CNPJ', 'Regime', 'Folha', 'Funcionários', 'Pró-labore', 'Notas fiscais', 'Fiscal mensal', 'WhatsApp', 'E-mail', 'Mensalidade', 'Observação']
     const escapeCsvValue = (value: string | number) => `"${String(value ?? '').replace(/"/g, '""')}"`
     const rows = filteredClients.map(client => [
       client.name,
@@ -1421,6 +1905,10 @@ function RoutineControlModule() {
       client.cnpj,
       client.regime,
       client.hasPayroll ? 'Sim' : 'Não',
+      client.hasEmployees ? 'Sim' : 'Não',
+      client.hasProLabore ? 'Sim' : 'Não',
+      client.issuesInvoices ? 'Sim' : 'Não',
+      client.needsFiscalTracking ? 'Sim' : 'Não',
       client.whatsapp,
       client.email,
       formatRoutineMoney(client.monthlyFee),
@@ -1479,7 +1967,7 @@ function RoutineControlModule() {
 
       const now = new Date().toISOString()
       const sentItemIds = selectedVisibleItems
-        .filter(item => isRoutineApplicableToClient(selectedClient, item.routineName) && item.status !== 'Não precisa')
+        .filter(item => isRoutineItemApplicableToClient(selectedClient, item) && item.status !== 'Não precisa')
         .map(item => item.id)
 
       if (sentItemIds.length) {
@@ -1512,7 +2000,7 @@ function RoutineControlModule() {
       <div className="crm-module-inner routine-module-inner">
         <div className="crm-module-header">
           <div>
-            <h2>Contabilidade</h2>
+            <h2>Clientes</h2>
           </div>
           <div className="crm-header-right">
             {error && <span className="crm-global-error">{error}</span>}
@@ -1559,7 +2047,7 @@ function RoutineControlModule() {
           </div>
         </div>
 
-        <div className="routine-tabs" aria-label="Áreas da Contabilidade">
+        <div className="routine-tabs" aria-label="Áreas de Clientes">
           {ROUTINE_AREAS.map(area => (
             <button
               key={area}
@@ -1580,7 +2068,7 @@ function RoutineControlModule() {
         ) : activeArea === 'Clientes' ? (
           <>
             <RoutineFilters>
-              <input value={clientSearch} onChange={event => setClientSearch(event.target.value)} placeholder="Buscar por nome, sócio, CPF, CNPJ ou WhatsApp" />
+              <input value={clientSearch} onChange={event => setClientSearch(event.target.value)} placeholder="Buscar por nome, CNPJ, WhatsApp ou e-mail" />
               <select value={regimeFilter} onChange={event => setRegimeFilter(event.target.value as 'Todos' | RoutineRegime)}>
                 <option value="Todos">Todos os regimes</option>
                 {ROUTINE_REGIMES.map(regime => <option key={regime} value={regime}>{regime}</option>)}
@@ -1596,8 +2084,6 @@ function RoutineControlModule() {
                 <thead>
                   <tr>
                     <th>Cliente</th>
-                    <th>Sócio</th>
-                    <th>CPF</th>
                     <th>CNPJ</th>
                     <th>Regime</th>
                     <th>Folha</th>
@@ -1610,8 +2096,6 @@ function RoutineControlModule() {
                   {filteredClients.map(client => (
                     <tr key={client.id} className="routine-clickable-row" onClick={() => setClientModal(client)}>
                       <td><div className="pfx-client-cell"><strong>{client.name}</strong>{client.notes && <span>{client.notes}</span>}</div></td>
-                      <td>{client.partnerName || 'Não informado'}</td>
-                      <td>{client.partnerCpf || 'Não informado'}</td>
                       <td>{client.cnpj || 'Não informado'}</td>
                       <td><span className="pfx-pill">{client.regime}</span></td>
                       <td>{client.hasPayroll ? 'Sim' : 'Não'}</td>
@@ -1619,6 +2103,16 @@ function RoutineControlModule() {
                       <td>{formatRoutineMoney(client.monthlyFee)}</td>
                       <td>
                         <div className="routine-row-actions">
+                          <button
+                            type="button"
+                            onClick={event => {
+                              event.stopPropagation()
+                              setAttachmentsClient(client)
+                            }}
+                            title="Anexos"
+                          >
+                            <FolderIcon /> Anexos{getClientAttachmentCount(client.id) ? ` (${getClientAttachmentCount(client.id)})` : ''}
+                          </button>
                           <button type="button" onClick={event => { event.stopPropagation(); setClientModal(client) }} title="Editar"><PencilIcon /></button>
                           <button type="button" onClick={event => { event.stopPropagation(); void handleDeleteClient(client.id) }} title="Excluir"><TrashIcon /></button>
                         </div>
@@ -1641,16 +2135,27 @@ function RoutineControlModule() {
               <span className={`routine-competence-badge ${selectedCompetenceStatus === 'Enviado' ? 'sent' : 'unfinished'}`}>
                 {selectedCompetenceStatus}
               </span>
+              <button type="button" onClick={() => setClientModal(selectedClient)}>Obrigação específica</button>
               <button type="button" onClick={() => { setRoutineEmailFeedback(null); setMessageModalOpen(true) }}>Enviar por e-mail</button>
             </div>
             <div className="routine-checklist-list">
-              {selectedVisibleItems.map(item => {
-                const applicable = isRoutineApplicableToClient(selectedClient, item.routineName)
+              {selectedItemsByDepartment.map(group => (
+                <section key={group.department} className="routine-department-group">
+                  <div className="routine-department-header">
+                    <strong>{group.department}</strong>
+                    <span>{group.items.length} {group.items.length === 1 ? 'obrigação' : 'obrigações'}</span>
+                  </div>
+                  <div className="routine-department-items">
+                    {group.items.map(item => {
+                const applicable = isRoutineItemApplicableToClient(selectedClient, item)
                 return (
                   <div key={item.id} className={`routine-checklist-item${!applicable ? ' routine-not-applicable' : ''}`}>
                     <div className="routine-checklist-title">
                       <span style={{ background: applicable ? ROUTINE_STATUS_DOT[item.status] : '#71717a' }} />
-                      <strong>{item.routineName}</strong>
+                      <div>
+                        <strong>{item.routineName}</strong>
+                        <em>{getRoutineItemCategory(item, selectedClient)}{item.isCustom ? ' · personalizada' : ''}</em>
+                      </div>
                       {!applicable && <em>Não se aplica</em>}
                     </div>
                     <select value={item.status} onChange={event => void handleUpdateItem(item.id, { status: event.target.value as RoutineItemStatus })}>
@@ -1664,7 +2169,10 @@ function RoutineControlModule() {
                     <span>{formatRoutineSentDate(item.sentAt)}</span>
                   </div>
                 )
-              })}
+                    })}
+                  </div>
+                </section>
+              ))}
             </div>
           </div>
         ) : activeArea === 'Competências' ? (
@@ -1673,6 +2181,20 @@ function RoutineControlModule() {
               <select value={competenceClientFilter} onChange={event => setCompetenceClientFilter(event.target.value)}>
                 <option value="Todos">Todos os clientes</option>
                 {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
+              </select>
+              <select value={competenceRegimeFilter} onChange={event => setCompetenceRegimeFilter(event.target.value as 'Todos' | RoutineRegime)}>
+                <option value="Todos">Todos os regimes</option>
+                {ROUTINE_REGIMES.map(regime => <option key={regime} value={regime}>{regime}</option>)}
+              </select>
+              <select value={competencePayrollFilter} onChange={event => setCompetencePayrollFilter(event.target.value as 'Todos' | 'Sim' | 'Não')}>
+                <option value="Todos">Com ou sem folha</option>
+                <option value="Sim">Com folha</option>
+                <option value="Não">Sem folha</option>
+              </select>
+              <select value={competenceStatusFilter} onChange={event => setCompetenceStatusFilter(event.target.value as 'Todos' | RoutineCompetenceStatus)}>
+                <option value="Todos">Todos os status</option>
+                <option value="Enviado">Enviado</option>
+                <option value="Inacabado">Inacabado</option>
               </select>
               <div className="routine-month-control">
                 <button type="button" onClick={() => setCompetenceMonthFilter(current => shiftRoutineMonthValue(current, -1))} aria-label="Competência anterior">‹</button>
@@ -1693,7 +2215,7 @@ function RoutineControlModule() {
                 <tbody>
                   {filteredCompetences.map(competence => {
                     const client = getClient(competence.clientId)
-                    const competenceItems = getCompetenceItems(competence.id).filter(item => isRoutineApplicableToClient(client, item.routineName))
+                    const competenceItems = getCompetenceItems(competence.id).filter(item => isRoutineItemApplicableToClient(client, item))
                     const competenceStatus = getRoutineCompetenceStatus(client, competenceItems)
                     return (
                       <tr
@@ -1734,11 +2256,31 @@ function RoutineControlModule() {
       {clientModal && (
         <RoutineClientModal
           client={clientModal === 'new' ? null : clientModal}
+          customObligations={clientModal !== 'new' ? getClientCustomObligations(clientModal.id) : []}
           onClose={() => setClientModal(null)}
+          onOpenAttachments={clientModal !== 'new' ? () => {
+            setAttachmentsClient(clientModal)
+            setClientModal(null)
+          } : undefined}
+          onAddCustomObligation={handleAddCustomObligation}
+          onDeleteCustomObligation={handleDeleteCustomObligation}
           onSave={async (formData, clientId) => {
             await handleSaveClient(formData, clientId)
             setClientModal(null)
           }}
+        />
+      )}
+
+      {attachmentsClient && (
+        <RoutineAttachmentsModal
+          client={attachmentsClient}
+          attachments={attachments.filter(attachment => attachment.clientId === attachmentsClient.id)}
+          legacyDocuments={attachmentsClient.documents}
+          onClose={() => setAttachmentsClient(null)}
+          onUpload={handleUploadClientAttachments}
+          onRename={handleRenameClientAttachment}
+          onDelete={handleDeleteClientAttachment}
+          onDownload={handleDownloadClientAttachment}
         />
       )}
 
@@ -1809,9 +2351,24 @@ function RoutineFilters({ children }: { children: ReactNode }) {
   return <div className="routine-filters">{children}</div>
 }
 
-function RoutineClientModal({ client, onClose, onSave }: {
+function RoutineClientModal({
+  client,
+  customObligations,
+  onClose,
+  onOpenAttachments,
+  onAddCustomObligation,
+  onDeleteCustomObligation,
+  onSave,
+}: {
   client: RoutineClient | null
+  customObligations: RoutineClientCustomObligation[]
   onClose: () => void
+  onOpenAttachments?: () => void
+  onAddCustomObligation: (
+    client: RoutineClient,
+    draft: { name: string; department: RoutineDepartment; category: string; requiresFile: boolean; notes: string }
+  ) => Promise<void>
+  onDeleteCustomObligation: (obligation: RoutineClientCustomObligation) => Promise<void>
   onSave: (formData: RoutineClientFormData, clientId?: string) => Promise<void>
 }) {
   const [name, setName] = useState(client?.name ?? '')
@@ -1820,35 +2377,22 @@ function RoutineClientModal({ client, onClose, onSave }: {
   const [partnerCpf, setPartnerCpf] = useState(client?.partnerCpf ?? '')
   const [regime, setRegime] = useState<RoutineRegime>(client?.regime ?? 'MEI')
   const [hasPayroll, setHasPayroll] = useState(client?.hasPayroll ?? false)
+  const [hasEmployees, setHasEmployees] = useState(client?.hasEmployees ?? false)
+  const [hasProLabore, setHasProLabore] = useState(client?.hasProLabore ?? false)
+  const [issuesInvoices, setIssuesInvoices] = useState(client?.issuesInvoices ?? true)
+  const [needsFiscalTracking, setNeedsFiscalTracking] = useState(client?.needsFiscalTracking ?? true)
   const [whatsapp, setWhatsapp] = useState(client?.whatsapp ?? '')
   const [email, setEmail] = useState(client?.email ?? '')
   const [monthlyFee, setMonthlyFee] = useState(client ? formatRoutineMoney(client.monthlyFee) : '')
   const [notes, setNotes] = useState(client?.notes ?? '')
-  const [documents, setDocuments] = useState<RoutineClientDocument[]>(client?.documents ?? [])
+  const [customName, setCustomName] = useState('')
+  const [customDepartment, setCustomDepartment] = useState<RoutineDepartment>('Fiscal')
+  const [customCategory, setCustomCategory] = useState('Personalizada')
+  const [customRequiresFile, setCustomRequiresFile] = useState(true)
+  const [customNotes, setCustomNotes] = useState('')
+  const [customSaving, setCustomSaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  const handleDocuments = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
-    if (!files.length) return
-
-    const oversizedFile = files.find(file => file.size > 5 * 1024 * 1024)
-    if (oversizedFile) {
-      setError(`O arquivo ${oversizedFile.name} passou de 5MB.`)
-      event.target.value = ''
-      return
-    }
-
-    try {
-      const nextDocuments = await Promise.all(files.map(readRoutineDocumentFile))
-      setDocuments(current => [...nextDocuments, ...current])
-      setError('')
-    } catch (documentError) {
-      setError(documentError instanceof Error ? documentError.message : 'Não consegui anexar o documento.')
-    } finally {
-      event.target.value = ''
-    }
-  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1867,12 +2411,16 @@ function RoutineClientModal({ client, onClose, onSave }: {
         partnerCpf,
         regime,
         hasPayroll,
+        hasEmployees,
+        hasProLabore,
+        issuesInvoices,
+        needsFiscalTracking,
         whatsapp,
         email,
         monthlyFee: parseRoutineMoney(monthlyFee),
         notes,
         status: client?.status ?? 'Ativo',
-        documents,
+        documents: client?.documents ?? [],
       }, client?.id)
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não consegui salvar o cliente.')
@@ -1881,9 +2429,47 @@ function RoutineClientModal({ client, onClose, onSave }: {
     }
   }
 
+  const handleAddCustom = async () => {
+    if (!client) return
+    setCustomSaving(true)
+    setError('')
+
+    try {
+      await onAddCustomObligation(client, {
+        name: customName,
+        department: customDepartment,
+        category: customCategory,
+        requiresFile: customRequiresFile,
+        notes: customNotes,
+      })
+      setCustomName('')
+      setCustomCategory('Personalizada')
+      setCustomRequiresFile(true)
+      setCustomNotes('')
+    } catch (customError) {
+      setError(customError instanceof Error ? customError.message : 'Não consegui criar a obrigação específica.')
+    } finally {
+      setCustomSaving(false)
+    }
+  }
+
+  const handleDeleteCustom = async (obligation: RoutineClientCustomObligation) => {
+    if (!confirm(`Remover "${obligation.name}" das próximas competências?`)) return
+    setCustomSaving(true)
+    setError('')
+
+    try {
+      await onDeleteCustomObligation(obligation)
+    } catch (customError) {
+      setError(customError instanceof Error ? customError.message : 'Não consegui remover a obrigação específica.')
+    } finally {
+      setCustomSaving(false)
+    }
+  }
+
   return (
     <div className="crm-modal-backdrop" onClick={onClose}>
-      <div className="crm-modal pfx-modal" onClick={event => event.stopPropagation()}>
+      <div className="crm-modal pfx-modal routine-client-modal" onClick={event => event.stopPropagation()}>
         <div className="crm-modal-header">
           <h3>{client ? 'Editar cliente' : 'Novo cliente'}</h3>
           <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
@@ -1898,41 +2484,76 @@ function RoutineClientModal({ client, onClose, onSave }: {
             <label>CNPJ<input value={cnpj} onChange={event => setCnpj(maskRoutineCnpj(event.target.value))} placeholder="00.000.000/0000-00" /></label>
             <label>Regime<select value={regime} onChange={event => setRegime(event.target.value as RoutineRegime)}>{ROUTINE_REGIMES.map(option => <option key={option} value={option}>{option}</option>)}</select></label>
           </div>
+          <div className="routine-client-question-grid">
+            <label className={hasPayroll ? 'routine-check-option active' : 'routine-check-option'}>
+              <input type="checkbox" checked={hasPayroll} onChange={event => setHasPayroll(event.target.checked)} />
+              <span>Precisa fechamento de folha mensal?</span>
+            </label>
+            <label className={hasEmployees ? 'routine-check-option active' : 'routine-check-option'}>
+              <input type="checkbox" checked={hasEmployees} onChange={event => setHasEmployees(event.target.checked)} />
+              <span>Tem funcionário registrado?</span>
+            </label>
+            <label className={hasProLabore ? 'routine-check-option active' : 'routine-check-option'}>
+              <input type="checkbox" checked={hasProLabore} onChange={event => setHasProLabore(event.target.checked)} />
+              <span>Tem pró-labore mensal?</span>
+            </label>
+            <label className={issuesInvoices ? 'routine-check-option active' : 'routine-check-option'}>
+              <input type="checkbox" checked={issuesInvoices} onChange={event => setIssuesInvoices(event.target.checked)} />
+              <span>Emite nota fiscal mensalmente?</span>
+            </label>
+            <label className={needsFiscalTracking ? 'routine-check-option active' : 'routine-check-option'}>
+              <input type="checkbox" checked={needsFiscalTracking} onChange={event => setNeedsFiscalTracking(event.target.checked)} />
+              <span>Precisa acompanhamento fiscal mensal?</span>
+            </label>
+          </div>
           <div className="crm-modal-row">
-            <label>Tem folha/funcionário?<select value={hasPayroll ? 'Sim' : 'Não'} onChange={event => setHasPayroll(event.target.value === 'Sim')}><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
             <label>Mensalidade<input value={monthlyFee} onChange={event => setMonthlyFee(event.target.value)} onBlur={() => setMonthlyFee(formatRoutineMoney(parseRoutineMoney(monthlyFee)))} placeholder="R$ 0,00" /></label>
           </div>
           <div className="crm-modal-row">
             <label>WhatsApp<input value={whatsapp} onChange={event => setWhatsapp(maskRoutineWhatsapp(event.target.value))} placeholder="(00) 00000-0000" /></label>
             <label>E-mail<input value={email} onChange={event => setEmail(event.target.value)} placeholder="cliente@empresa.com" /></label>
           </div>
-          <div className="routine-documents-field">
-            <div className="routine-documents-header">
-              <span>Documentos</span>
-              <label>
-                Anexar
-                <input type="file" multiple onChange={event => void handleDocuments(event)} />
-              </label>
-            </div>
-            {documents.length > 0 ? (
-              <div className="routine-document-list">
-                {documents.map(document => (
-                  <div key={document.id} className="routine-document-chip">
-                    <a href={document.url} download={document.name}>{document.name}</a>
-                    <button
-                      type="button"
-                      onClick={() => setDocuments(current => current.filter(currentDocument => currentDocument.id !== document.id))}
-                      aria-label={`Remover ${document.name}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          {client && onOpenAttachments && (
+            <button type="button" className="routine-attachments-open" onClick={onOpenAttachments}>
+              <FolderIcon /> Abrir anexos
+            </button>
+          )}
+          {client && (
+            <div className="routine-custom-obligations-field">
+              <div className="routine-custom-obligations-header">
+                <span>Obrigações específicas mensais</span>
+                <em>Entram automaticamente nas próximas competências.</em>
               </div>
-            ) : (
-              <p>Nenhum documento anexado.</p>
-            )}
-          </div>
+              {customObligations.length > 0 && (
+                <div className="routine-custom-obligation-list">
+                  {customObligations.map(obligation => (
+                    <div key={obligation.id} className="routine-custom-obligation-chip">
+                      <span>
+                        <strong>{obligation.name}</strong>
+                        <em>{obligation.department} · {obligation.category}</em>
+                      </span>
+                      <button type="button" disabled={customSaving} onClick={() => void handleDeleteCustom(obligation)}>Remover</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="routine-custom-obligation-form">
+                <input value={customName} onChange={event => setCustomName(event.target.value)} placeholder="Ex.: Enviar relatório para franquia" />
+                <select value={customDepartment} onChange={event => setCustomDepartment(event.target.value as RoutineDepartment)}>
+                  {ROUTINE_DEPARTMENTS.filter(department => department !== 'Obrigatoriedade').map(department => <option key={department} value={department}>{department}</option>)}
+                </select>
+                <input value={customCategory} onChange={event => setCustomCategory(event.target.value)} placeholder="Categoria" />
+                <select value={customRequiresFile ? 'Sim' : 'Não'} onChange={event => setCustomRequiresFile(event.target.value === 'Sim')}>
+                  <option value="Sim">Exige anexo</option>
+                  <option value="Não">Não exige anexo</option>
+                </select>
+                <textarea value={customNotes} onChange={event => setCustomNotes(event.target.value)} placeholder="Observação padrão dessa obrigação" />
+                <button type="button" disabled={customSaving} onClick={() => void handleAddCustom()}>
+                  {customSaving ? 'Salvando...' : 'Acrescentar obrigação específica'}
+                </button>
+              </div>
+            </div>
+          )}
           <label>Observação<textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Detalhes internos..." /></label>
           {error && <p className="crm-modal-error">{error}</p>}
           <div className="crm-modal-footer">
@@ -1940,6 +2561,182 @@ function RoutineClientModal({ client, onClose, onSave }: {
             <button type="submit" disabled={saving} className="crm-modal-submit">{saving ? 'Salvando...' : 'Salvar'}</button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function RoutineAttachmentsModal({
+  client,
+  attachments,
+  legacyDocuments,
+  onClose,
+  onUpload,
+  onRename,
+  onDelete,
+  onDownload,
+}: {
+  client: RoutineClient
+  attachments: RoutineClientAttachment[]
+  legacyDocuments: RoutineClientDocument[]
+  onClose: () => void
+  onUpload: (client: RoutineClient, category: RoutineAttachmentCategory, files: File[]) => Promise<void>
+  onRename: (attachment: RoutineClientAttachment, nextName: string) => Promise<void>
+  onDelete: (attachment: RoutineClientAttachment) => Promise<void>
+  onDownload: (attachment: RoutineClientAttachment) => Promise<void>
+}) {
+  const [activeCategory, setActiveCategory] = useState<RoutineAttachmentCategory>('socios')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const activeCategoryMeta = ROUTINE_ATTACHMENT_CATEGORIES.find(category => category.key === activeCategory) ?? ROUTINE_ATTACHMENT_CATEGORIES[0]
+  const activeAttachments = attachments.filter(attachment => attachment.category === activeCategory)
+  const totalAttachments = attachments.length + legacyDocuments.length
+
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (!files.length) return
+
+    setBusy(true)
+    setError('')
+    try {
+      await onUpload(client, activeCategory, files)
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : 'Não consegui anexar os arquivos.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleRename = async (attachment: RoutineClientAttachment) => {
+    const nextName = window.prompt('Novo nome do anexo', attachment.displayName)
+    if (nextName === null || nextName.trim() === attachment.displayName) return
+
+    setBusy(true)
+    setError('')
+    try {
+      await onRename(attachment, nextName)
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : 'Não consegui renomear o anexo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async (attachment: RoutineClientAttachment) => {
+    if (!window.confirm(`Excluir "${attachment.displayName}"?`)) return
+
+    setBusy(true)
+    setError('')
+    try {
+      await onDelete(attachment)
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Não consegui excluir o anexo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleDownload = async (attachment: RoutineClientAttachment) => {
+    setBusy(true)
+    setError('')
+    try {
+      await onDownload(attachment)
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'Não consegui baixar o anexo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal routine-attachments-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header routine-attachments-header">
+          <div>
+            <h3>Anexos</h3>
+            <span>{client.name} · {totalAttachments} {totalAttachments === 1 ? 'arquivo' : 'arquivos'}</span>
+          </div>
+          <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
+        </div>
+
+        <div className="routine-attachments-body">
+          <aside className="routine-attachment-folders" aria-label="Pastas de anexos">
+            {ROUTINE_ATTACHMENT_CATEGORIES.map(category => {
+              const count = attachments.filter(attachment => attachment.category === category.key).length
+              return (
+                <button
+                  key={category.key}
+                  type="button"
+                  className={activeCategory === category.key ? 'active' : ''}
+                  onClick={() => {
+                    setActiveCategory(category.key)
+                    setError('')
+                  }}
+                >
+                  <span className="routine-folder-icon"><FolderIcon /></span>
+                  <span>
+                    <strong>{category.label}</strong>
+                    <em>{category.description}</em>
+                  </span>
+                  <b>{count}</b>
+                </button>
+              )
+            })}
+          </aside>
+
+          <section className="routine-attachment-panel">
+            <div className="routine-attachment-panel-head">
+              <div>
+                <strong>{activeCategoryMeta.label}</strong>
+                <span>{activeCategoryMeta.description}</span>
+              </div>
+              <label className="routine-attachment-upload">
+                {busy ? 'Aguarde...' : 'Anexar'}
+                <input type="file" multiple disabled={busy} onChange={event => void handleUpload(event)} />
+              </label>
+            </div>
+
+            {error && <p className="crm-modal-error routine-attachment-error">{error}</p>}
+
+            <div className="routine-attachment-list">
+              {activeAttachments.length > 0 ? (
+                activeAttachments.map(attachment => (
+                  <article key={attachment.id} className="routine-attachment-item">
+                    <div>
+                      <strong>{attachment.displayName}</strong>
+                      <span>{formatPfxFileSize(attachment.fileSize) || 'Tamanho não informado'} · Atualizado em {formatCrmDate(attachment.updatedAt)}</span>
+                    </div>
+                    <div className="routine-attachment-actions">
+                      <button type="button" disabled={busy} onClick={() => void handleDownload(attachment)}>Baixar</button>
+                      <button type="button" disabled={busy} onClick={() => void handleRename(attachment)}>Renomear</button>
+                      <button type="button" disabled={busy} onClick={() => void handleDelete(attachment)}>Excluir</button>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="routine-attachment-empty">
+                  <strong>Nenhum arquivo nesta pasta.</strong>
+                  <span>Anexe os documentos de {activeCategoryMeta.label.toLowerCase()} aqui.</span>
+                </div>
+              )}
+            </div>
+
+            {legacyDocuments.length > 0 && (
+              <div className="routine-legacy-documents">
+                <strong>Documentos antigos</strong>
+                <p>Arquivos do cadastro anterior. Eles continuam disponíveis, mas os próximos anexos entram nas pastas acima.</p>
+                <div className="routine-document-list">
+                  {legacyDocuments.map(document => (
+                    <div key={document.id} className="routine-document-chip">
+                      <a href={document.url} download={document.name}>{document.name}</a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   )
@@ -2723,6 +3520,14 @@ function DownloadTemplateIcon() {
   )
 }
 
+function FolderIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+    </svg>
+  )
+}
+
 
 function PfxPlusIcon() {
   return (
@@ -3097,8 +3902,18 @@ type AdminOnboardingIntake = {
   cpf: string
   wants_certificado: boolean
   wants_abertura_empresa: boolean
+  wants_abertura_mei: boolean
+  wants_alteracao_cnpj: boolean
   segmento: string
   descricao_cnpj: string
+  estado_civil: EstadoCivil
+  regime_bens: RegimeBens
+  razao_social: string
+  tem_nome_fantasia: boolean | null
+  nome_fantasia: string
+  quantidade_socios: number | null
+  cnpj_atual: string
+  descricao_alteracao: string
   has_certidao_casamento: boolean | null
   has_comprovante_bombeiro: boolean | null
   doc_identidade_path: string | null
@@ -3108,6 +3923,8 @@ type AdminOnboardingIntake = {
   doc_comprovante_bombeiro_path: string | null
   certificado_status: CertificadoStatus
   abertura_status: AberturaStatus
+  mei_status: MeiStatus
+  alteracao_status: AlteracaoStatus
   created_at: string
   updated_at: string
   client_name: string | null
@@ -3118,9 +3935,12 @@ type AdminOnboardingIntake = {
 
 const CERTIFICADO_STATUS_OPTIONS = Object.keys(CERTIFICADO_STATUS_LABELS) as CertificadoStatus[]
 const ABERTURA_STATUS_OPTIONS = Object.keys(ABERTURA_STATUS_LABELS) as AberturaStatus[]
+const MEI_STATUS_OPTIONS = Object.keys(MEI_STATUS_LABELS) as MeiStatus[]
+const ALTERACAO_STATUS_OPTIONS = Object.keys(ALTERACAO_STATUS_LABELS) as AlteracaoStatus[]
 const PRODUCT_LABELS: Record<string, string> = {
   certificado_pj_a1: 'Certificado Digital A1',
   abertura_empresa: 'Abertura de empresa',
+  alteracao_cnpj: 'Alteração de CNPJ',
 }
 
 function OnboardingAdminModule() {
@@ -3131,6 +3951,8 @@ function OnboardingAdminModule() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draftCertificadoStatus, setDraftCertificadoStatus] = useState<CertificadoStatus>('nao_iniciado')
   const [draftAberturaStatus, setDraftAberturaStatus] = useState<AberturaStatus>('nao_iniciado')
+  const [draftMeiStatus, setDraftMeiStatus] = useState<MeiStatus>('nao_iniciado')
+  const [draftAlteracaoStatus, setDraftAlteracaoStatus] = useState<AlteracaoStatus>('nao_iniciado')
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({})
@@ -3161,6 +3983,8 @@ function OnboardingAdminModule() {
     if (!selected) return
     setDraftCertificadoStatus(selected.certificado_status)
     setDraftAberturaStatus(selected.abertura_status)
+    setDraftMeiStatus(selected.mei_status)
+    setDraftAlteracaoStatus(selected.alteracao_status)
     setSaveMessage('')
     setDocumentUrls({})
     setRevealedSenha(null)
@@ -3212,6 +4036,8 @@ function OnboardingAdminModule() {
       p_id: selected.id,
       p_certificado_status: draftCertificadoStatus,
       p_abertura_status: draftAberturaStatus,
+      p_mei_status: draftMeiStatus,
+      p_alteracao_status: draftAlteracaoStatus,
     })
 
     setSaving(false)
@@ -3224,7 +4050,13 @@ function OnboardingAdminModule() {
     setIntakes(current =>
       current.map(intake =>
         intake.id === selected.id
-          ? { ...intake, certificado_status: draftCertificadoStatus, abertura_status: draftAberturaStatus }
+          ? {
+              ...intake,
+              certificado_status: draftCertificadoStatus,
+              abertura_status: draftAberturaStatus,
+              mei_status: draftMeiStatus,
+              alteracao_status: draftAlteracaoStatus,
+            }
           : intake,
       ),
     )
@@ -3259,7 +4091,7 @@ function OnboardingAdminModule() {
       <div className="crm-module-inner">
         <div className="crm-module-header">
           <div>
-            <h2>Onboarding (Certificado A1 / Abertura de empresa)</h2>
+            <h2>Onboarding (MEI / Certificado A1 / Abertura / Alteração)</h2>
           </div>
           <div className="crm-header-right">
             {error && <span className="crm-global-error">{error}</span>}
@@ -3283,8 +4115,10 @@ function OnboardingAdminModule() {
                 <tr>
                   <th>Cliente</th>
                   <th>Produtos</th>
+                  <th>MEI</th>
                   <th>Certificado</th>
                   <th>Abertura</th>
+                  <th>Alteração</th>
                   <th>Enviada em</th>
                 </tr>
               </thead>
@@ -3301,9 +4135,11 @@ function OnboardingAdminModule() {
                         {intake.client_company_name && <span>{intake.client_company_name}</span>}
                       </div>
                     </td>
-                    <td>{intake.purchased_products.map(product => PRODUCT_LABELS[product] ?? product).join(', ') || '—'}</td>
+                    <td>{intake.purchased_products.map(product => PRODUCT_LABELS[product] ?? product).join(', ') || (intake.wants_abertura_mei ? 'MEI (grátis)' : '—')}</td>
+                    <td>{intake.wants_abertura_mei ? MEI_STATUS_LABELS[intake.mei_status] : '—'}</td>
                     <td>{intake.wants_certificado ? CERTIFICADO_STATUS_LABELS[intake.certificado_status] : '—'}</td>
                     <td>{intake.wants_abertura_empresa ? ABERTURA_STATUS_LABELS[intake.abertura_status] : '—'}</td>
+                    <td>{intake.wants_alteracao_cnpj ? ALTERACAO_STATUS_LABELS[intake.alteracao_status] : '—'}</td>
                     <td>{formatCrmDate(intake.created_at)}</td>
                   </tr>
                 ))}
@@ -3370,33 +4206,81 @@ function OnboardingAdminModule() {
                 </div>
 
                 <div className="crm-panel-section">
-                  <p className="crm-panel-label">Documentos</p>
+                  <p className="crm-panel-label">Razão social / sócios</p>
                   <div className="pfx-detail-list">
-                    {DOCUMENT_FIELDS.map(doc => {
-                      const path = selected[doc.field]
-                      const flagKey = doc.optionalFlag
-                      const flagValue = flagKey ? selected[flagKey] : null
-
-                      return (
-                        <div key={doc.field}>
-                          <span>{doc.label}</span>
-                          {path && documentUrls[doc.field] ? (
-                            <a href={documentUrls[doc.field]} target="_blank" rel="noreferrer" className="pfx-download-link">
-                              Abrir documento
-                            </a>
-                          ) : path ? (
-                            <strong>Carregando link...</strong>
-                          ) : flagValue === false ? (
-                            <strong>Cliente não possui</strong>
-                          ) : (
-                            <strong>Não enviado</strong>
-                          )}
-                        </div>
-                      )
-                    })}
+                    <div><span>Razão social</span><strong>{selected.razao_social || 'Não informado'}</strong></div>
+                    <div><span>Nome fantasia</span><strong>{selected.tem_nome_fantasia ? (selected.nome_fantasia || 'Não informado') : 'Não vai usar'}</strong></div>
+                    <div><span>Quantidade de sócios</span><strong>{selected.quantidade_socios ?? 'Não informado'}</strong></div>
+                    <div><span>Estado civil</span><strong>{selected.estado_civil ? ESTADO_CIVIL_LABELS[selected.estado_civil] : 'Não informado'}</strong></div>
+                    {selected.estado_civil === 'casado' && (
+                      <div><span>Regime de bens</span><strong>{selected.regime_bens ? REGIME_BENS_LABELS[selected.regime_bens] : 'Não informado'}</strong></div>
+                    )}
                   </div>
                 </div>
               </>
+            )}
+
+            {selected.wants_alteracao_cnpj && (
+              <>
+                <div className="crm-panel-section">
+                  <p className="crm-panel-label">CNPJ atual</p>
+                  <p className="pfx-notes">{selected.cnpj_atual || 'Não informado'}</p>
+                </div>
+
+                <div className="crm-panel-section">
+                  <p className="crm-panel-label">O que o cliente quer alterar</p>
+                  <p className="pfx-notes">{selected.descricao_alteracao || 'Não informado'}</p>
+                </div>
+              </>
+            )}
+
+            {(selected.wants_abertura_mei || selected.wants_abertura_empresa || selected.wants_alteracao_cnpj) && (
+              <div className="crm-panel-section">
+                <p className="crm-panel-label">Documentos</p>
+                <div className="pfx-detail-list">
+                  {DOCUMENT_FIELDS.filter(doc => {
+                    if (selected.wants_abertura_empresa) return true
+                    if (selected.wants_abertura_mei) {
+                      return doc.field === 'doc_identidade_path' || doc.field === 'doc_comprovante_residencia_path'
+                    }
+                    return doc.field === 'doc_identidade_path'
+                  }).map(doc => {
+                    const path = selected[doc.field]
+                    const flagKey = doc.optionalFlag
+                    const flagValue = flagKey ? selected[flagKey] : null
+
+                    return (
+                      <div key={doc.field}>
+                        <span>{doc.label}</span>
+                        {path && documentUrls[doc.field] ? (
+                          <a href={documentUrls[doc.field]} target="_blank" rel="noreferrer" className="pfx-download-link">
+                            Abrir documento
+                          </a>
+                        ) : path ? (
+                          <strong>Carregando link...</strong>
+                        ) : flagValue === false ? (
+                          <strong>Cliente não possui</strong>
+                        ) : (
+                          <strong>Não enviado</strong>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {selected.wants_abertura_mei && (
+              <div className="crm-panel-section">
+                <p className="crm-panel-label">Status do MEI</p>
+                <div className="crm-modal-form">
+                  <select value={draftMeiStatus} onChange={event => setDraftMeiStatus(event.target.value as MeiStatus)}>
+                    {MEI_STATUS_OPTIONS.map(status => (
+                      <option key={status} value={status}>{MEI_STATUS_LABELS[status]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             )}
 
             <div className="crm-panel-section">
@@ -3421,6 +4305,19 @@ function OnboardingAdminModule() {
               </div>
             </div>
 
+            {selected.wants_alteracao_cnpj && (
+              <div className="crm-panel-section">
+                <p className="crm-panel-label">Status da alteração</p>
+                <div className="crm-modal-form">
+                  <select value={draftAlteracaoStatus} onChange={event => setDraftAlteracaoStatus(event.target.value as AlteracaoStatus)}>
+                    {ALTERACAO_STATUS_OPTIONS.map(status => (
+                      <option key={status} value={status}>{ALTERACAO_STATUS_LABELS[status]}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             {saveMessage && <p className="crm-panel-label">{saveMessage}</p>}
 
             <div className="crm-panel-section">
@@ -3435,3 +4332,124 @@ function OnboardingAdminModule() {
   )
 }
 
+// ── Leads de Lucro Presumido/Real (formulário público de /abrir-cnpj) ──────
+// Sem processo automatizado: só lista quem pediu contato e deixa marcar o
+// status manual (novo / em contato / concluído). Lê e grava via RPCs
+// SECURITY DEFINER gated por is_admin() — ver supabase/create-abrir-cnpj-flow.sql.
+
+type PresumidoRealStatus = 'novo' | 'em_contato' | 'concluido'
+
+type PresumidoRealLead = {
+  id: string
+  name: string
+  whatsapp: string
+  email: string
+  company_description: string
+  status: PresumidoRealStatus
+  created_at: string
+}
+
+const PRESUMIDO_REAL_STATUS_LABELS: Record<PresumidoRealStatus, string> = {
+  novo: 'Novo',
+  em_contato: 'Em contato',
+  concluido: 'Concluído',
+}
+
+const PRESUMIDO_REAL_STATUS_OPTIONS = Object.keys(PRESUMIDO_REAL_STATUS_LABELS) as PresumidoRealStatus[]
+
+function PresumidoRealLeadsModule() {
+  const [leads, setLeads] = useState<PresumidoRealLead[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  const loadLeads = async () => {
+    setLoading(true)
+    setError('')
+    const { data, error: loadError } = await supabase.rpc('admin_list_presumido_real_leads')
+
+    if (loadError) {
+      setError('Não consegui carregar os leads de Presumido/Real. Execute o SQL de acesso administrativo.')
+      setLoading(false)
+      return
+    }
+
+    setLeads((data ?? []) as PresumidoRealLead[])
+    setLoading(false)
+  }
+
+  useEffect(() => { void loadLeads() }, [])
+
+  const handleStatusChange = async (id: string, status: PresumidoRealStatus) => {
+    setSavingId(id)
+    const { error: saveError } = await supabase.rpc('admin_update_presumido_real_lead_status', { p_id: id, p_status: status })
+    setSavingId(null)
+
+    if (saveError) return
+
+    setLeads(current => current.map(lead => (lead.id === id ? { ...lead, status } : lead)))
+  }
+
+  return (
+    <div className="crm-module">
+      <div className="crm-module-inner">
+        <div className="crm-module-header">
+          <div>
+            <h2>Leads — Lucro Presumido ou Real</h2>
+          </div>
+          <div className="crm-header-right">
+            {error && <span className="crm-global-error">{error}</span>}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="crm-loading">Carregando leads...</div>
+        ) : (
+          <div className="pfx-table-card">
+            <table className="pfx-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>WhatsApp</th>
+                  <th>E-mail</th>
+                  <th>Empresa</th>
+                  <th>Status</th>
+                  <th>Enviado em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leads.map(lead => (
+                  <tr key={lead.id}>
+                    <td><strong>{lead.name}</strong></td>
+                    <td>{lead.whatsapp}</td>
+                    <td>{lead.email}</td>
+                    <td>{lead.company_description || '—'}</td>
+                    <td>
+                      <select
+                        value={lead.status}
+                        disabled={savingId === lead.id}
+                        onChange={event => void handleStatusChange(lead.id, event.target.value as PresumidoRealStatus)}
+                      >
+                        {PRESUMIDO_REAL_STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{PRESUMIDO_REAL_STATUS_LABELS[status]}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>{formatCrmDate(lead.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {leads.length === 0 && (
+              <div className="pfx-empty-state">
+                <strong>Nenhum lead de Presumido/Real ainda.</strong>
+                <span>Aparecem aqui quando alguém preenche o formulário em /abrir-cnpj.</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

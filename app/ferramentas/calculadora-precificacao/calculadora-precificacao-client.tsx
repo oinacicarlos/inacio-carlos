@@ -9,7 +9,7 @@ import { createIdempotencyKey, recordToolUsage } from "@/lib/tool-usage/record-c
 // Quanto tempo sem alterações até considerar a simulação "concluída" e
 // contar como uma utilização. Evita contar quem só abriu a página e saiu.
 const USAGE_SETTLE_DELAY_MS = 2500
-const MARGIN_STORAGE_KEY = "contafacil-pricing-margin"
+const MARGIN_STORAGE_KEY = "tropa-pricing-margin"
 
 const DEFAULT_WORK_NAME = ""
 const DEFAULT_DIRECT_COSTS = "150"
@@ -76,9 +76,11 @@ function toPositiveNumber(value: string) {
 export default function PricingCalculatorClient({
   trackUsage = false,
   isAuthenticated = false,
+  embedded = false,
 }: {
   trackUsage?: boolean
   isAuthenticated?: boolean
+  embedded?: boolean
 }) {
   const [workName, setWorkName] = useState(DEFAULT_WORK_NAME)
   const [directCosts, setDirectCosts] = useState(DEFAULT_DIRECT_COSTS)
@@ -147,8 +149,7 @@ export default function PricingCalculatorClient({
     return () => clearTimeout(timer)
   }, [isDirty, result, trackUsage])
 
-  return (
-    <ToolShell mainClassName="pricing-tool-site">
+  const content = (
       <section className="pricing-tool-section" aria-labelledby="pricing-tool-title">
         <div className="pricing-tool-head">
           <span>
@@ -299,13 +300,18 @@ export default function PricingCalculatorClient({
               </>
             )}
 
-            <a className="pricing-tool-cta" href="/diagnostico">
+            <a className="pricing-tool-cta" href="https://wa.me/5521979080457" target="_blank" rel="noreferrer">
               <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
               Falar com especialista
             </a>
           </aside>
         </div>
       </section>
-    </ToolShell>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return <ToolShell mainClassName="pricing-tool-site">{content}</ToolShell>
 }

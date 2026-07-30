@@ -100,7 +100,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Gerador de Contrato da ContaFacil já organiza todas essas cláusulas por você: você responde perguntas simples sobre o serviço, o pagamento, o prazo e o cancelamento, e recebe um documento pronto para revisar, copiar ou baixar em PDF.",
+      text: "O Gerador de Contrato da Tropa já organiza todas essas cláusulas por você: você responde perguntas simples sobre o serviço, o pagamento, o prazo e o cancelamento, e recebe um documento pronto para revisar, copiar ou baixar em PDF.",
     },
   ],
   faq: [

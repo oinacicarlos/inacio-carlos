@@ -64,9 +64,11 @@ function fieldId(key: string) {
 export default function ContractGeneratorClient({
   trackUsage = false,
   isAuthenticated = false,
+  embedded = false,
 }: {
   trackUsage?: boolean
   isAuthenticated?: boolean
+  embedded?: boolean
 }) {
   const router = useRouter()
   const [state, dispatch] = useReducer(reducer, undefined, createInitialContractState)
@@ -853,7 +855,7 @@ export default function ContractGeneratorClient({
           <button className="pricing-tool-secondary-action" type="button" onClick={resetAll}>
             Recomeçar
           </button>
-          <a className="pricing-tool-cta contract-tool-specialist" href="/diagnostico">
+          <a className="pricing-tool-cta contract-tool-specialist" href="https://wa.me/5521979080457" target="_blank" rel="noreferrer">
             <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
             Falar com especialista
           </a>
@@ -863,8 +865,8 @@ export default function ContractGeneratorClient({
     )
   }
 
-  return (
-    <ToolShell mainClassName="pricing-tool-site contract-tool-site">
+  const content = (
+    <>
       {screen === "intro" ? renderIntro() : null}
       {screen === "steps" ? renderSteps() : null}
       {screen === "review" ? renderReview() : null}
@@ -874,6 +876,12 @@ export default function ContractGeneratorClient({
         onAuthenticated={handleAuthenticated}
         redirectTo="/ferramentas/gerador-contrato"
       />
-    </ToolShell>
+    </>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return <ToolShell mainClassName="pricing-tool-site contract-tool-site">{content}</ToolShell>
 }

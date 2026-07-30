@@ -102,14 +102,14 @@ export default function ResetPasswordClient() {
     setPassword('')
     setConfirmPassword('')
     setMessage('Senha redefinida com sucesso.')
-    router.replace(isAdmin ? '/crm' : '/hub')
+    router.replace(isAdmin ? '/clientes' : '/hub')
   }
 
   return (
     <main className="password-reset-page">
       <section className="password-reset-panel" aria-label="Redefinir senha">
-        <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
+        <a className="admin-auth-logo" href="/" aria-label="Tropa">
+          <span>Tropa</span>
         </a>
 
         <header className="password-reset-header">

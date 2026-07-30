@@ -85,7 +85,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se você está avaliando contratar, o 13º é um dos encargos que precisa entrar na conta desde o início — junto com férias, FGTS e demais obrigações. O Simulador de Contratação da ContaFacil já inclui esses valores na estimativa de custo total.",
+      text: "Se você está avaliando contratar, o 13º é um dos encargos que precisa entrar na conta desde o início — junto com férias, FGTS e demais obrigações. O Simulador de Contratação da Tropa já inclui esses valores na estimativa de custo total.",
     },
   ],
   faq: [

@@ -106,7 +106,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se você quer aplicar essa conta no seu próprio serviço sem fazer a matemática na mão, a Calculadora de Precificação da ContaFacil já faz isso por você: você informa seus custos diretos, o valor do seu tempo e a margem que quer, e ela calcula o preço sugerido, o lucro em reais e o preço por unidade — em segundos, e de graça.",
+      text: "Se você quer aplicar essa conta no seu próprio serviço sem fazer a matemática na mão, a Calculadora de Precificação da Tropa já faz isso por você: você informa seus custos diretos, o valor do seu tempo e a margem que quer, e ela calcula o preço sugerido, o lucro em reais e o preço por unidade — em segundos, e de graça.",
     },
   ],
   faq: [

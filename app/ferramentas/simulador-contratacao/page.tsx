@@ -3,7 +3,7 @@ import ToolUsagePaywall from "@/components/tool-usage-paywall"
 import { getToolPageAccess } from "@/lib/tool-usage/page-access"
 
 export const metadata = {
-  title: "Simulador de Contratação | ContaFacil",
+  title: "Simulador de Contratação | Tropa",
   description: "Estime o custo mensal para contratar um funcionário.",
 }
 

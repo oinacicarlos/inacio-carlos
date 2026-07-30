@@ -1,7 +1,7 @@
-import NoSSRDashboard from '@/components/no-ssr-dashboard'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default function ContabilidadePage() {
-  return <NoSSRDashboard initialModule="Contabilidade" />
+  redirect('/clientes')
 }

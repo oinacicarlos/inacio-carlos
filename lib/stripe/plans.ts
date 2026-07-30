@@ -1,7 +1,7 @@
-export type PlanSlug = "bronze" | "prata"
+export type PlanSlug = "bronze" | "prata" | "ouro" | "diamante"
 
 export function isPlanSlug(value: unknown): value is PlanSlug {
-  return value === "bronze" || value === "prata"
+  return value === "bronze" || value === "prata" || value === "ouro" || value === "diamante"
 }
 
 // Fallback para quando o metadata.plan não vier no evento (ex.: assinatura
@@ -11,5 +11,7 @@ export function resolvePlanFromPriceId(priceId: string | null | undefined): Plan
   if (!priceId) return null
   if (priceId === process.env.STRIPE_PRICE_BRONZE) return "bronze"
   if (priceId === process.env.STRIPE_PRICE_PRATA) return "prata"
+  if (priceId === process.env.STRIPE_PRICE_OURO) return "ouro"
+  if (priceId === process.env.STRIPE_PRICE_DIAMANTE) return "diamante"
   return null
 }

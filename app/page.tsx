@@ -1,19 +1,15 @@
 import {
   ArrowRight,
-  Award,
   BadgeCheck,
   Building2,
   Calculator,
   ChartColumnIncreasing,
-  Check,
-  Crown,
   FileSignature,
-  Lightbulb,
   Megaphone,
   PieChart,
   Users,
 } from "lucide-react"
-import { StripePlanButton } from "@/components/stripe-plan-button"
+import PlanCalculator from "@/components/plan-calculator"
 import { BlogCard } from "@/components/blog/blog-card"
 import { getRecentArticles } from "@/lib/blog/articles"
 
@@ -112,74 +108,9 @@ const accountingFaqs = [
       "Trabalhamos com taxas por emissão de nota fiscal de serviço. Em caso de nota fiscal de produto (DANFE), também oferecemos esse serviço. Consulte o nosso canal de atendimento.",
   },
   {
-    question: "A Ionia atende empresas do Lucro Presumido ou do Lucro Real?",
+    question: "A Tropa atende empresas do Lucro Presumido ou do Lucro Real?",
     answer:
       "Sim, atendemos e oferecemos um atendimento diferenciado para clientes desse porte. Caso esse seja o seu caso, clique aqui e fale com um especialista.",
-  },
-]
-
-const accountingPlans = [
-  {
-    title: "Bronze",
-    description: "Para o MEI que está começando com simplicidade e baixo custo.",
-    price: "R$ 162,10",
-    period: "por mês",
-    icon: Award,
-    cta: "Quero este plano",
-    href: "/diagnostico",
-    features: [
-      "MEI",
-      "Sem funcionário",
-      "Até 1 nota fiscal de serviço por mês",
-      "Emissão de DAS",
-      "Orientação contábil",
-      "Ferramentas ilimitadas",
-      "Atendimento humanizado por WhatsApp",
-    ],
-  },
-  {
-    title: "Prata",
-    description: "Para o MEI que já possui funcionário e precisa de mais estrutura.",
-    price: "R$ 405,25",
-    period: "por mês",
-    icon: BadgeCheck,
-    cta: "Quero este plano",
-    href: "/diagnostico",
-    badge: "Mais escolhido",
-    featured: true,
-    features: [
-      "MEI",
-      "1 funcionário",
-      "Até 2 notas fiscais de serviço por mês",
-      "Emissão de DAS",
-      "Ferramentas ilimitadas",
-      "Pacote e-CAC incluso",
-      "Atendimento prioritário e humanizado",
-      "Orientação especializada",
-    ],
-  },
-  {
-    title: "Ouro",
-    description: "Para empresas do Simples Nacional que precisam de estrutura contábil completa.",
-    price: "R$ 810,50",
-    period: "por mês",
-    icon: Crown,
-    cta: "Falar com especialista",
-    href: "#contato",
-    priceLabel: "A partir de",
-    notice: "Valor ajustado conforme número de funcionários, volume de notas fiscais e atividade da empresa.",
-    features: [
-      "ME no Simples Nacional",
-      "Sem funcionário incluído no valor inicial",
-      "Até 5 notas fiscais de serviço por mês",
-      "Apuração mensal dos impostos",
-      "Rotinas contábeis e fiscais",
-      "Pró-labore de 1 sócio",
-      "Ferramentas ilimitadas",
-      "Pacote e-CAC completo",
-      "Consulta ao Serasa",
-      "Atendimento humanizado e prioritário",
-    ],
   },
 ]
 
@@ -188,9 +119,9 @@ export default function HomePage() {
 
   return (
     <main className="accounting-landing">
-      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
-        <a className="accounting-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
+      <header className="accounting-header" aria-label="Cabeçalho Tropa">
+        <a className="accounting-logo" href="/" aria-label="Tropa">
+          <span>Tropa</span>
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
@@ -205,7 +136,7 @@ export default function HomePage() {
           <a className="accounting-login" href="/login">
             Login
           </a>
-          <a className="accounting-header-cta" href="/diagnostico">
+          <a className="accounting-header-cta" href="/abrir-cnpj">
             <span>Abrir CNPJ</span>
             <span aria-hidden="true">›</span>
           </a>
@@ -225,7 +156,7 @@ export default function HomePage() {
           </p>
 
           <div className="accounting-hero-actions">
-            <a className="accounting-primary-button" href="/diagnostico">
+            <a className="accounting-primary-button" href="/abrir-cnpj">
               Abrir CNPJ
             </a>
             <a className="accounting-secondary-button" href="#contato">
@@ -261,88 +192,7 @@ export default function HomePage() {
           <h2 id="accounting-plans-title">Nossos Planos</h2>
           <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
 
-          <div className="accounting-plans-grid">
-            {accountingPlans.map(
-              ({
-                title,
-                description,
-                price,
-                period,
-                icon: Icon,
-                cta,
-                href,
-                badge,
-                featured,
-                priceLabel,
-                notice,
-                features,
-              }) => (
-                <article className={`accounting-plan-card${featured ? " is-featured" : ""}`} key={title}>
-                  {badge ? (
-                    <div className="accounting-plan-badge">
-                      <BadgeCheck size={16} strokeWidth={2} />
-                      <span>{badge}</span>
-                    </div>
-                  ) : null}
-
-                  <div className="accounting-plan-top">
-                    <div className="accounting-plan-icon" aria-hidden="true">
-                      <Icon size={36} strokeWidth={1.8} />
-                    </div>
-                    <h3>{title}</h3>
-                    <p className="accounting-plan-description">{description}</p>
-                    {priceLabel ? <span className="accounting-plan-price-label">{priceLabel}</span> : null}
-                    <strong className="accounting-plan-price">{price}</strong>
-                    <span className="accounting-plan-period">{period}</span>
-                  </div>
-
-                  <div className="accounting-plan-divider" />
-
-                  <ul className="accounting-plan-features">
-                    {features.map((feature) => (
-                      <li key={feature}>
-                        <span className="accounting-plan-check" aria-hidden="true">
-                          <Check size={14} strokeWidth={2.2} />
-                        </span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {notice ? (
-                    <div className="accounting-plan-notice">
-                      <span className="accounting-plan-notice-icon" aria-hidden="true">
-                        i
-                      </span>
-                      <p>{notice}</p>
-                    </div>
-                  ) : null}
-
-                  <div className="accounting-plan-action">
-                    {title === "Bronze" || title === "Prata" ? (
-                      <StripePlanButton featured={featured} plan={title === "Bronze" ? "bronze" : "prata"}>
-                        {cta}
-                      </StripePlanButton>
-                    ) : (
-                      <a className={`accounting-plan-button${featured ? " is-primary" : ""}`} href={href}>
-                        {cta}
-                      </a>
-                    )}
-                  </div>
-                </article>
-              ),
-            )}
-          </div>
-
-          <div className="accounting-plan-recommendation">
-            <div className="accounting-plan-recommendation-icon" aria-hidden="true">
-              <Lightbulb size={26} strokeWidth={1.9} />
-            </div>
-            <p>
-              <strong>Nossa recomendação:</strong> comece com o plano que atende sua realidade atual e evolua conforme
-              o crescimento do negócio.
-            </p>
-          </div>
+          <PlanCalculator />
         </div>
       </section>
 
@@ -401,7 +251,7 @@ export default function HomePage() {
         <div className="accounting-faq-inner">
           <div className="accounting-faq-head">
             <h2 id="accounting-faq-title">Dúvidas frequentes</h2>
-            <p>Respostas rápidas para entender como funciona o atendimento contábil da ContaFacil.</p>
+            <p>Respostas rápidas para entender como funciona o atendimento contábil da Tropa.</p>
           </div>
 
           <div className="accounting-faq-list">
@@ -420,11 +270,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
+      <footer className="accounting-footer" aria-label="Rodapé Tropa">
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
+            <a className="accounting-logo" href="/" aria-label="Tropa">
+              <span>Tropa</span>
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
           </div>
@@ -459,8 +309,8 @@ export default function HomePage() {
         </div>
 
         <div className="accounting-footer-bottom">
-          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
-          <a href="/diagnostico">Abrir CNPJ</a>
+          <span>© 2026 Tropa. Todos os direitos reservados.</span>
+          <a href="/abrir-cnpj">Abrir CNPJ</a>
         </div>
       </footer>
     </main>

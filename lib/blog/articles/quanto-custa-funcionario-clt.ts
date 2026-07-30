@@ -85,7 +85,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Simulador de Contratação da ContaFacil já calcula essa conta inteira: você informa o salário, o regime da empresa e os benefícios, e ele mostra o custo médio mensal, o custo anual e o detalhamento de cada item — em segundos, sem precisar montar planilha.",
+      text: "O Simulador de Contratação da Tropa já calcula essa conta inteira: você informa o salário, o regime da empresa e os benefícios, e ele mostra o custo médio mensal, o custo anual e o detalhamento de cada item — em segundos, sem precisar montar planilha.",
     },
   ],
   faq: [

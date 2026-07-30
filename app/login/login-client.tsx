@@ -54,10 +54,10 @@ export default function LoginClient() {
   const searchParams = useSearchParams()
   const checkoutPlan = searchParams.get('checkout')
   const rawRedirect = searchParams.get('redirect')
-  const destination = safeRedirectPath(rawRedirect, '/crm')
+  const destination = safeRedirectPath(rawRedirect, '/clientes')
   // O link pro cadastro só carrega o redirect quando ele veio de verdade da
   // URL (ex.: alguém mandado de uma ferramenta) — sem isso, um cadastro novo
-  // não deve herdar o "/crm" que é o destino padrão só do login admin.
+  // não deve herdar a rota administrativa que é o destino padrão só do login admin.
   const signupHref = rawRedirect ? `/cadastro?redirect=${encodeURIComponent(safeRedirectPath(rawRedirect, '/hub'))}` : '/cadastro'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -130,8 +130,8 @@ export default function LoginClient() {
     <main className="admin-login-page">
       <section className="admin-login-panel" aria-label="Acesso ao hub admin">
         <div className="admin-login-content">
-          <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
-            <span>Conta</span>Facil
+          <a className="admin-auth-logo" href="/" aria-label="Tropa">
+            <span>Tropa</span>
           </a>
 
           <header className="admin-login-header">

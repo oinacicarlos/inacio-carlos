@@ -97,7 +97,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Não precisa começar do zero nem contratar um advogado pra ter um contrato básico de prestação de serviço. O Gerador de Contrato da ContaFacil monta um contrato personalizado com escopo, prazo, valor e forma de pagamento, pronto pra revisar e assinar.",
+      text: "Não precisa começar do zero nem contratar um advogado pra ter um contrato básico de prestação de serviço. O Gerador de Contrato da Tropa monta um contrato personalizado com escopo, prazo, valor e forma de pagamento, pronto pra revisar e assinar.",
     },
   ],
   faq: [

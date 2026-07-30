@@ -82,7 +82,7 @@ export const RESPONSIBILITY_OPTIONS: Record<ContractType, { partyA: string[]; pa
   },
 }
 
-export const DRAFT_KEY = "contafacil-contract-generator-draft"
+export const DRAFT_KEY = "tropa-contract-generator-draft"
 
 export function emptyParty(label = "") {
   return {

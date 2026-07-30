@@ -3,7 +3,7 @@ import ToolUsagePaywall from "@/components/tool-usage-paywall"
 import { getToolPageAccess } from "@/lib/tool-usage/page-access"
 
 export const metadata = {
-  title: "Simulador de Rescisão | ContaFacil",
+  title: "Simulador de Rescisão | Tropa",
   description: "Estime as principais verbas de uma rescisão trabalhista de forma simples.",
 }
 

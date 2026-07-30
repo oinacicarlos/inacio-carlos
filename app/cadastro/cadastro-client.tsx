@@ -125,8 +125,8 @@ export default function CadastroClient() {
       <main className="admin-login-page">
         <section className="admin-login-panel" aria-label="Confirme seu e-mail">
           <div className="admin-login-content">
-            <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
+            <a className="admin-auth-logo" href="/" aria-label="Tropa">
+              <span>Tropa</span>
             </a>
 
             <header className="admin-login-header">
@@ -150,13 +150,13 @@ export default function CadastroClient() {
     <main className="admin-login-page">
       <section className="admin-login-panel" aria-label="Criar conta grátis">
         <div className="admin-login-content">
-          <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
-            <span>Conta</span>Facil
+          <a className="admin-auth-logo" href="/" aria-label="Tropa">
+            <span>Tropa</span>
           </a>
 
           <header className="admin-login-header">
             <h1>Crie sua conta grátis</h1>
-            <p>Use as ferramentas da ContaFacil até 3 vezes por mês em cada uma, sem custo.</p>
+            <p>Use as ferramentas da Tropa até 3 vezes por mês em cada uma, sem custo.</p>
           </header>
 
           <form className="admin-login-form" onSubmit={handleSignUp} noValidate>

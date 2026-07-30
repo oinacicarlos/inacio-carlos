@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   }
 
   return {
-    title: `${article.metaTitle ?? article.title} | Blog ContaFacil`,
+    title: `${article.metaTitle ?? article.title} | Blog Tropa`,
     description: article.metaDescription,
     openGraph: {
       title: article.metaTitle ?? article.title,

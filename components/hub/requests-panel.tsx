@@ -1,7 +1,7 @@
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
-import { Paperclip, Plus, X } from "lucide-react"
+import { CreditCard, FileQuestion, FileText, Paperclip, Plus, Send, UploadCloud, X } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import {
   ALLOWED_ATTACHMENT_TYPES,
@@ -17,6 +17,80 @@ import {
 } from "@/lib/client-requests/constants"
 
 type View = "list" | "new" | { detail: ClientRequest }
+export type RequestIntent = "billing_due_date" | "document_upload"
+type RequestTemplate = {
+  label: string
+  description: string
+  category: RequestCategory
+  title: string
+  body: string
+  icon: typeof FileText
+}
+
+const REQUEST_TEMPLATES: RequestTemplate[] = [
+  {
+    label: "Emitir nota fiscal",
+    description: "Dados do tomador, serviço, valor e observações.",
+    category: "emissao_nota_fiscal",
+    title: "Emitir nota fiscal",
+    body: "Preciso emitir uma nota fiscal. Seguem os dados do tomador, descrição do serviço, valor e observações:",
+    icon: FileText,
+  },
+  {
+    label: "Enviar documento",
+    description: "Contrato, comprovante, guia, extrato ou arquivo para análise.",
+    category: "envio_documento",
+    title: "Envio de documento",
+    body: "Estou enviando um documento para análise da equipe:",
+    icon: UploadCloud,
+  },
+  {
+    label: "Alterar vencimento",
+    description: "Solicite ajuste da data de cobrança do plano.",
+    category: "duvida_atendimento",
+    title: "Solicitar alteração da data de vencimento",
+    body: "Gostaria de alterar a data de vencimento da minha assinatura para o dia:",
+    icon: CreditCard,
+  },
+  {
+    label: "Dúvida contábil",
+    description: "Impostos, rotina mensal, DAS, pró-labore ou orientação geral.",
+    category: "duvida_atendimento",
+    title: "Dúvida contábil",
+    body: "Tenho uma dúvida sobre:",
+    icon: FileQuestion,
+  },
+  {
+    label: "Alteração cadastral",
+    description: "Endereço, atividade, razão social, sócios ou dados fiscais.",
+    category: "alteracao_cadastral",
+    title: "Alteração cadastral",
+    body: "Preciso alterar os seguintes dados cadastrais:",
+    icon: FileText,
+  },
+  {
+    label: "Inscrição municipal",
+    description: "Pedidos e pendências ligados à prefeitura.",
+    category: "inscricao_municipal",
+    title: "Inscrição municipal",
+    body: "Preciso de ajuda com inscrição municipal:",
+    icon: FileText,
+  },
+  {
+    label: "Inscrição estadual",
+    description: "Pedidos e pendências ligados ao estado.",
+    category: "inscricao_estadual",
+    title: "Inscrição estadual",
+    body: "Preciso de ajuda com inscrição estadual:",
+    icon: FileText,
+  },
+]
+
+function templateForIntent(intent: RequestIntent | null) {
+  if (intent === "billing_due_date") return REQUEST_TEMPLATES.find((template) => template.title.includes("vencimento"))
+  if (intent === "document_upload") return REQUEST_TEMPLATES.find((template) => template.category === "envio_documento")
+  return null
+}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
@@ -28,10 +102,11 @@ function statusClassName(status: ClientRequest["status"]) {
   return "is-open"
 }
 
-export default function RequestsPanel() {
+export default function RequestsPanel({ initialIntent }: { initialIntent?: RequestIntent | null }) {
   const [requests, setRequests] = useState<ClientRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<View>("list")
+  const [view, setView] = useState<View>(initialIntent ? "new" : "list")
+  const [draftTemplate, setDraftTemplate] = useState<RequestTemplate | null>(templateForIntent(initialIntent ?? null) ?? null)
 
   useEffect(() => {
     let active = true
@@ -66,10 +141,25 @@ export default function RequestsPanel() {
   function handleCreated(request: ClientRequest) {
     setRequests((current) => [request, ...current])
     setView("list")
+    setDraftTemplate(null)
+  }
+
+  function openTemplate(template: RequestTemplate) {
+    setDraftTemplate(template)
+    setView("new")
   }
 
   if (view === "new") {
-    return <RequestForm onCancel={() => setView("list")} onCreated={handleCreated} />
+    return (
+      <RequestForm
+        initialTemplate={draftTemplate}
+        onCancel={() => {
+          setDraftTemplate(null)
+          setView("list")
+        }}
+        onCreated={handleCreated}
+      />
+    )
   }
 
   if (typeof view === "object") {
@@ -87,6 +177,22 @@ export default function RequestsPanel() {
           <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
           Nova solicitação
         </button>
+      </div>
+
+      <div className="client-requests-template-strip" aria-label="Atalhos de solicitação">
+        {REQUEST_TEMPLATES.slice(0, 4).map((template) => {
+          const Icon = template.icon
+          return (
+          <button
+            type="button"
+            key={template.label}
+            onClick={() => openTemplate(template)}
+          >
+            <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
+            {template.label}
+          </button>
+          )
+        })}
       </div>
 
       {loading ? (
@@ -189,14 +295,28 @@ function RequestDetail({ request, onBack }: { request: ClientRequest; onBack: ()
   )
 }
 
-function RequestForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: (request: ClientRequest) => void }) {
-  const [category, setCategory] = useState<RequestCategory>(CATEGORY_OPTIONS[0].value)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
+function RequestForm({
+  initialTemplate,
+  onCancel,
+  onCreated,
+}: {
+  initialTemplate: RequestTemplate | null
+  onCancel: () => void
+  onCreated: (request: ClientRequest) => void
+}) {
+  const [category, setCategory] = useState<RequestCategory>(initialTemplate?.category ?? CATEGORY_OPTIONS[0].value)
+  const [title, setTitle] = useState(initialTemplate?.title ?? "")
+  const [description, setDescription] = useState(initialTemplate?.body ?? "")
   const [priority, setPriority] = useState<RequestPriority>("normal")
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  function applyTemplate(template: (typeof REQUEST_TEMPLATES)[number]) {
+    setCategory(template.category)
+    setTitle(template.title)
+    setDescription(template.body)
+  }
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null
@@ -302,16 +422,44 @@ function RequestForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
       </div>
 
       <form className="client-requests-form" onSubmit={handleSubmit}>
-        <label className="client-requests-field">
+        <div className="client-requests-field">
+          <span>Escolha um atalho</span>
+          <div className="client-requests-template-grid">
+            {REQUEST_TEMPLATES.map((template) => {
+              const Icon = template.icon
+              const isActive = title === template.title
+              return (
+                <button
+                  className={isActive ? "is-active" : ""}
+                  type="button"
+                  key={template.label}
+                  onClick={() => applyTemplate(template)}
+                >
+                  <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
+                  <strong>{template.label}</strong>
+                  <small>{template.description}</small>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="client-requests-field">
           <span>Categoria</span>
-          <select value={category} onChange={(event) => setCategory(event.target.value as RequestCategory)}>
+          <div className="client-requests-category-pills">
             {CATEGORY_OPTIONS.map((option) => (
-              <option value={option.value} key={option.value}>
+              <button
+                className={category === option.value ? "is-active" : ""}
+                type="button"
+                value={option.value}
+                key={option.value}
+                onClick={() => setCategory(option.value)}
+              >
                 {option.label}
-              </option>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
 
         <label className="client-requests-field">
           <span>Título</span>
@@ -363,6 +511,7 @@ function RequestForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
             Cancelar
           </button>
           <button type="submit" className="client-requests-new-button" disabled={submitting}>
+            <Send size={15} strokeWidth={2.4} aria-hidden="true" />
             {submitting ? "Enviando..." : "Enviar solicitação"}
           </button>
         </div>

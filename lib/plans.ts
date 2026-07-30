@@ -1,5 +1,5 @@
-export type PlanSlug = "free" | "bronze" | "prata" | "ouro"
-export type CheckoutPlanSlug = "bronze" | "prata"
+export type PlanSlug = "free" | "bronze" | "prata" | "ouro" | "diamante"
+export type CheckoutPlanSlug = "bronze" | "prata" | "ouro" | "diamante"
 
 export type PlanDetails = {
   slug: PlanSlug
@@ -61,10 +61,11 @@ export const PLAN_DETAILS: Record<PlanSlug, PlanDetails> = {
     slug: "ouro",
     label: "Ouro",
     priceLabel: "A partir de R$ 810,50",
-    priceValue: null,
+    priceValue: "R$ 810,50",
     period: "por mês",
     benefits: [
       "ME no Simples Nacional",
+      "Sem funcionário (só o pró-labore do sócio)",
       "Até 5 notas fiscais de serviço por mês",
       "Apuração mensal dos impostos",
       "Rotinas contábeis e fiscais",
@@ -74,10 +75,30 @@ export const PLAN_DETAILS: Record<PlanSlug, PlanDetails> = {
       "Consulta ao Serasa",
       "Atendimento humanizado e prioritário",
     ],
-    checkoutPlan: null,
+    checkoutPlan: "ouro",
+  },
+  diamante: {
+    slug: "diamante",
+    label: "Diamante",
+    priceLabel: "A partir de R$ 1.621,00",
+    priceValue: "R$ 1.621,00",
+    period: "por mês",
+    benefits: [
+      "ME no Simples Nacional",
+      "Até 2 funcionários, além do pró-labore do sócio",
+      "Até 5 notas fiscais de serviço por mês",
+      "Apuração mensal dos impostos",
+      "Rotinas contábeis e fiscais",
+      "Folha de pagamento dos funcionários",
+      "Ferramentas ilimitadas",
+      "Pacote e-CAC completo",
+      "Consulta ao Serasa",
+      "Atendimento humanizado e prioritário",
+    ],
+    checkoutPlan: "diamante",
   },
 }
 
 export function isPlanSlug(value: string): value is PlanSlug {
-  return value === "free" || value === "bronze" || value === "prata" || value === "ouro"
+  return value === "free" || value === "bronze" || value === "prata" || value === "ouro" || value === "diamante"
 }

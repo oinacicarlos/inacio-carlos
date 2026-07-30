@@ -91,7 +91,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Assim como o 13º, o custo de férias precisa entrar na conta desde a decisão de contratar — não só no mês em que elas acontecem. O Simulador de Contratação da ContaFacil já estima esse valor junto com os demais encargos.",
+      text: "Assim como o 13º, o custo de férias precisa entrar na conta desde a decisão de contratar — não só no mês em que elas acontecem. O Simulador de Contratação da Tropa já estima esse valor junto com os demais encargos.",
     },
   ],
   faq: [

@@ -4,7 +4,7 @@ import { getAllArticles } from "@/lib/blog/articles"
 
 const STATIC_ROUTES = [
   "",
-  "/diagnostico",
+  "/abrir-cnpj",
   "/blog",
   "/ferramentas/gerador-contrato",
   "/ferramentas/simulador-rescisao",

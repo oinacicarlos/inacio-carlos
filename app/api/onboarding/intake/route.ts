@@ -8,6 +8,14 @@ type IntakePayload = {
   senha_gov?: string
   segmento?: string
   descricao_cnpj?: string
+  estado_civil?: string
+  regime_bens?: string
+  razao_social?: string
+  tem_nome_fantasia?: boolean | null
+  nome_fantasia?: string
+  quantidade_socios?: number | null
+  cnpj_atual?: string
+  descricao_alteracao?: string
   has_certidao_casamento?: boolean | null
   has_comprovante_bombeiro?: boolean | null
 }
@@ -46,6 +54,30 @@ export async function POST(request: Request) {
   const descricaoCnpj = cleanString(payload.descricao_cnpj)
   if (descricaoCnpj !== undefined) update.descricao_cnpj = descricaoCnpj
 
+  const estadoCivil = cleanString(payload.estado_civil)
+  if (estadoCivil !== undefined) update.estado_civil = estadoCivil
+
+  const regimeBens = cleanString(payload.regime_bens)
+  if (regimeBens !== undefined) update.regime_bens = regimeBens
+
+  const razaoSocial = cleanString(payload.razao_social)
+  if (razaoSocial !== undefined) update.razao_social = razaoSocial
+
+  const nomeFantasia = cleanString(payload.nome_fantasia)
+  if (nomeFantasia !== undefined) update.nome_fantasia = nomeFantasia
+
+  const cnpjAtual = cleanString(payload.cnpj_atual)
+  if (cnpjAtual !== undefined) update.cnpj_atual = cnpjAtual
+
+  const descricaoAlteracao = cleanString(payload.descricao_alteracao)
+  if (descricaoAlteracao !== undefined) update.descricao_alteracao = descricaoAlteracao
+
+  if (typeof payload.tem_nome_fantasia === "boolean") {
+    update.tem_nome_fantasia = payload.tem_nome_fantasia
+  }
+  if (typeof payload.quantidade_socios === "number" && Number.isFinite(payload.quantidade_socios)) {
+    update.quantidade_socios = Math.max(1, Math.trunc(payload.quantidade_socios))
+  }
   if (typeof payload.has_certidao_casamento === "boolean") {
     update.has_certidao_casamento = payload.has_certidao_casamento
   }

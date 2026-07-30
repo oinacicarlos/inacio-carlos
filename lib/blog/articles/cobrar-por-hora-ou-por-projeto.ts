@@ -90,7 +90,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "A Calculadora de Precificação da ContaFacil ajuda nessa conta: você informa seus custos, o valor do seu tempo e a margem que quer, e vê o preço sugerido — seja para um projeto fechado ou para calcular quanto vale a sua hora de trabalho.",
+      text: "A Calculadora de Precificação da Tropa ajuda nessa conta: você informa seus custos, o valor do seu tempo e a margem que quer, e vê o preço sugerido — seja para um projeto fechado ou para calcular quanto vale a sua hora de trabalho.",
     },
   ],
   faq: [

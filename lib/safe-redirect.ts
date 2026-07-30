@@ -2,7 +2,22 @@
 // pra nunca redirecionar pra um domínio externo a partir de um parâmetro de URL.
 export function safeRedirectPath(value: string | null, fallback: string): string {
   if (value && value.startsWith("/") && !value.startsWith("//")) {
-    return value
+    const redirectUrl = new URL(value, "https://local.tropa")
+
+    if (
+      redirectUrl.pathname === "/crm" ||
+      redirectUrl.pathname.startsWith("/crm/") ||
+      redirectUrl.pathname === "/contabilidade" ||
+      redirectUrl.pathname.startsWith("/contabilidade/")
+    ) {
+      return "/clientes"
+    }
+
+    if (redirectUrl.pathname === "/hub") {
+      return "/hub"
+    }
+
+    return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`
   }
   return fallback
 }

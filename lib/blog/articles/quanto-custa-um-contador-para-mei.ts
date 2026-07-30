@@ -83,12 +83,12 @@ export const article: BlogArticle = {
     {
       type: "heading",
       level: 2,
-      text: "Como funciona na ContaFacil",
-      id: "como-funciona-na-contafacil",
+      text: "Como funciona na Tropa",
+      id: "como-funciona-na-tropa",
     },
     {
       type: "paragraph",
-      text: "Os planos da ContaFacil foram pensados pra cobrir exatamente esses momentos: emissão de nota fiscal, acompanhamento do DAS, envio de declarações, ferramentas ilimitadas de precificação e contratação, e suporte humanizado quando você precisar de uma resposta de verdade — sem esperar dias por retorno.",
+      text: "Os planos da Tropa foram pensados pra cobrir exatamente esses momentos: emissão de nota fiscal, acompanhamento do DAS, envio de declarações, ferramentas ilimitadas de precificação e contratação, e suporte humanizado quando você precisar de uma resposta de verdade — sem esperar dias por retorno.",
     },
   ],
   faq: [
@@ -109,7 +109,7 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Ver planos da ContaFacil",
+    title: "Ver planos da Tropa",
     href: "/#planos",
     description: "Compare os planos e veja o que está incluso em cada um, do MEI até a empresa com funcionários.",
   },

@@ -11,7 +11,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Inácio Carlos",
+  title: "Tropa",
   description: "Aplicação para empresas que querem vender mais.",
   icons: {
     icon: "/favicon.svg",

@@ -4,6 +4,8 @@ import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route"
 const priceIds = {
   bronze: process.env.STRIPE_PRICE_BRONZE,
   prata: process.env.STRIPE_PRICE_PRATA,
+  ouro: process.env.STRIPE_PRICE_OURO,
+  diamante: process.env.STRIPE_PRICE_DIAMANTE,
 } as const
 
 export async function POST(request: Request) {

@@ -85,7 +85,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Em vez de tentar calcular tudo isso na mão, o Simulador de Rescisão da ContaFacil já aplica essas regras automaticamente: você escolhe o tipo de desligamento e informa salário, datas e saldo do FGTS, e recebe uma estimativa das principais verbas — incluindo o custo estimado para a empresa.",
+      text: "Em vez de tentar calcular tudo isso na mão, o Simulador de Rescisão da Tropa já aplica essas regras automaticamente: você escolhe o tipo de desligamento e informa salário, datas e saldo do FGTS, e recebe uma estimativa das principais verbas — incluindo o custo estimado para a empresa.",
     },
   ],
   faq: [

@@ -12,7 +12,7 @@ const defaultHeaderActions = (
     <a className="accounting-login" href="/login">
       Login
     </a>
-    <a className="accounting-header-cta" href="/diagnostico">
+    <a className="accounting-header-cta" href="/abrir-cnpj">
       <span>Abrir CNPJ</span>
       <span aria-hidden="true">›</span>
     </a>
@@ -26,9 +26,9 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
   return (
     <main className={`accounting-landing${mainClassName ? ` ${mainClassName}` : ""}`}>
       <ToolBackToHub />
-      <header className="accounting-header" aria-label="Cabeçalho ContaFacil">
-        <a className="accounting-logo" href="/" aria-label="ContaFacil">
-          <span>Conta</span>Facil
+      <header className="accounting-header" aria-label="Cabeçalho Tropa">
+        <a className="accounting-logo" href="/" aria-label="Tropa">
+          <span>Tropa</span>
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
@@ -44,11 +44,11 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
 
       {children}
 
-      <footer className="accounting-footer" aria-label="Rodapé ContaFacil">
+      <footer className="accounting-footer" aria-label="Rodapé Tropa">
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="ContaFacil">
-              <span>Conta</span>Facil
+            <a className="accounting-logo" href="/" aria-label="Tropa">
+              <span>Tropa</span>
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
           </div>
@@ -83,8 +83,8 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
         </div>
 
         <div className="accounting-footer-bottom">
-          <span>© 2026 ContaFacil. Todos os direitos reservados.</span>
-          <a href="/diagnostico">Abrir CNPJ</a>
+          <span>© 2026 Tropa. Todos os direitos reservados.</span>
+          <a href="/abrir-cnpj">Abrir CNPJ</a>
         </div>
       </footer>
     </main>

@@ -116,8 +116,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Falar com um especialista",
-    href: "/diagnostico",
+    title: "Abrir meu MEI",
+    href: "/abrir-cnpj",
     description: "Tire dúvidas sobre emissão de notas fiscais ou terceirize essa rotina para o seu MEI.",
   },
   relatedSlugs: ["o-que-e-das-mei-como-pagar", "como-abrir-mei-passo-a-passo", "quanto-custa-um-contador-para-mei"],

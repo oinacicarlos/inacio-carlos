@@ -95,7 +95,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Simulador de Rescisão da ContaFacil já considera o tipo de aviso prévio de acordo com o tipo de desligamento escolhido, junto com as demais verbas — saldo de salário, 13º, férias e multa do FGTS — para dar uma estimativa completa em segundos.",
+      text: "O Simulador de Rescisão da Tropa já considera o tipo de aviso prévio de acordo com o tipo de desligamento escolhido, junto com as demais verbas — saldo de salário, 13º, férias e multa do FGTS — para dar uma estimativa completa em segundos.",
     },
   ],
   faq: [

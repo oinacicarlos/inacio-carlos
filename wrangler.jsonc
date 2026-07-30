@@ -23,6 +23,7 @@
     "enabled": true
   },
   "vars": {
-    "RESEND_FROM": "Inácio Carlos <contato@inaciocarlos.com>"
+    "NEXT_PUBLIC_SITE_URL": "https://tropacontabilidade.com",
+    "RESEND_FROM": "Tropa <contato@tropacontabilidade.com>"
   }
 }

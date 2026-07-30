@@ -99,7 +99,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Gerador de Contrato da ContaFacil já inclui, entre as opções, cláusulas de forma de pagamento, multa por atraso e condições de cancelamento — prontas para você incluir no seu próximo contrato sem precisar escrever do zero.",
+      text: "O Gerador de Contrato da Tropa já inclui, entre as opções, cláusulas de forma de pagamento, multa por atraso e condições de cancelamento — prontas para você incluir no seu próximo contrato sem precisar escrever do zero.",
     },
   ],
   faq: [

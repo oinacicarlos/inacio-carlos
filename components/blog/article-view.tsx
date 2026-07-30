@@ -70,8 +70,8 @@ function buildJsonLd(article: BlogArticle) {
     description: article.metaDescription,
     datePublished: article.publishedAt,
     dateModified: article.updatedAt,
-    author: { "@type": "Organization", name: "ContaFacil" },
-    publisher: { "@type": "Organization", name: "ContaFacil" },
+    author: { "@type": "Organization", name: "Tropa" },
+    publisher: { "@type": "Organization", name: "Tropa" },
   }
 
   const faqJsonLd =
@@ -180,7 +180,12 @@ export function ArticleView({ article }: { article: BlogArticle }) {
               <BadgeCheck size={22} strokeWidth={2} aria-hidden="true" />
               <strong>Fale com um especialista</strong>
               <p>Tire dúvidas sobre a sua contabilidade com quem entende do assunto.</p>
-              <a className="blog-promo-card-cta blog-promo-card-cta--light" href="/diagnostico">
+              <a
+                className="blog-promo-card-cta blog-promo-card-cta--light"
+                href="https://wa.me/5521979080457"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Falar agora
                 <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
               </a>

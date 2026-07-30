@@ -4,6 +4,7 @@ import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route"
 const priceIds = {
   certificado_pj_a1: process.env.STRIPE_PRICE_CERTIFICADO_A1,
   abertura_empresa: process.env.STRIPE_PRICE_ABERTURA_EMPRESA,
+  alteracao_cnpj: process.env.STRIPE_PRICE_ALTERACAO_CNPJ,
 } as const
 
 // Rota separada de app/api/stripe/checkout/route.ts porque os parâmetros do

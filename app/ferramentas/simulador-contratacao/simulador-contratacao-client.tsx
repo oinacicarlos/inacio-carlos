@@ -70,9 +70,11 @@ function toNumber(value: string) {
 export default function HiringSimulatorClient({
   trackUsage = false,
   isAuthenticated = false,
+  embedded = false,
 }: {
   trackUsage?: boolean
   isAuthenticated?: boolean
+  embedded?: boolean
 }) {
   const [salary, setSalary] = useState(DEFAULT_SALARY)
   const [regime, setRegime] = useState<Regime>(DEFAULT_REGIME)
@@ -167,8 +169,7 @@ export default function HiringSimulatorClient({
     presumidoReal: "No Lucro Presumido ou Real, os encargos patronais completos costumam ficar entre 26% e 30% do salário.",
   }
 
-  return (
-    <ToolShell mainClassName="hiring-tool-site">
+  const content = (
       <section className="hiring-tool-section" aria-labelledby="hiring-tool-title">
         <div className="hiring-tool-head">
           <span>
@@ -337,13 +338,18 @@ export default function HiringSimulatorClient({
               </div>
             </ToolResultGate>
 
-            <a className="hiring-tool-cta" href="/diagnostico">
+            <a className="hiring-tool-cta" href="https://wa.me/5521979080457" target="_blank" rel="noreferrer">
               <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
               Falar com especialista
             </a>
           </aside>
         </div>
       </section>
-    </ToolShell>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return <ToolShell mainClassName="hiring-tool-site">{content}</ToolShell>
 }

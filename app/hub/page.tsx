@@ -6,6 +6,7 @@ import { isPlanSlug, type PlanSlug } from "@/lib/plans"
 
 type ClientHubProfile = {
   name: string
+  phone: string
   company_name: string
   current_plan: string
   subscription_status: string
@@ -18,6 +19,7 @@ const PLAN_LABELS: Record<string, string> = {
   bronze: "Bronze",
   prata: "Prata",
   ouro: "Ouro",
+  diamante: "Diamante",
 }
 
 const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
@@ -30,8 +32,8 @@ const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
 }
 
 export const metadata = {
-  title: "Hub do Cliente | ContaFacil",
-  description: "Área visual inicial do cliente ContaFacil.",
+  title: "Hub do Cliente | Tropa",
+  description: "Área visual inicial do cliente Tropa.",
 }
 
 async function loadProfile(
@@ -44,14 +46,14 @@ async function loadProfile(
   // ainda não existir, pra não quebrar o resto do perfil nesse meio-tempo.
   const { data, error } = await supabase
     .from("client_hub_profiles")
-    .select("name, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
+    .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
     .eq("id", userId)
     .maybeSingle()
 
   if (error) {
     const fallback = await supabase
       .from("client_hub_profiles")
-      .select("name, company_name, current_plan, subscription_status, stripe_customer_id")
+      .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id")
       .eq("id", userId)
       .maybeSingle()
 
@@ -70,7 +72,7 @@ async function loadProfile(
   const { data: inserted } = await supabase
     .from("client_hub_profiles")
     .insert({ id: userId, name: fallbackName })
-    .select("name, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
+    .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
     .maybeSingle()
 
   return inserted ?? null
@@ -109,6 +111,7 @@ export default async function ClientHubPage() {
 
   const clientName = profile?.name?.trim() || fallbackName || "Cliente"
   const companyName = profile?.company_name?.trim() || null
+  const userPhone = profile?.phone?.trim() || ""
   const currentPlan = profile?.current_plan ?? "free"
   const subscriptionStatus = profile?.subscription_status ?? "free"
   const planLabel = PLAN_LABELS[currentPlan] ?? currentPlan
@@ -132,6 +135,7 @@ export default async function ClientHubPage() {
       clientName={clientName}
       companyName={companyName}
       userEmail={user?.email ?? "—"}
+      userPhone={userPhone}
       planLabel={planLabel}
       planSlug={planSlug}
       subscriptionStatusLabel={subscriptionStatusLabel}

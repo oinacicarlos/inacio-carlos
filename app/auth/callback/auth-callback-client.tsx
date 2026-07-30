@@ -55,8 +55,8 @@ export default function AuthCallbackClient() {
     <main className="admin-login-page">
       <section className="admin-login-panel" aria-label="Confirmando acesso">
         <div className="admin-login-content">
-          <a className="admin-auth-logo" href="/" aria-label="ContaFacil">
-            <span>Conta</span>Facil
+          <a className="admin-auth-logo" href="/" aria-label="Tropa">
+            <span>Tropa</span>
           </a>
 
           <header className="admin-login-header">

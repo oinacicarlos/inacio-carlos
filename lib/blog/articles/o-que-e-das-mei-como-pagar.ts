@@ -129,8 +129,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Falar com um especialista",
-    href: "/diagnostico",
+    title: "Abrir meu MEI",
+    href: "/abrir-cnpj",
     description: "Tire dúvidas sobre o seu MEI ou sobre trocar de contador com quem entende do assunto.",
   },
   relatedSlugs: ["como-abrir-mei-passo-a-passo", "como-emitir-nota-fiscal-mei", "mei-pode-ter-funcionario"],

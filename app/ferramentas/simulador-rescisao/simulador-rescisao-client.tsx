@@ -75,9 +75,11 @@ function toInput(values: FormValues): TerminationInput {
 export default function TerminationSimulatorClient({
   trackUsage = false,
   isAuthenticated = false,
+  embedded = false,
 }: {
   trackUsage?: boolean
   isAuthenticated?: boolean
+  embedded?: boolean
 }) {
   const [values, setValues] = useState<FormValues>(defaultValues)
   const input = useMemo(() => toInput(values), [values])
@@ -124,8 +126,7 @@ export default function TerminationSimulatorClient({
     setValues(current => ({ ...current, [field]: value }))
   }
 
-  return (
-    <ToolShell mainClassName="termination-page">
+  const content = (
       <section className="termination-simple-section" aria-labelledby="termination-title">
         <div className="termination-simple-head">
           <span>
@@ -261,7 +262,7 @@ export default function TerminationSimulatorClient({
                   </div>
                 </ToolResultGate>
 
-                <a className="termination-simple-cta" href="/diagnostico">
+                <a className="termination-simple-cta" href="https://wa.me/5521979080457" target="_blank" rel="noreferrer">
                   <BadgeCheck size={19} strokeWidth={2.2} aria-hidden="true" />
                   Falar com especialista
                 </a>
@@ -280,6 +281,11 @@ export default function TerminationSimulatorClient({
           </aside>
         </div>
       </section>
-    </ToolShell>
   )
+
+  if (embedded) {
+    return content
+  }
+
+  return <ToolShell mainClassName="termination-page">{content}</ToolShell>
 }

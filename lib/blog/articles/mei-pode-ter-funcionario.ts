@@ -77,7 +77,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Simulador de Contratação da ContaFacil ajuda a estimar o custo real de contratar — salário, encargos e benefícios — antes de tomar a decisão, seja você MEI ou uma empresa maior.",
+      text: "O Simulador de Contratação da Tropa ajuda a estimar o custo real de contratar — salário, encargos e benefícios — antes de tomar a decisão, seja você MEI ou uma empresa maior.",
     },
   ],
   faq: [

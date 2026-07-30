@@ -4,7 +4,7 @@ import { useState } from "react"
 
 type StripePlanButtonProps = {
   featured?: boolean
-  plan: "bronze" | "prata"
+  plan: "bronze" | "prata" | "ouro" | "diamante"
   children: React.ReactNode
 }
 

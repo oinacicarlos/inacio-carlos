@@ -3,7 +3,7 @@ import ToolUsagePaywall from "@/components/tool-usage-paywall"
 import { getToolPageAccess } from "@/lib/tool-usage/page-access"
 
 export const metadata = {
-  title: "Calculadora de Precificação | ContaFacil",
+  title: "Calculadora de Precificação | Tropa",
   description: "Descubra quanto cobrar com base nos seus custos, no valor do seu tempo e na margem de lucro que você quer.",
 }
 

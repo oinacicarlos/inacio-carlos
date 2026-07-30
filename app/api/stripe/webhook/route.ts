@@ -121,11 +121,20 @@ Para seguir com o processo, acesse a aba "Meu processo" no seu hub e complete a 
 
 Assim que recebermos tudo, damos sequência ao protocolo na Junta Comercial.`
 
+const ALTERACAO_EMAIL_SUBJECT = "Recebemos o pagamento da alteração do seu CNPJ"
+const ALTERACAO_EMAIL_TEXT = `Recebemos o pagamento para a alteração do seu CNPJ.
+
+Para seguir com o processo, acesse a aba "Meu processo" no seu hub e complete a triagem: CPF, o CNPJ atual, o que você quer alterar (razão social, endereço, atividade, sócios etc.) e o envio da sua identidade.
+
+Assim que recebermos tudo, damos sequência ao protocolo.`
+
 async function sendProductWelcomeEmail(email: string, product: ProductSlug) {
   if (product === "certificado_pj_a1") {
     await sendEmail({ to: email, subject: CERTIFICADO_EMAIL_SUBJECT, text: CERTIFICADO_EMAIL_TEXT })
-  } else {
+  } else if (product === "abertura_empresa") {
     await sendEmail({ to: email, subject: ABERTURA_EMAIL_SUBJECT, text: ABERTURA_EMAIL_TEXT })
+  } else {
+    await sendEmail({ to: email, subject: ALTERACAO_EMAIL_SUBJECT, text: ALTERACAO_EMAIL_TEXT })
   }
 }
 
@@ -159,7 +168,12 @@ async function handleProductCheckoutCompleted(
     .eq("user_id", userId)
     .maybeSingle()
 
-  const wantsField = product === "certificado_pj_a1" ? "wants_certificado" : "wants_abertura_empresa"
+  const wantsField =
+    product === "certificado_pj_a1"
+      ? "wants_certificado"
+      : product === "abertura_empresa"
+        ? "wants_abertura_empresa"
+        : "wants_alteracao_cnpj"
 
   if (existingIntake) {
     const { error: updateError } = await supabase

@@ -112,8 +112,8 @@ export const article: BlogArticle = {
   ],
   relatedTool: {
     title: "Falar com um especialista",
-    href: "/diagnostico",
-    description: "Tire dúvidas sobre a transição e veja como fica sua contabilidade com a ContaFacil.",
+    href: "https://wa.me/5521979080457",
+    description: "Tire dúvidas sobre a transição e veja como fica sua contabilidade com a Tropa.",
   },
   relatedSlugs: ["quanto-custa-um-contador-para-mei", "o-que-e-das-mei-como-pagar", "como-abrir-mei-passo-a-passo"],
 }
