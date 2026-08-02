@@ -15,7 +15,7 @@ function escapeHtml(value: string) {
 }
 
 export type SendEmailInput = {
-  to: string
+  to: string | string[]
   subject: string
   text: string
 }
@@ -31,6 +31,7 @@ export async function sendEmail({ to, subject, text }: SendEmailInput): Promise<
   }
 
   const cleanText = text.trim()
+  const recipients = Array.isArray(to) ? to : [to]
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#111827;white-space:pre-wrap">${escapeHtml(cleanText)}</div>`
 
   const response = await fetch(RESEND_ENDPOINT, {
@@ -41,7 +42,7 @@ export async function sendEmail({ to, subject, text }: SendEmailInput): Promise<
     },
     body: JSON.stringify({
       from,
-      to: [to],
+      to: recipients,
       subject,
       text: cleanText,
       html,

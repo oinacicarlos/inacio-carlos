@@ -1,0 +1,12 @@
+User-Agent: *
+Allow: /
+Disallow: /hub
+Disallow: /clientes
+Disallow: /contabilidade
+Disallow: /pfx
+Disallow: /solicitacoes-clientes
+Disallow: /onboarding-clientes
+Disallow: /api
+Disallow: /auth
+
+Sitemap: https://tropacontabilidade.com/sitemap.xml

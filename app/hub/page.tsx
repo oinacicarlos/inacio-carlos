@@ -1,4 +1,5 @@
 import HubContent from "@/components/hub/hub-content"
+import { canCreateClientRequest } from "@/lib/client-requests/access"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { getToolUsageStatus, type ToolUsageStatus } from "@/lib/tool-usage/status"
 import { TOOL_SLUGS, type ToolSlug } from "@/lib/tool-usage/tools"
@@ -7,7 +8,6 @@ import { isPlanSlug, type PlanSlug } from "@/lib/plans"
 type ClientHubProfile = {
   name: string
   phone: string
-  company_name: string
   current_plan: string
   subscription_status: string
   stripe_customer_id: string | null
@@ -40,20 +40,21 @@ async function loadProfile(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   userId: string,
   fallbackName: string,
+  fallbackPhone: string,
 ): Promise<ClientHubProfile | null> {
   // current_period_end só existe depois que supabase/create-stripe-webhook.sql
   // for executado — tenta com a coluna nova e cai pro select básico se ela
   // ainda não existir, pra não quebrar o resto do perfil nesse meio-tempo.
   const { data, error } = await supabase
     .from("client_hub_profiles")
-    .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
+    .select("name, phone, current_plan, subscription_status, stripe_customer_id, current_period_end")
     .eq("id", userId)
     .maybeSingle()
 
   if (error) {
     const fallback = await supabase
       .from("client_hub_profiles")
-      .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id")
+      .select("name, phone, current_plan, subscription_status, stripe_customer_id")
       .eq("id", userId)
       .maybeSingle()
 
@@ -71,8 +72,8 @@ async function loadProfile(
   // (assinatura, dados da conta) funcionando com um perfil real.
   const { data: inserted } = await supabase
     .from("client_hub_profiles")
-    .insert({ id: userId, name: fallbackName })
-    .select("name, phone, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end")
+    .insert({ id: userId, name: fallbackName, phone: fallbackPhone })
+    .select("name, phone, current_plan, subscription_status, stripe_customer_id, current_period_end")
     .maybeSingle()
 
   return inserted ?? null
@@ -86,7 +87,11 @@ export default async function ClientHubPage() {
   } = await supabase.auth.getUser()
 
   const fallbackName = (user?.user_metadata?.name as string | undefined)?.trim() || user?.email?.split("@")[0] || ""
-  const profile = user ? await loadProfile(supabase, user.id, fallbackName) : null
+  const fallbackPhone =
+    (user?.user_metadata?.phone as string | undefined)?.trim() ||
+    (user?.user_metadata?.whatsapp as string | undefined)?.trim() ||
+    ""
+  const profile = user ? await loadProfile(supabase, user.id, fallbackName, fallbackPhone) : null
 
   const toolUsage: Record<ToolSlug, ToolUsageStatus> | null = user
     ? Object.fromEntries(
@@ -110,7 +115,6 @@ export default async function ClientHubPage() {
   }
 
   const clientName = profile?.name?.trim() || fallbackName || "Cliente"
-  const companyName = profile?.company_name?.trim() || null
   const userPhone = profile?.phone?.trim() || ""
   const currentPlan = profile?.current_plan ?? "free"
   const subscriptionStatus = profile?.subscription_status ?? "free"
@@ -122,6 +126,7 @@ export default async function ClientHubPage() {
   const isUsageLimited = toolUsage ? Object.values(toolUsage).some((status) => status.limited) : false
   const planSlug: PlanSlug = isPlanSlug(currentPlan) ? currentPlan : "free"
   const hasStripeCustomer = Boolean(profile?.stripe_customer_id)
+  const canCreateRequests = canCreateClientRequest(profile)
   const nextBillingDateLabel = profile?.current_period_end
     ? new Date(profile.current_period_end).toLocaleDateString("pt-BR", {
         day: "2-digit",
@@ -133,7 +138,6 @@ export default async function ClientHubPage() {
   return (
     <HubContent
       clientName={clientName}
-      companyName={companyName}
       userEmail={user?.email ?? "—"}
       userPhone={userPhone}
       planLabel={planLabel}
@@ -144,6 +148,7 @@ export default async function ClientHubPage() {
       toolUsage={toolUsage}
       recentRequestsCount={recentRequestsCount}
       hasStripeCustomer={hasStripeCustomer}
+      canCreateRequests={canCreateRequests}
       nextBillingDateLabel={nextBillingDateLabel}
     />
   )

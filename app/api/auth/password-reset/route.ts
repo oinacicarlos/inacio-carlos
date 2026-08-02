@@ -11,21 +11,31 @@ function cleanString(value: unknown) {
 }
 
 function safeErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message && error.message !== "{}") return error.message
+  if (error instanceof Error && error.message && error.message !== "{}") {
+    const details = []
+    if ("status" in error && error.status) details.push(`status ${String(error.status)}`)
+    if ("code" in error && error.code) details.push(`code ${String(error.code)}`)
+    return details.length > 0 ? `${error.message} (${details.join(", ")})` : error.message
+  }
   if (typeof error === "object" && error && "message" in error && typeof error.message === "string" && error.message !== "{}") {
-    return error.message
+    const details = []
+    if ("status" in error && error.status) details.push(`status ${String(error.status)}`)
+    if ("code" in error && error.code) details.push(`code ${String(error.code)}`)
+    return details.length > 0 ? `${error.message} (${details.join(", ")})` : error.message
   }
   return "Não foi possível enviar o link de alteração de senha. Verifique se o e-mail está correto e tente novamente."
 }
 
 export async function POST(request: Request) {
   const supabase = await createRouteHandlerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data, error: sessionError } = await supabase.auth.getUser().catch(() => ({
+    data: { user: null },
+    error: new Error("Sessão indisponível."),
+  }))
+  const user = data.user
 
-  if (!user) {
-    return NextResponse.json({ error: "Sua sessão expirou. Faça login novamente." }, { status: 401 })
+  if (!user || sessionError) {
+    return NextResponse.json({ ok: false, error: "Sua sessão expirou. Faça login novamente." })
   }
 
   const payload = (await request.json().catch(() => null)) as PasswordResetPayload | null
@@ -33,16 +43,20 @@ export async function POST(request: Request) {
   const redirectTo = cleanString(payload?.redirectTo)
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Informe um e-mail válido para receber o link." }, { status: 400 })
+    return NextResponse.json({ ok: false, error: "Informe um e-mail válido para receber o link." })
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: redirectTo || undefined,
-  })
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo || undefined,
+    })
 
-  if (error) {
-    return NextResponse.json({ error: safeErrorMessage(error) }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ ok: false, error: safeErrorMessage(error) })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: safeErrorMessage(error) })
   }
-
-  return NextResponse.json({ ok: true })
 }

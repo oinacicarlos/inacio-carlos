@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_ROUTES = ['/clientes', '/pfx', '/solicitacoes-clientes', '/onboarding-clientes']
+const ADMIN_ROUTES = ['/admin', '/clientes', '/pfx', '/boletos', '/solicitacoes-clientes', '/onboarding-clientes']
 const LEGACY_ADMIN_ROUTES = ['/crm', '/contabilidade']
 const HUB_ROUTES = ['/hub']
 
@@ -81,6 +81,8 @@ export const config = {
   matcher: [
     '/hub',
     '/hub/:path*',
+    '/admin',
+    '/admin/:path*',
     '/crm',
     '/crm/:path*',
     '/clientes',
@@ -89,6 +91,8 @@ export const config = {
     '/contabilidade/:path*',
     '/pfx',
     '/pfx/:path*',
+    '/boletos',
+    '/boletos/:path*',
     '/solicitacoes-clientes',
     '/solicitacoes-clientes/:path*',
     '/onboarding-clientes',

@@ -72,7 +72,7 @@ export default function ContractGeneratorClient({
 }) {
   const router = useRouter()
   const [state, dispatch] = useReducer(reducer, undefined, createInitialContractState)
-  const [screen, setScreen] = useState<Screen>("intro")
+  const [screen, setScreen] = useState<Screen>(embedded ? "steps" : "intro")
   const [step, setStep] = useState(0)
   const [showErrors, setShowErrors] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState("")
@@ -99,6 +99,7 @@ export default function ContractGeneratorClient({
   const update = (updater: Updater) => dispatch(updater)
 
   useEffect(() => {
+    if (embedded) return
     const saved = window.localStorage.getItem(DRAFT_KEY)
     if (!saved) return
     try {
@@ -113,10 +114,11 @@ export default function ContractGeneratorClient({
   }, [])
 
   useEffect(() => {
+    if (embedded) return
     if (state.saveDraftLocally) {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(state))
     }
-  }, [state])
+  }, [embedded, state])
 
   function setContractType(contractType: ContractType) {
     if (state.contractType && state.contractType !== contractType && hasDependentAnswers(state)) {
@@ -172,10 +174,18 @@ export default function ContractGeneratorClient({
   function resetAll() {
     window.localStorage.removeItem(DRAFT_KEY)
     dispatch(() => createInitialContractState())
-    setScreen("intro")
+    setScreen(embedded ? "steps" : "intro")
     setStep(0)
     setShowErrors(false)
     setCopyFeedback("")
+  }
+
+  function goBack() {
+    if (step === 0) {
+      if (!embedded) setScreen("intro")
+      return
+    }
+    setStep((current) => current - 1)
   }
 
   function deleteDraft() {
@@ -328,18 +338,20 @@ export default function ContractGeneratorClient({
         <span className="pricing-tool-step-number">Etapa 2</span>
         <h2>Quem participa deste contrato?</h2>
         <p>Use os dados que aparecerão na identificação do documento.</p>
-        <button
-          className="contract-tool-text-button"
-          type="button"
-          onClick={() => {
-            const saved = window.localStorage.getItem(DRAFT_KEY)
-            if (!saved) return
-            const parsed = JSON.parse(saved) as ContractGeneratorState
-            updateParty(0, parsed.parties[0])
-          }}
-        >
-          Preencher com meus dados salvos neste dispositivo
-        </button>
+        {!embedded && (
+          <button
+            className="contract-tool-text-button"
+            type="button"
+            onClick={() => {
+              const saved = window.localStorage.getItem(DRAFT_KEY)
+              if (!saved) return
+              const parsed = JSON.parse(saved) as ContractGeneratorState
+              updateParty(0, parsed.parties[0])
+            }}
+          >
+            Preencher com meus dados salvos neste dispositivo
+          </button>
+        )}
         {state.parties.map((party, index) => (
           <div key={index}>{renderPartyForm(party, index)}</div>
         ))}
@@ -714,15 +726,23 @@ export default function ContractGeneratorClient({
         ) : (
           <p>Suas respostas aparecerão aqui.</p>
         )}
-        <label className="hiring-tool-checkbox">
-          <input type="checkbox" checked={state.saveDraftLocally} onChange={(event) => update((current) => ({ ...current, saveDraftLocally: event.target.checked }))} />
-          Salvar rascunho neste dispositivo
-        </label>
-        {state.saveDraftLocally ? <p>Este rascunho ficará salvo somente neste navegador.</p> : null}
-        <button className="contract-tool-text-button" type="button" onClick={deleteDraft}>
-          <Trash2 size={16} aria-hidden="true" />
-          Excluir rascunho
-        </button>
+        {!embedded && (
+          <>
+            <label className="hiring-tool-checkbox">
+              <input
+                type="checkbox"
+                checked={state.saveDraftLocally}
+                onChange={(event) => update((current) => ({ ...current, saveDraftLocally: event.target.checked }))}
+              />
+              Salvar rascunho neste dispositivo
+            </label>
+            {state.saveDraftLocally ? <p>Este rascunho ficará salvo somente neste navegador.</p> : null}
+            <button className="contract-tool-text-button" type="button" onClick={deleteDraft}>
+              <Trash2 size={16} aria-hidden="true" />
+              Excluir rascunho
+            </button>
+          </>
+        )}
         <button className="contract-tool-text-button" type="button" onClick={resetAll}>
           <RotateCcw size={16} aria-hidden="true" />
           Limpar todos os dados
@@ -751,7 +771,7 @@ export default function ContractGeneratorClient({
             </div>
             {renderCurrentStep()}
             <div className="pricing-tool-actions">
-              <button className="pricing-tool-secondary-action" type="button" onClick={() => (step === 0 ? setScreen("intro") : setStep((current) => current - 1))}>
+              <button className="pricing-tool-secondary-action" type="button" onClick={goBack} disabled={embedded && step === 0}>
                 <ChevronLeft size={18} strokeWidth={2.1} aria-hidden="true" />
                 Voltar
               </button>

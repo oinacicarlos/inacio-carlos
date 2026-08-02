@@ -1,15 +1,13 @@
 "use client"
 
 import { FormEvent, useState } from "react"
-import { Building2, KeyRound, Mail, Phone, Save, UserRound } from "lucide-react"
-import { supabase } from "@/lib/supabaseClient"
+import { KeyRound, Mail, Save, ShieldCheck, UserRound } from "lucide-react"
 
 type AccountPanelProps = {
   clientName: string
-  companyName: string | null
   userEmail: string
   userPhone: string
-  onProfileUpdated: (profile: { name: string; companyName: string | null; phone: string }) => void
+  onProfileUpdated: (profile: { name: string; phone: string }) => void
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -20,15 +18,32 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback
 }
 
+function getInitial(name: string, email: string) {
+  const source = name.trim() || email.trim()
+  return source.charAt(0).toUpperCase() || "C"
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "")
+}
+
+function formatBrazilWhatsapp(value: string) {
+  const digits = onlyDigits(value).slice(0, 11)
+
+  if (digits.length <= 2) return digits ? `(${digits}` : ""
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
 export default function AccountPanel({
   clientName,
-  companyName,
   userEmail,
   userPhone,
   onProfileUpdated,
 }: AccountPanelProps) {
   const [name, setName] = useState(clientName)
-  const [company, setCompany] = useState(companyName ?? "")
   const [phone, setPhone] = useState(userPhone)
   const [email, setEmail] = useState(userEmail === "—" ? "" : userEmail)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -55,7 +70,6 @@ export default function AccountPanel({
       const profilePayload = {
         name: name.trim(),
         phone: phone.trim(),
-        company_name: company.trim(),
       }
 
       const response = await fetch("/api/hub/profile", {
@@ -65,7 +79,7 @@ export default function AccountPanel({
       })
 
       const data = (await response.json().catch(() => null)) as
-        | { name?: string; company_name?: string; phone?: string; error?: string }
+        | { name?: string; phone?: string; error?: string }
         | null
 
       if (!response.ok || !data) {
@@ -73,15 +87,12 @@ export default function AccountPanel({
       }
 
       const savedName = data.name?.trim() || profilePayload.name
-      const savedCompany = data.company_name?.trim() || ""
       const savedPhone = data.phone?.trim() || ""
 
       setName(savedName)
-      setCompany(savedCompany)
       setPhone(savedPhone)
       onProfileUpdated({
         name: savedName,
-        companyName: savedCompany || null,
         phone: savedPhone,
       })
       setProfileMessage("Perfil atualizado.")
@@ -110,8 +121,21 @@ export default function AccountPanel({
     setSavingEmail(true)
 
     try {
-      const { error: emailError } = await supabase.auth.updateUser({ email: email.trim() })
-      if (emailError) throw emailError
+      const response = await fetch("/api/auth/email-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/hub?tab=conta")}`,
+        }),
+      })
+
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || "Não foi possível solicitar a troca de e-mail.")
+      }
+
       setEmailMessage("Enviamos um link de confirmação para concluir a troca do e-mail.")
     } catch (emailError) {
       setError(getErrorMessage(emailError, "Não foi possível solicitar a troca de e-mail."))
@@ -141,9 +165,9 @@ export default function AccountPanel({
         }),
       })
 
-      const data = (await response.json().catch(() => null)) as { error?: string } | null
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
 
-      if (!response.ok) {
+      if (!response.ok || !data?.ok) {
         throw new Error(data?.error || "Não foi possível enviar o link de alteração de senha.")
       }
 
@@ -155,49 +179,57 @@ export default function AccountPanel({
     }
   }
 
+  const initial = getInitial(name, userEmail === "—" ? email : userEmail)
+
   return (
-    <article className="client-hub-panel client-account-panel">
-      <div className="client-hub-section-head client-account-head">
+    <article className="client-account-panel">
+      <header className="client-account-page-head">
         <div>
           <h2>Meu perfil</h2>
-          <p>Atualize seus dados de contato e segurança.</p>
+          <p>ATUALIZE SEUS DADOS DE CONTATO E SEGURANÇA.</p>
         </div>
-        <span className="client-account-status">Conta ativa</span>
-      </div>
+        <span className="client-account-status-badge">
+          <span aria-hidden="true" />
+          Conta ativa
+        </span>
+      </header>
 
       <div className="client-account-layout">
-        <form className="client-account-card client-account-form" onSubmit={handleProfileSubmit}>
+        <form className="client-account-card client-account-profile-card" onSubmit={handleProfileSubmit}>
           <div className="client-account-card-head">
-            <UserRound size={18} strokeWidth={2.2} aria-hidden="true" />
-            <strong>Dados principais</strong>
+            <span className="client-account-icon" aria-hidden="true">
+              <UserRound size={20} strokeWidth={2.2} />
+            </span>
+            <strong>Perfil principal</strong>
           </div>
 
-          <label className="client-requests-field">
+          <div className="client-account-identity">
+            <span className="client-account-avatar" aria-hidden="true">
+              {initial}
+            </span>
+            <div>
+              <strong>{name.trim() || "Cliente"}</strong>
+              <span>Conta pessoal</span>
+            </div>
+          </div>
+
+          <label className="client-account-field">
             <span>Nome</span>
             <input type="text" value={name} onChange={(event) => setName(event.target.value)} />
           </label>
 
-          <label className="client-requests-field">
-            <span>Empresa</span>
-            <input
-              type="text"
-              value={company}
-              onChange={(event) => setCompany(event.target.value)}
-              placeholder="Nome da empresa, se houver"
-            />
-          </label>
-
-          <label className="client-requests-field">
+          <label className="client-account-field">
             <span>WhatsApp</span>
             <input
               type="tel"
+              inputMode="tel"
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => setPhone(formatBrazilWhatsapp(event.target.value))}
               placeholder="(00) 00000-0000"
             />
           </label>
 
-          <button className="client-requests-new-button" type="submit" disabled={savingProfile}>
+          <button className="client-account-primary-button" type="submit" disabled={savingProfile}>
             <Save size={15} strokeWidth={2.4} aria-hidden="true" />
             {savingProfile ? "Salvando..." : "Salvar perfil"}
           </button>
@@ -206,50 +238,47 @@ export default function AccountPanel({
         </form>
 
         <div className="client-account-stack">
-          <form className="client-account-card client-account-form" onSubmit={handleEmailSubmit}>
+          <section className="client-account-card client-account-security-card">
             <div className="client-account-card-head">
-              <Mail size={18} strokeWidth={2.2} aria-hidden="true" />
-              <strong>E-mail de acesso</strong>
+              <span className="client-account-icon" aria-hidden="true">
+                <ShieldCheck size={20} strokeWidth={2.2} />
+              </span>
+              <div>
+                <strong>Segurança da conta</strong>
+                <p>Gerencie acesso e recuperação da sua conta.</p>
+              </div>
             </div>
 
-            <label className="client-requests-field">
-              <span>E-mail</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            </label>
+            <div className="client-account-security-list">
+              <form className="client-account-security-row" onSubmit={handleEmailSubmit}>
+                <span className="client-account-row-icon" aria-hidden="true">
+                  <Mail size={20} strokeWidth={2.2} />
+                </span>
+                <label className="client-account-security-copy">
+                  <span>E-mail de acesso</span>
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} aria-label="E-mail de acesso" />
+                </label>
+                <button className="client-account-secondary-button" type="submit" disabled={savingEmail}>
+                  {savingEmail ? "Enviando..." : "Solicitar troca de e-mail"}
+                </button>
+              </form>
 
-            <button className="client-requests-back-button" type="submit" disabled={savingEmail}>
-              {savingEmail ? "Enviando..." : "Solicitar troca de e-mail"}
-            </button>
+              <div className="client-account-security-row">
+                <span className="client-account-row-icon" aria-hidden="true">
+                  <KeyRound size={20} strokeWidth={2.2} />
+                </span>
+                <div className="client-account-security-copy">
+                  <span>Senha</span>
+                  <p>A alteração acontece por um link enviado para o e-mail da conta.</p>
+                </div>
+                <button className="client-account-secondary-button" type="button" onClick={() => void handlePasswordReset()} disabled={sendingPassword}>
+                  {sendingPassword ? "Enviando..." : "Enviar link de alteração"}
+                </button>
+              </div>
+            </div>
 
             {emailMessage && <p className="client-account-success">{emailMessage}</p>}
-          </form>
-
-          <section className="client-account-card">
-            <div className="client-account-card-head">
-              <KeyRound size={18} strokeWidth={2.2} aria-hidden="true" />
-              <strong>Senha</strong>
-            </div>
-            <p className="client-account-note">
-              Por segurança, a alteração de senha acontece por um link enviado para o e-mail da conta.
-            </p>
-            <button className="client-requests-back-button" type="button" onClick={() => void handlePasswordReset()} disabled={sendingPassword}>
-              {sendingPassword ? "Enviando..." : "Enviar link de alteração"}
-            </button>
             {passwordMessage && <p className="client-account-success">{passwordMessage}</p>}
-          </section>
-
-          <section className="client-account-card client-account-contact-card">
-            <div className="client-account-card-head">
-              <Phone size={18} strokeWidth={2.2} aria-hidden="true" />
-              <strong>Contato preferencial</strong>
-            </div>
-            <p className="client-account-note">
-              O WhatsApp ajuda a equipe da Tropa a avisar sobre documentos, vencimentos e pendências importantes.
-            </p>
-            <div className="client-account-card-head">
-              <Building2 size={18} strokeWidth={2.2} aria-hidden="true" />
-              <strong>{company.trim() || "Empresa não informada"}</strong>
-            </div>
           </section>
         </div>
       </div>

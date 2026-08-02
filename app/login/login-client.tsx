@@ -53,8 +53,8 @@ export default function LoginClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const checkoutPlan = searchParams.get('checkout')
-  const rawRedirect = searchParams.get('redirect')
-  const destination = safeRedirectPath(rawRedirect, '/clientes')
+  const rawRedirect = searchParams.get('redirect') ?? searchParams.get('next')
+  const destination = safeRedirectPath(rawRedirect, '/admin')
   // O link pro cadastro só carrega o redirect quando ele veio de verdade da
   // URL (ex.: alguém mandado de uma ferramenta) — sem isso, um cadastro novo
   // não deve herdar a rota administrativa que é o destino padrão só do login admin.
@@ -74,7 +74,7 @@ export default function LoginClient() {
         }
 
         if (data.session) {
-          goToDestinationOrResumeCheckout(router.replace, checkoutPlan, destination)
+          void goToDestinationOrResumeCheckout(router.replace, checkoutPlan, destination)
         }
       })
       .catch(clearInvalidLocalSession)
@@ -90,39 +90,53 @@ export default function LoginClient() {
     }
 
     setLoading(true)
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-    setLoading(false)
 
-    if (signInError) {
-      if (isInvalidRefreshTokenError(signInError)) {
-        await clearInvalidLocalSession(signInError)
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+
+      if (signInError) {
+        if (isInvalidRefreshTokenError(signInError)) {
+          await clearInvalidLocalSession(signInError)
+        }
+        setError('E-mail ou senha inválidos.')
+        return
       }
-      setError('E-mail ou senha inválidos.')
-      return
-    }
 
-    await goToDestinationOrResumeCheckout(router.push, checkoutPlan, destination)
+      await goToDestinationOrResumeCheckout(router.push, checkoutPlan, destination)
+    } catch (loginError) {
+      await clearInvalidLocalSession(loginError)
+      setError('E-mail ou senha inválidos.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleGoogleLogin = async () => {
     setError('')
     setLoading(true)
-    const { error: googleError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: buildAuthCallbackUrl(window.location.origin, destination),
-      },
-    })
-    setLoading(false)
 
-    if (googleError) {
-      if (isInvalidRefreshTokenError(googleError)) {
-        await clearInvalidLocalSession(googleError)
+    try {
+      const { error: googleError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: buildAuthCallbackUrl(window.location.origin, destination),
+        },
+      })
+
+      if (googleError) {
+        if (isInvalidRefreshTokenError(googleError)) {
+          await clearInvalidLocalSession(googleError)
+        }
+        setError('Não foi possível entrar com Google.')
       }
+    } catch (googleError) {
+      await clearInvalidLocalSession(googleError)
       setError('Não foi possível entrar com Google.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -144,7 +158,7 @@ export default function LoginClient() {
               <span>E-mail</span>
               <input
                 type="email"
-                placeholder="voce@empresa.com"
+                placeholder="voce@email.com"
                 autoComplete="email"
                 value={email}
                 onChange={event => {

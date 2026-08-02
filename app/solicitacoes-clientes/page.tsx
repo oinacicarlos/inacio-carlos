@@ -1,7 +1,7 @@
-import NoSSRDashboard from '@/components/no-ssr-dashboard'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default function SolicitacoesClientesPage() {
-  return <NoSSRDashboard initialModule="Solicitacoes" />
+  redirect('/clientes/online')
 }

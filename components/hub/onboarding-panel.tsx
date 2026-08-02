@@ -1,8 +1,22 @@
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
-import { BadgeCheck, ExternalLink, FilePenLine, ShieldCheck, Sparkles, Upload } from "lucide-react"
+import {
+  BadgeCheck,
+  ExternalLink,
+  FilePenLine,
+  FileSearch,
+  IdCard,
+  Package,
+  Receipt,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  UserSearch,
+  X,
+} from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
+import HorizontalCarousel from "@/components/hub/horizontal-carousel"
 import { StripeProductButton } from "@/components/stripe-product-button"
 import type { ProductSlug } from "@/lib/stripe/products"
 import {
@@ -25,14 +39,142 @@ import {
 } from "@/lib/onboarding/constants"
 
 type LoadState = "loading" | "products" | "form"
+export type ServiceProcess = "abertura_mei" | "abertura_empresa" | "alteracao_cnpj" | "certificado_digital"
+
+// Só esses produtos têm formulário de triagem — Serasa e notas fiscais
+// avulsas são encomendas sem triagem (viram solicitação direto, ver o
+// webhook do Stripe), então uma compra deles não deve levar o cliente pro
+// formulário de "Serviços", só continuar mostrando o catálogo.
+const INTAKE_PRODUCTS: ProductSlug[] = ["certificado_pj_a1", "certificado_pf_a1", "abertura_empresa", "alteracao_cnpj"]
 
 const INTAKE_SELECT_COLUMNS =
   "id, cpf, wants_certificado, wants_abertura_empresa, wants_abertura_mei, wants_alteracao_cnpj, segmento, descricao_cnpj, estado_civil, regime_bens, razao_social, tem_nome_fantasia, nome_fantasia, quantidade_socios, cnpj_atual, descricao_alteracao, has_certidao_casamento, has_comprovante_bombeiro, doc_identidade_path, doc_certidao_casamento_path, doc_comprovante_residencia_path, doc_iptu_path, doc_comprovante_bombeiro_path, certificado_status, abertura_status, mei_status, alteracao_status, created_at, updated_at"
 
+type ServiceProduct = {
+  title: string
+  description: string
+  price: string
+  sortPrice: number | null
+  priceBreakdown?: string
+  icon: typeof Sparkles
+  buttonLabel: string
+  product?: ProductSlug
+  ownedWhenPurchased?: boolean
+}
+
+const SERVICE_PRODUCTS: ServiceProduct[] = [
+  {
+    title: "Abertura de MEI",
+    description: "Cadastro de MEI sem custo.",
+    price: "Grátis",
+    sortPrice: 0,
+    icon: Sparkles,
+    buttonLabel: "Abrir meu MEI",
+  },
+  {
+    title: "Certificado Digital PJ A1",
+    description: "Assinatura digital para empresa.",
+    price: "R$ 240,00",
+    sortPrice: 240,
+    icon: ShieldCheck,
+    buttonLabel: "Comprar certificado",
+    product: "certificado_pj_a1",
+    ownedWhenPurchased: true,
+  },
+  {
+    title: "Certificado Digital PF A1",
+    description: "Assinatura digital para pessoa física.",
+    price: "R$ 180,00",
+    sortPrice: 180,
+    icon: IdCard,
+    buttonLabel: "Comprar certificado",
+    product: "certificado_pf_a1",
+    ownedWhenPurchased: true,
+  },
+  {
+    title: "Abertura de empresa (Simples Nacional)",
+    description: "Legalização completa do CNPJ.",
+    price: "R$ 1.460,50",
+    sortPrice: 1460.5,
+    priceBreakdown: "R$ 810,50 mão de obra + R$ 650,00 taxa",
+    icon: BadgeCheck,
+    buttonLabel: "Comprar abertura",
+    product: "abertura_empresa",
+    ownedWhenPurchased: true,
+  },
+  {
+    title: "Alteração contratual",
+    description: "Mudanças oficiais do contrato.",
+    price: "R$ 1.460,50",
+    sortPrice: 1460.5,
+    icon: FilePenLine,
+    buttonLabel: "Comprar alteração",
+    product: "alteracao_cnpj",
+    ownedWhenPurchased: true,
+  },
+  {
+    title: "Consulta Serasa PF",
+    description: "Consulta de restrições da pessoa física.",
+    price: "R$ 30,00",
+    sortPrice: 30,
+    icon: UserSearch,
+    buttonLabel: "Comprar consulta",
+    product: "serasa_pf",
+  },
+  {
+    title: "Consulta Serasa PJ",
+    description: "Consulta de restrições da empresa.",
+    price: "R$ 50,00",
+    sortPrice: 50,
+    icon: FileSearch,
+    buttonLabel: "Comprar consulta",
+    product: "serasa_pj",
+  },
+  {
+    title: "Nota Fiscal de Serviço",
+    description: "Emissão avulsa de nota fiscal.",
+    price: "R$ 50,00",
+    sortPrice: 50,
+    icon: Receipt,
+    buttonLabel: "Solicitar emissão",
+    product: "nota_fiscal_servico",
+  },
+  {
+    title: "Nota Fiscal de Produto (DANFE)",
+    description: "Emissão avulsa de nota de produto.",
+    price: "R$ 70,00",
+    sortPrice: 70,
+    icon: Package,
+    buttonLabel: "Solicitar emissão",
+    product: "nota_fiscal_produto",
+  },
+]
+
+const ORDERED_SERVICE_PRODUCTS = SERVICE_PRODUCTS
+  .map((item, index) => ({ item, index }))
+  .sort((left, right) => {
+    const leftPrice = left.item.sortPrice ?? Number.POSITIVE_INFINITY
+    const rightPrice = right.item.sortPrice ?? Number.POSITIVE_INFINITY
+
+    return leftPrice - rightPrice || left.index - right.index
+  })
+  .map(({ item }) => item)
+
 export default function OnboardingPanel() {
+  return <ServicesProductsSection showHeading />
+}
+
+export function ServicesProductsSection({
+  showHeading = false,
+  initialProcess = null,
+}: {
+  showHeading?: boolean
+  initialProcess?: ServiceProcess | null
+}) {
   const [state, setState] = useState<LoadState>("loading")
   const [purchasedProducts, setPurchasedProducts] = useState<ProductSlug[]>([])
   const [intake, setIntake] = useState<OnboardingIntake | null>(null)
+  const [activeProcess, setActiveProcess] = useState<ServiceProcess | null>(initialProcess)
 
   async function reload() {
     const {
@@ -53,13 +195,20 @@ export default function OnboardingPanel() {
     const loadedIntake = (intakeRow as OnboardingIntake | null) ?? null
     setPurchasedProducts(products)
     setIntake(loadedIntake)
-    setState(products.length > 0 || loadedIntake?.wants_abertura_mei ? "form" : "products")
+    const hasIntakeProduct = products.some((product) => INTAKE_PRODUCTS.includes(product))
+    setState(hasIntakeProduct || loadedIntake?.wants_abertura_mei || activeProcess ? "form" : "products")
     return loadedIntake
   }
 
   async function startMei() {
+    setActiveProcess("abertura_mei")
     await fetch("/api/onboarding/start-mei", { method: "POST" })
     await reload()
+  }
+
+  function closeIntake() {
+    setActiveProcess(null)
+    setState("products")
   }
 
   useEffect(() => {
@@ -84,6 +233,16 @@ export default function OnboardingPanel() {
     void init()
   }, [])
 
+  useEffect(() => {
+    if (!initialProcess) return
+    setActiveProcess(initialProcess)
+    if (initialProcess === "abertura_mei") {
+      void startMei()
+      return
+    }
+    setState("form")
+  }, [initialProcess])
+
   if (state === "loading") {
     return (
       <article className="client-hub-panel">
@@ -92,83 +251,100 @@ export default function OnboardingPanel() {
     )
   }
 
-  if (state === "products") {
-    return <ProductCatalog purchasedProducts={purchasedProducts} onStartMei={startMei} />
-  }
-
-  return <IntakeForm intake={intake} purchasedProducts={purchasedProducts} onSaved={reload} />
+  return (
+    <>
+      <ProductCatalog purchasedProducts={purchasedProducts} onStartMei={startMei} showHeading={showHeading} />
+      {state === "form" && (
+        <div className="client-hub-modal-backdrop" role="presentation" onMouseDown={() => closeIntake()}>
+          <div
+            className="client-hub-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-intake-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <IntakeForm
+              intake={intake}
+              purchasedProducts={purchasedProducts}
+              activeProcess={activeProcess}
+              onSaved={reload}
+              onClose={closeIntake}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 function ProductCatalog({
   purchasedProducts,
   onStartMei,
+  showHeading,
 }: {
   purchasedProducts: ProductSlug[]
   onStartMei: () => void
+  showHeading: boolean
 }) {
   return (
-    <article className="client-hub-panel">
-      <div className="client-hub-section-head">
-        <div>
-          <h2>Meu processo</h2>
-          <p>Abertura de MEI, certificado digital, abertura de empresa e alteração de CNPJ, do jeito mais simples de resolver.</p>
+    <div className="hub-services-catalog">
+      {showHeading && (
+        <div className="client-hub-section-head">
+          <h2>Serviços</h2>
+          <p>Abertura de MEI, certificado digital, abertura de empresa e alteração de CNPJ.</p>
         </div>
+      )}
+
+      <HorizontalCarousel
+        items={ORDERED_SERVICE_PRODUCTS}
+        ariaLabel="Produtos e serviços avulsos"
+        className="hub-services-carousel"
+        renderItem={(item) => (
+          <ServiceProductCard item={item} purchasedProducts={purchasedProducts} onStartMei={onStartMei} />
+        )}
+      />
+    </div>
+  )
+}
+
+function ServiceProductCard({
+  item,
+  purchasedProducts,
+  onStartMei,
+}: {
+  item: ServiceProduct
+  purchasedProducts: ProductSlug[]
+  onStartMei: () => void
+}) {
+  const Icon = item.icon
+  const isOwned = Boolean(item.product && item.ownedWhenPurchased && purchasedProducts.includes(item.product))
+
+  return (
+    <article className="onboarding-product-card">
+      <span className="onboarding-product-icon" aria-hidden="true">
+        <Icon size={24} strokeWidth={2} />
+      </span>
+      <div className="onboarding-product-copy">
+        <h3>{item.title}</h3>
+        <p>{item.description}</p>
       </div>
-
-      <div className="onboarding-product-grid">
-        <div className="onboarding-product-card">
-          <Sparkles size={26} strokeWidth={2} aria-hidden="true" />
-          <h3>Abertura de MEI</h3>
-          <p>Cadastro como Microempreendedor Individual, sem custo nenhum.</p>
-          <strong className="onboarding-product-price">Grátis</strong>
-          <button type="button" className="accounting-plan-button" onClick={onStartMei}>
-            Abrir meu MEI
-          </button>
-        </div>
-
-        <div className="onboarding-product-card">
-          <ShieldCheck size={26} strokeWidth={2} aria-hidden="true" />
-          <h3>Certificado Digital PJ A1</h3>
-          <p>Necessário pra assinar documentos e acessar sistemas do governo em nome da empresa.</p>
-          <strong className="onboarding-product-price">R$ 240,00</strong>
-          {purchasedProducts.includes("certificado_pj_a1") ? (
-            <span className="onboarding-product-owned">Já contratado</span>
-          ) : (
-            <StripeProductButton product="certificado_pj_a1" className="accounting-plan-button">
-              Comprar certificado
-            </StripeProductButton>
-          )}
-        </div>
-
-        <div className="onboarding-product-card">
-          <BadgeCheck size={26} strokeWidth={2} aria-hidden="true" />
-          <h3>Abertura de empresa (Simples Nacional)</h3>
-          <p>Legalização completa do CNPJ, com acompanhamento até o registro na Junta Comercial.</p>
-          <strong className="onboarding-product-price">R$ 1.460,50</strong>
-          <span className="onboarding-product-price-breakdown">R$ 810,50 mão de obra + R$ 650,00 taxa da Junta Comercial</span>
-          {purchasedProducts.includes("abertura_empresa") ? (
-            <span className="onboarding-product-owned">Já contratado</span>
-          ) : (
-            <StripeProductButton product="abertura_empresa" className="accounting-plan-button">
-              Comprar abertura de empresa
-            </StripeProductButton>
-          )}
-        </div>
-
-        <div className="onboarding-product-card">
-          <FilePenLine size={26} strokeWidth={2} aria-hidden="true" />
-          <h3>Alteração de CNPJ</h3>
-          <p>Mudança de razão social, endereço, atividade ou sócios registrada oficialmente.</p>
-          <strong className="onboarding-product-price">R$ 1.460,50</strong>
-          {purchasedProducts.includes("alteracao_cnpj") ? (
-            <span className="onboarding-product-owned">Já contratado</span>
-          ) : (
-            <StripeProductButton product="alteracao_cnpj" className="accounting-plan-button">
-              Comprar alteração de CNPJ
-            </StripeProductButton>
-          )}
-        </div>
+      <div className="onboarding-product-price-block">
+        <strong className="onboarding-product-price">{item.price}</strong>
+        {item.priceBreakdown && <span className="onboarding-product-price-breakdown">{item.priceBreakdown}</span>}
       </div>
+      {item.product ? (
+        isOwned ? (
+          <span className="onboarding-product-owned">Já contratado</span>
+        ) : (
+          <StripeProductButton product={item.product} className="accounting-plan-button">
+            {item.buttonLabel}
+          </StripeProductButton>
+        )
+      ) : (
+        <button type="button" className="accounting-plan-button" onClick={onStartMei}>
+          {item.buttonLabel}
+        </button>
+      )}
     </article>
   )
 }
@@ -176,16 +352,24 @@ function ProductCatalog({
 function IntakeForm({
   intake,
   purchasedProducts,
+  activeProcess,
   onSaved,
+  onClose,
 }: {
   intake: OnboardingIntake | null
   purchasedProducts: ProductSlug[]
+  activeProcess: ServiceProcess | null
   onSaved: () => void
+  onClose: () => void
 }) {
-  const wantsCertificado = intake?.wants_certificado ?? purchasedProducts.includes("certificado_pj_a1")
-  const wantsAbertura = intake?.wants_abertura_empresa ?? purchasedProducts.includes("abertura_empresa")
-  const wantsMei = intake?.wants_abertura_mei ?? false
-  const wantsAlteracao = intake?.wants_alteracao_cnpj ?? purchasedProducts.includes("alteracao_cnpj")
+  const wantsCertificado =
+    activeProcess === "certificado_digital" ||
+    (intake?.wants_certificado ??
+      (purchasedProducts.includes("certificado_pj_a1") || purchasedProducts.includes("certificado_pf_a1")))
+  const wantsAbertura =
+    activeProcess === "abertura_empresa" || (intake?.wants_abertura_empresa ?? purchasedProducts.includes("abertura_empresa"))
+  const wantsMei = activeProcess === "abertura_mei" || (intake?.wants_abertura_mei ?? false)
+  const wantsAlteracao = activeProcess === "alteracao_cnpj" || (intake?.wants_alteracao_cnpj ?? purchasedProducts.includes("alteracao_cnpj"))
   const needsSenhaGov = wantsMei || wantsAbertura
 
   const [cpf, setCpf] = useState(intake?.cpf ?? "")
@@ -245,6 +429,10 @@ function IntakeForm({
           descricao_alteracao: wantsAlteracao ? descricaoAlteracao : undefined,
           has_certidao_casamento: wantsAbertura ? hasCertidao : undefined,
           has_comprovante_bombeiro: wantsAbertura ? hasBombeiro : undefined,
+          wants_certificado: wantsCertificado || undefined,
+          wants_abertura_empresa: wantsAbertura || undefined,
+          wants_abertura_mei: wantsMei || undefined,
+          wants_alteracao_cnpj: wantsAlteracao || undefined,
         }),
       })
 
@@ -268,9 +456,12 @@ function IntakeForm({
     <article className="client-hub-panel">
       <div className="client-hub-section-head">
         <div>
-          <h2>Meu processo</h2>
+          <h2 id="onboarding-intake-title">Serviços</h2>
           <p>Complete seus dados para darmos sequência.</p>
         </div>
+        <button className="client-requests-back-button" type="button" onClick={onClose} aria-label="Fechar formulário">
+          <X size={16} strokeWidth={2.4} aria-hidden="true" />
+        </button>
       </div>
 
       <div className="onboarding-status-row">

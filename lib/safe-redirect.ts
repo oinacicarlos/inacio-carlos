@@ -13,10 +13,6 @@ export function safeRedirectPath(value: string | null, fallback: string): string
       return "/clientes"
     }
 
-    if (redirectUrl.pathname === "/hub") {
-      return "/hub"
-    }
-
     return `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`
   }
   return fallback

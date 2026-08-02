@@ -2,7 +2,17 @@
 
 import { useState } from "react"
 
-export function StripePortalButton({ children }: { children: React.ReactNode }) {
+type StripePortalButtonProps = {
+  children: React.ReactNode
+  className?: string
+  wrapperClassName?: string
+}
+
+export function StripePortalButton({
+  children,
+  className = "client-requests-new-button",
+  wrapperClassName,
+}: StripePortalButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -26,8 +36,8 @@ export function StripePortalButton({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div>
-      <button className="client-requests-new-button" type="button" onClick={handleClick} disabled={isLoading}>
+    <div className={wrapperClassName}>
+      <button className={className} type="button" onClick={handleClick} disabled={isLoading}>
         {isLoading ? "Abrindo..." : children}
       </button>
       {error && <p className="client-requests-error">{error}</p>}

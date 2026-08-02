@@ -102,8 +102,8 @@ async function handleCheckoutSessionCompleted(
   await applyProfileUpdate(supabase, userId, update)
 }
 
-const CERTIFICADO_EMAIL_SUBJECT = "Próximos passos: seu Certificado Digital PJ A1"
-const CERTIFICADO_EMAIL_TEXT = `Recebemos o pagamento do seu Certificado Digital PJ A1. Veja o passo a passo para emitir:
+const CERTIFICADO_EMAIL_SUBJECT = "Próximos passos: seu Certificado Digital A1"
+const CERTIFICADO_EMAIL_TEXT = `Recebemos o pagamento do seu Certificado Digital A1. Veja o passo a passo para emitir:
 
 Passo 1 — Acesse e preencha as informações desse link: ${SOLUTI_VIDEO_LINK}
 Passo 2 — Depois de preencher, você entrará na sala virtual de espera para ser atendido.
@@ -112,24 +112,66 @@ Passo 4 — No final da videoconferência, tire um print da SENHA PARA EMISSÃO 
 
 Atendimento disponível de 8h às 16h30. Com esse certificado, você não vai precisar fazer outra videoconferência.
 
-Complete também os seus dados na aba "Meu processo" do hub para agilizarmos o restante do processo.`
+Complete também os seus dados na aba "Serviços" do hub para agilizarmos o restante do processo.`
 
 const ABERTURA_EMAIL_SUBJECT = "Recebemos o pagamento da abertura da sua empresa"
 const ABERTURA_EMAIL_TEXT = `Recebemos o pagamento para a legalização/abertura da sua empresa.
 
-Para seguir com o processo, acesse a aba "Meu processo" no seu hub e complete a triagem: CPF, o segmento de atuação, uma breve descrição do que você quer para o CNPJ, e o envio dos documentos necessários (identidade, certidão de casamento se tiver, comprovante de residência, IPTU do imóvel onde ficará a empresa e comprovante do bombeiro se tiver).
+Para seguir com o processo, acesse a aba "Serviços" no seu hub e complete a triagem: CPF, o segmento de atuação, uma breve descrição do que você quer para o CNPJ, e o envio dos documentos necessários (identidade, certidão de casamento se tiver, comprovante de residência, IPTU do imóvel onde ficará a empresa e comprovante do bombeiro se tiver).
 
 Assim que recebermos tudo, damos sequência ao protocolo na Junta Comercial.`
 
-const ALTERACAO_EMAIL_SUBJECT = "Recebemos o pagamento da alteração do seu CNPJ"
-const ALTERACAO_EMAIL_TEXT = `Recebemos o pagamento para a alteração do seu CNPJ.
+const ALTERACAO_EMAIL_SUBJECT = "Recebemos o pagamento da alteração contratual"
+const ALTERACAO_EMAIL_TEXT = `Recebemos o pagamento para a alteração contratual do seu CNPJ.
 
-Para seguir com o processo, acesse a aba "Meu processo" no seu hub e complete a triagem: CPF, o CNPJ atual, o que você quer alterar (razão social, endereço, atividade, sócios etc.) e o envio da sua identidade.
+Para seguir com o processo, acesse a aba "Serviços" no seu hub e complete a triagem: CPF, o CNPJ atual, o que você quer alterar (razão social, endereço, atividade, sócios etc.) e o envio da sua identidade.
 
 Assim que recebermos tudo, damos sequência ao protocolo.`
 
+// Produtos que alimentam a triagem de onboarding (aba "Serviços" do hub).
+// certificado_pj_a1 e certificado_pf_a1 caem no mesmo wants_certificado —
+// o passo a passo de emissão é idêntico pra PF e PJ, só o produto cobrado
+// no Stripe muda.
+const ONBOARDING_WANTS_FIELD: Partial<Record<ProductSlug, string>> = {
+  certificado_pj_a1: "wants_certificado",
+  certificado_pf_a1: "wants_certificado",
+  abertura_empresa: "wants_abertura_empresa",
+  alteracao_cnpj: "wants_alteracao_cnpj",
+}
+
+// Produtos "sob encomenda": não têm formulário de triagem próprio — a compra
+// já cria uma solicitação automática (ver handleProductCheckoutCompleted) na
+// mesma tabela usada pela aba "Solicitações", e o cliente acompanha por lá.
+const REQUEST_PRODUCT_TITLES: Partial<Record<ProductSlug, string>> = {
+  serasa_pf: "Consulta Serasa PF",
+  serasa_pj: "Consulta Serasa PJ",
+  nota_fiscal_servico: "Nota Fiscal de Serviço",
+  nota_fiscal_produto: "Nota Fiscal de Produto (DANFE)",
+}
+
+const REQUEST_PRODUCT_CATEGORY: Partial<Record<ProductSlug, string>> = {
+  serasa_pf: "consulta_serasa",
+  serasa_pj: "consulta_serasa",
+  nota_fiscal_servico: "emissao_nota_fiscal",
+  nota_fiscal_produto: "emissao_nota_fiscal",
+}
+
+function buildRequestProductEmail(title: string) {
+  return {
+    subject: `Recebemos o pagamento: ${title}`,
+    text: `Recebemos o pagamento da sua solicitação de ${title}.\n\nJá criamos uma solicitação pra você — acesse a aba "Solicitações" no seu hub pra acompanhar. Nossa equipe vai confirmar os dados necessários por lá e te retornar assim que estiver pronto.`,
+  }
+}
+
 async function sendProductWelcomeEmail(email: string, product: ProductSlug) {
-  if (product === "certificado_pj_a1") {
+  const requestTitle = REQUEST_PRODUCT_TITLES[product]
+  if (requestTitle) {
+    const { subject, text } = buildRequestProductEmail(requestTitle)
+    await sendEmail({ to: email, subject, text })
+    return
+  }
+
+  if (product === "certificado_pj_a1" || product === "certificado_pf_a1") {
     await sendEmail({ to: email, subject: CERTIFICADO_EMAIL_SUBJECT, text: CERTIFICADO_EMAIL_TEXT })
   } else if (product === "abertura_empresa") {
     await sendEmail({ to: email, subject: ABERTURA_EMAIL_SUBJECT, text: ABERTURA_EMAIL_TEXT })
@@ -162,34 +204,46 @@ async function handleProductCheckoutCompleted(
     throw new Error(`product_purchases insert failed: ${purchaseError.message}`)
   }
 
-  const { data: existingIntake } = await supabase
-    .from("onboarding_intakes")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle()
+  const wantsField = ONBOARDING_WANTS_FIELD[product]
+  const requestTitle = REQUEST_PRODUCT_TITLES[product]
 
-  const wantsField =
-    product === "certificado_pj_a1"
-      ? "wants_certificado"
-      : product === "abertura_empresa"
-        ? "wants_abertura_empresa"
-        : "wants_alteracao_cnpj"
-
-  if (existingIntake) {
-    const { error: updateError } = await supabase
+  if (wantsField) {
+    const { data: existingIntake } = await supabase
       .from("onboarding_intakes")
-      .update({ [wantsField]: true, updated_at: new Date().toISOString() })
-      .eq("id", existingIntake.id)
-    if (updateError) {
-      throw new Error(`onboarding_intakes update failed: ${updateError.message}`)
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle()
+
+    if (existingIntake) {
+      const { error: updateError } = await supabase
+        .from("onboarding_intakes")
+        .update({ [wantsField]: true, updated_at: new Date().toISOString() })
+        .eq("id", existingIntake.id)
+      if (updateError) {
+        throw new Error(`onboarding_intakes update failed: ${updateError.message}`)
+      }
+    } else {
+      const { error: insertError } = await supabase.from("onboarding_intakes").insert({
+        user_id: userId,
+        [wantsField]: true,
+      })
+      if (insertError) {
+        throw new Error(`onboarding_intakes insert failed: ${insertError.message}`)
+      }
     }
-  } else {
-    const { error: insertError } = await supabase.from("onboarding_intakes").insert({
+  } else if (requestTitle) {
+    // Produto "sob encomenda": não tem triagem própria, então a compra já
+    // vira uma solicitação na mesma tabela da aba "Solicitações" do hub.
+    const { error: requestError } = await supabase.from("client_requests").insert({
       user_id: userId,
-      [wantsField]: true,
+      category: REQUEST_PRODUCT_CATEGORY[product] ?? "outra",
+      title: requestTitle,
+      description:
+        "Solicitação criada automaticamente após o pagamento. Nossa equipe vai confirmar os dados necessários e retornar por aqui.",
+      priority: "normal",
     })
-    if (insertError) {
-      throw new Error(`onboarding_intakes insert failed: ${insertError.message}`)
+    if (requestError) {
+      throw new Error(`client_requests insert failed: ${requestError.message}`)
     }
   }
 

@@ -60,7 +60,7 @@ export const PLAN_DETAILS: Record<PlanSlug, PlanDetails> = {
   ouro: {
     slug: "ouro",
     label: "Ouro",
-    priceLabel: "A partir de R$ 810,50",
+    priceLabel: "R$ 810,50",
     priceValue: "R$ 810,50",
     period: "por mês",
     benefits: [
@@ -80,7 +80,7 @@ export const PLAN_DETAILS: Record<PlanSlug, PlanDetails> = {
   diamante: {
     slug: "diamante",
     label: "Diamante",
-    priceLabel: "A partir de R$ 1.621,00",
+    priceLabel: "R$ 1.621,00",
     priceValue: "R$ 1.621,00",
     period: "por mês",
     benefits: [

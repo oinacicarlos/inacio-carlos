@@ -82,11 +82,16 @@ export default function PricingCalculatorClient({
   isAuthenticated?: boolean
   embedded?: boolean
 }) {
+  const initialWorkName = DEFAULT_WORK_NAME
+  const initialDirectCosts = embedded ? "" : DEFAULT_DIRECT_COSTS
+  const initialLaborValue = embedded ? "" : DEFAULT_LABOR_VALUE
+  const initialMargin = embedded ? "" : DEFAULT_MARGIN
+  const initialQuantity = embedded ? "" : DEFAULT_QUANTITY
   const [workName, setWorkName] = useState(DEFAULT_WORK_NAME)
-  const [directCosts, setDirectCosts] = useState(DEFAULT_DIRECT_COSTS)
-  const [laborValue, setLaborValue] = useState(DEFAULT_LABOR_VALUE)
-  const [marginPercent, setMarginPercent] = useState(DEFAULT_MARGIN)
-  const [quantity, setQuantity] = useState(DEFAULT_QUANTITY)
+  const [directCosts, setDirectCosts] = useState(initialDirectCosts)
+  const [laborValue, setLaborValue] = useState(initialLaborValue)
+  const [marginPercent, setMarginPercent] = useState(initialMargin)
+  const [quantity, setQuantity] = useState(initialQuantity)
 
   const usageRecordedRef = useRef(false)
   const idempotencyKeyRef = useRef<string | undefined>(undefined)
@@ -95,6 +100,7 @@ export default function PricingCalculatorClient({
   }
 
   useEffect(() => {
+    if (embedded) return
     try {
       const saved = window.localStorage.getItem(MARGIN_STORAGE_KEY)
       if (saved) {
@@ -103,19 +109,21 @@ export default function PricingCalculatorClient({
     } catch {
       // localStorage indisponível — segue com a margem padrão.
     }
-  }, [])
+  }, [embedded])
 
   useEffect(() => {
+    if (embedded) return
     window.localStorage.setItem(MARGIN_STORAGE_KEY, marginPercent)
-  }, [marginPercent])
+  }, [embedded, marginPercent])
 
   // Só conta como utilização se o usuário de fato alterou algum campo — abrir
   // a página com os valores padrão e sair não deve consumir o limite.
   const isDirty =
-    workName !== DEFAULT_WORK_NAME ||
-    directCosts !== DEFAULT_DIRECT_COSTS ||
-    laborValue !== DEFAULT_LABOR_VALUE ||
-    quantity !== DEFAULT_QUANTITY
+    workName !== initialWorkName ||
+    directCosts !== initialDirectCosts ||
+    laborValue !== initialLaborValue ||
+    marginPercent !== initialMargin ||
+    quantity !== initialQuantity
 
   const result = useMemo(() => {
     const costs = toPositiveNumber(directCosts)

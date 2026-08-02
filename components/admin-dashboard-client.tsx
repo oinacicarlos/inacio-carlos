@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatBillingReference, getBillingDueDateFromDueMonth, getBillingReferenceFromDueMonth } from '@/lib/offline-billing'
 import { supabase } from '@/lib/supabaseClient'
 import {
   CATEGORY_LABELS,
@@ -32,8 +33,7 @@ import {
 type AdminModule =
   | 'Contabilidade'
   | 'PFX'
-  | 'Solicitacoes'
-  | 'Onboarding'
+  | 'Boletos'
 
 type AdminDashboardClientProps = {
   initialModule?: AdminModule
@@ -94,6 +94,98 @@ const PFX_CLIENTS_TABLE = 'pfx_clients'
 const PFX_BIRD_OPTIONS: PfxBirdStatus[] = ['Feito', 'Não Feito']
 const PFX_WHATSAPP_INTENTS: PfxWhatsAppIntent[] = ['Cobrança', 'Feedback', 'Renovação']
 const PFX_FILE_LIMIT_BYTES = 5 * 1024 * 1024
+
+// ─── Boletos Offline ───────────────────────────────────────────────────────
+type OfflineBillingStatus = 'pendente' | 'pago' | 'vencido'
+
+type OfflineBillingSlip = {
+  id: string
+  clientId: string
+  clientName: string
+  email: string
+  whatsapp: string
+  dueDate: string
+  referenceMonth: string
+  amount: number
+  status: OfflineBillingStatus
+  fileName: string
+  filePath: string
+  fileSize: number
+  initialSentAt: string
+  reminder5dSentAt: string
+  dueDateSentAt: string
+  recoverySentAt: string
+  paidAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+type OfflineBillingSlipRow = {
+  id: string
+  client_id: string | null
+  client_name: string
+  email: string
+  whatsapp: string
+  due_date: string
+  reference_month: string
+  amount: number
+  status: string
+  file_name: string
+  file_path: string | null
+  file_size: number
+  initial_sent_at: string | null
+  reminder_5d_sent_at: string | null
+  due_date_sent_at: string | null
+  recovery_sent_at: string | null
+  paid_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+type OfflineBillingFormData = {
+  clientName: string
+  email: string
+  whatsapp: string
+  dueDay: string
+  amount: string
+}
+
+type OfflineBillingSlipEditData = {
+  clientName: string
+  email: string
+  whatsapp: string
+  dueDate: string
+  amount: string
+  status: OfflineBillingStatus
+}
+
+type OfflineBillingClient = {
+  id: string
+  clientName: string
+  email: string
+  whatsapp: string
+  dueDay: number
+  defaultAmount: number
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type OfflineBillingClientRow = {
+  id: string
+  client_name: string
+  email: string
+  whatsapp: string
+  due_day: number
+  default_amount: number
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+const OFFLINE_BILLING_TABLE = 'offline_billing_slips'
+const OFFLINE_BILLING_BUCKET = 'offline-billing-slips'
+const OFFLINE_BILLING_FILE_LIMIT_BYTES = 10 * 1024 * 1024
 
 // ─── Contabilidade ─────────────────────────────────────────────────────────
 type RoutineRegime = 'MEI' | 'Simples Nacional'
@@ -812,22 +904,90 @@ function getPfxWhatsappUrl(client: PfxClient, intent: PfxWhatsAppIntent) {
   return `https://wa.me/${phone}?text=${message}`
 }
 
+function mapOfflineBillingSlip(row: OfflineBillingSlipRow): OfflineBillingSlip {
+  return {
+    id: row.id,
+    clientId: row.client_id ?? '',
+    clientName: row.client_name,
+    email: row.email,
+    whatsapp: row.whatsapp,
+    dueDate: row.due_date,
+    referenceMonth: row.reference_month,
+    amount: Number(row.amount) || 0,
+    status: row.status === 'pago' || row.status === 'vencido' ? row.status : 'pendente',
+    fileName: row.file_name,
+    filePath: row.file_path ?? '',
+    fileSize: Number(row.file_size) || 0,
+    initialSentAt: row.initial_sent_at ?? '',
+    reminder5dSentAt: row.reminder_5d_sent_at ?? '',
+    dueDateSentAt: row.due_date_sent_at ?? '',
+    recoverySentAt: row.recovery_sent_at ?? '',
+    paidAt: row.paid_at ?? '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function mapOfflineBillingClient(row: OfflineBillingClientRow): OfflineBillingClient {
+  return {
+    id: row.id,
+    clientName: row.client_name,
+    email: row.email,
+    whatsapp: row.whatsapp,
+    dueDay: Number(row.due_day) || 15,
+    defaultAmount: Number(row.default_amount) || 0,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function parseOfflineBillingAmount(value: string) {
+  const normalized = value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function formatOfflineBillingAmount(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+}
+
+function formatOfflineBillingDate(value: string) {
+  if (!value) return '—'
+  return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR')
+}
+
+function formatOfflineBillingSentAt(value: string) {
+  if (!value) return 'Não enviado'
+  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function parseOfflineBillingEmails(value: string) {
+  return value
+    .split(/[,\n;]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+function isValidOfflineBillingEmailList(value: string) {
+  const emails = parseOfflineBillingEmails(value)
+  return emails.length > 0 && emails.every(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+}
+
 const MODULES: Array<{
   name: AdminModule
   label: string
-  icon: 'routines' | 'pfx' | 'clients'
+  icon: 'routines' | 'pfx' | 'clients' | 'billing'
 }> = [
   { name: 'Contabilidade', label: 'Clientes', icon: 'routines' },
   { name: 'PFX', label: 'PFX', icon: 'pfx' },
-  { name: 'Solicitacoes', label: 'Solicitações', icon: 'clients' },
-  { name: 'Onboarding', label: 'Onboarding', icon: 'clients' },
+  { name: 'Boletos', label: 'Boletos', icon: 'billing' },
 ]
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
   Contabilidade: '/clientes',
   PFX: '/pfx',
-  Solicitacoes: '/solicitacoes-clientes',
-  Onboarding: '/onboarding-clientes',
+  Boletos: '/boletos',
 }
 
 function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
@@ -1393,20 +1553,15 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
       )}
 
       <section
-        className={activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Solicitacoes' || activeModule === 'Onboarding' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
+        className={activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Boletos' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
         aria-labelledby="active-module-title"
       >
         {activeModule === 'Contabilidade' ? (
           <RoutineControlModule />
         ) : activeModule === 'PFX' ? (
           <PfxModule />
-        ) : activeModule === 'Solicitacoes' ? (
-          <ClientRequestsAdminModule />
-        ) : activeModule === 'Onboarding' ? (
-          <>
-            <OnboardingAdminModule />
-            <PresumidoRealLeadsModule />
-          </>
+        ) : activeModule === 'Boletos' ? (
+          <OfflineBillingModule />
         ) : (
           <div className="admin-module-empty">
             <h2 id="active-module-title">{activeModule}</h2>
@@ -2944,6 +3099,807 @@ function RoutineQuickCompetenceModal({ clients, competences, currentMonth, onClo
   )
 }
 
+function OfflineBillingModule() {
+  const [clients, setClients] = useState<OfflineBillingClient[]>([])
+  const [slips, setSlips] = useState<OfflineBillingSlip[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [activeArea, setActiveArea] = useState<'Clientes' | 'Competências'>('Competências')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState<OfflineBillingClient | null>(null)
+  const [editingSlip, setEditingSlip] = useState<OfflineBillingSlip | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+  const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [dueMonthInput, setDueMonthInput] = useState(getCurrentRoutineCompetenceMonth().slice(0, 7))
+
+  const loadBillingData = async () => {
+    setLoading(true)
+    setError('')
+
+    const [clientsResult, slipsResult] = await Promise.all([
+      supabase
+        .from('offline_billing_clients')
+        .select('*')
+        .order('client_name', { ascending: true }),
+      supabase
+        .from(OFFLINE_BILLING_TABLE)
+        .select('*')
+        .order('due_date', { ascending: true }),
+    ])
+
+    if (clientsResult.error || slipsResult.error) {
+      setError('Não consegui carregar os boletos. Execute o SQL de criação do módulo Boletos.')
+      setLoading(false)
+      return
+    }
+
+    setClients(((clientsResult.data ?? []) as OfflineBillingClientRow[]).map(mapOfflineBillingClient))
+    setSlips(((slipsResult.data ?? []) as OfflineBillingSlipRow[]).map(mapOfflineBillingSlip))
+    setLoading(false)
+  }
+
+  useEffect(() => { void loadBillingData() }, [])
+
+  const selectedDueMonth = normalizeRoutineCompetenceMonth(dueMonthInput)
+  const selectedDueMonthKey = selectedDueMonth.slice(0, 7)
+  const selectedReferenceMonth = getBillingReferenceFromDueMonth(selectedDueMonth)
+  const competenceSlips = slips.filter(slip =>
+    slip.dueDate.slice(0, 7) === selectedDueMonthKey || slip.referenceMonth === selectedReferenceMonth
+  )
+  const activeClients = clients.filter(client => client.active)
+
+  const counts = useMemo(() => {
+    return competenceSlips.reduce(
+      (acc, slip) => {
+        if (slip.status === 'pago') acc.paid += 1
+        if (slip.status === 'pendente') acc.pending += 1
+        if (slip.status === 'vencido') acc.overdue += 1
+        if (slip.initialSentAt) acc.sent += 1
+        return acc
+      },
+      { pending: 0, paid: 0, overdue: 0, sent: 0 }
+    )
+  }, [competenceSlips])
+
+  const handleSaveClient = async (formData: OfflineBillingFormData, clientId?: string) => {
+    const payload = {
+      client_name: formData.clientName.trim(),
+      email: formData.email.trim(),
+      whatsapp: formData.whatsapp.trim(),
+      due_day: Number(formData.dueDay),
+      default_amount: parseOfflineBillingAmount(formData.amount),
+      updated_at: new Date().toISOString(),
+    }
+
+    const query = clientId
+      ? supabase.from('offline_billing_clients').update(payload).eq('id', clientId)
+      : supabase.from('offline_billing_clients').insert(payload)
+
+    const { data, error: saveError } = await query.select('*').single()
+
+    if (saveError || !data) throw new Error('Não consegui salvar o cliente de boleto.')
+
+    const savedClient = mapOfflineBillingClient(data as OfflineBillingClientRow)
+    setClients(current => {
+      const next = clientId
+        ? current.map(client => client.id === clientId ? savedClient : client)
+        : [...current, savedClient]
+      return next.sort((a, b) => a.clientName.localeCompare(b.clientName))
+    })
+  }
+
+  const updateClientStatus = async (client: OfflineBillingClient, active: boolean) => {
+    const { data, error: updateError } = await supabase
+      .from('offline_billing_clients')
+      .update({ active, updated_at: new Date().toISOString() })
+      .eq('id', client.id)
+      .select('*')
+      .single()
+
+    if (updateError || !data) {
+      setError('Não consegui atualizar o cliente.')
+      return
+    }
+
+    setClients(current => current.map(item => item.id === client.id ? mapOfflineBillingClient(data as OfflineBillingClientRow) : item))
+  }
+
+  const generateCompetence = async () => {
+    setError('')
+    setMessage('')
+    setGenerating(true)
+
+    try {
+      if (!activeClients.length) {
+        setError('Nenhum cliente ativo cadastrado. Cadastre ou ative um cliente antes de gerar boletos.')
+        setActiveArea('Clientes')
+        return
+      }
+
+      const { data: existingRows, error: existingError } = await supabase
+        .from(OFFLINE_BILLING_TABLE)
+        .select('client_id')
+        .eq('reference_month', selectedReferenceMonth)
+        .not('client_id', 'is', null)
+
+      if (existingError) {
+        setError('Não consegui verificar os boletos já gerados para este mês.')
+        return
+      }
+
+      const existingClientIds = new Set(
+        (((existingRows ?? []) as Array<{ client_id: string | null }>).map(row => row.client_id).filter(Boolean)) as string[]
+      )
+      const clientsToGenerate = activeClients.filter(client => !existingClientIds.has(client.id))
+
+      if (!clientsToGenerate.length) {
+        await loadBillingData()
+        setMessage('Todos os clientes ativos já têm boleto para este mês. Atualizei a lista com os lançamentos encontrados.')
+        setActiveArea('Competências')
+        return
+      }
+
+      const payload = clientsToGenerate.map(client => ({
+        client_id: client.id,
+        client_name: client.clientName,
+        email: client.email,
+        whatsapp: client.whatsapp,
+        due_date: getBillingDueDateFromDueMonth(selectedDueMonth, client.dueDay),
+        reference_month: selectedReferenceMonth,
+        amount: client.defaultAmount,
+        file_name: '',
+        file_path: null,
+        file_size: 0,
+      }))
+
+      const { data: insertedRows, error: insertError } = await supabase
+        .from(OFFLINE_BILLING_TABLE)
+        .insert(payload)
+        .select('id')
+
+      if (insertError) {
+        await loadBillingData()
+        if (insertError.code === '23505') {
+          setMessage('Esse mês já tinha lançamentos. Atualizei a lista com o que estava no banco.')
+        } else {
+          const details = [insertError.code, insertError.message, insertError.details]
+            .filter(Boolean)
+            .join(' · ')
+          setError(`Não consegui gerar os boletos deste mês. ${details}`)
+        }
+        return
+      }
+
+      await loadBillingData()
+      const insertedCount = insertedRows?.length ?? 0
+      if (insertedCount === 0) {
+        setError('O Supabase aceitou a solicitação, mas não retornou lançamentos criados. Confira as políticas RLS da tabela offline_billing_slips.')
+        return
+      }
+
+      setMessage(`Boletos de ${formatBillingReference(selectedDueMonth)} gerados para ${insertedCount} cliente${insertedCount === 1 ? '' : 's'}.`)
+      setActiveArea('Competências')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const sendBillingEmail = async (id: string, type: 'initial' | 'reminder_5d' | 'due_date' | 'recovery') => {
+    setSendingId(id)
+    setError('')
+    setMessage('')
+
+    try {
+      const response = await fetch('/api/offline-boletos/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type }),
+      })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || 'Não consegui enviar o e-mail.')
+      }
+
+      setMessage('E-mail enviado com sucesso.')
+      await loadBillingData()
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Não consegui enviar o e-mail.')
+    } finally {
+      setSendingId(null)
+    }
+  }
+
+  const attachSlipFile = async (slip: OfflineBillingSlip, file: File) => {
+    setError('')
+
+    if (file.type !== 'application/pdf') {
+      setError('Envie o boleto em PDF.')
+      return
+    }
+
+    if (file.size > OFFLINE_BILLING_FILE_LIMIT_BYTES) {
+      setError('O boleto deve ter até 10 MB.')
+      return
+    }
+
+    setUploadingId(slip.id)
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    const storagePath = `${slip.clientId || 'avulso'}/${slip.referenceMonth.slice(0, 7)}-${Date.now()}-${safeName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from(OFFLINE_BILLING_BUCKET)
+      .upload(storagePath, file)
+
+    if (uploadError) {
+      setUploadingId(null)
+      setError('Não consegui anexar o boleto. Confira se o bucket foi criado.')
+      return
+    }
+
+    const { data, error: saveError } = await supabase
+      .from(OFFLINE_BILLING_TABLE)
+      .update({
+        file_name: file.name,
+        file_path: storagePath,
+        file_size: file.size,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', slip.id)
+      .select('*')
+      .single()
+
+    if (saveError || !data) {
+      await supabase.storage.from(OFFLINE_BILLING_BUCKET).remove([storagePath])
+      setUploadingId(null)
+      setError('Não consegui salvar o arquivo do boleto.')
+      return
+    }
+
+    setUploadingId(null)
+    setSlips(current => current.map(item => item.id === slip.id ? mapOfflineBillingSlip(data as OfflineBillingSlipRow) : item))
+    setMessage('Boleto anexado.')
+  }
+
+  const openSlipFile = async (slip: OfflineBillingSlip) => {
+    if (!slip.filePath) {
+      setError('Anexe o PDF antes de abrir.')
+      return
+    }
+
+    setOpeningId(slip.id)
+    setError('')
+
+    const { data, error: signedError } = await supabase.storage
+      .from(OFFLINE_BILLING_BUCKET)
+      .createSignedUrl(slip.filePath, 60 * 10)
+
+    setOpeningId(null)
+
+    if (signedError || !data?.signedUrl) {
+      setError('Não consegui abrir o boleto.')
+      return
+    }
+
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const updateSlipStatus = async (slip: OfflineBillingSlip, status: OfflineBillingStatus) => {
+    setError('')
+    const { data, error: updateError } = await supabase
+      .from(OFFLINE_BILLING_TABLE)
+      .update({
+        status,
+        paid_at: status === 'pago' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', slip.id)
+      .select('*')
+      .single()
+
+    if (updateError || !data) {
+      setError('Não consegui atualizar o status do boleto.')
+      return
+    }
+
+    setSlips(current => current.map(item => item.id === slip.id ? mapOfflineBillingSlip(data as OfflineBillingSlipRow) : item))
+  }
+
+  const handleSaveSlip = async (slip: OfflineBillingSlip, formData: OfflineBillingSlipEditData) => {
+    const { data, error: updateError } = await supabase
+      .from(OFFLINE_BILLING_TABLE)
+      .update({
+        client_name: formData.clientName.trim(),
+        email: formData.email.trim(),
+        whatsapp: formData.whatsapp.trim(),
+        due_date: formData.dueDate,
+        amount: parseOfflineBillingAmount(formData.amount),
+        status: formData.status,
+        paid_at: formData.status === 'pago' ? (slip.paidAt || new Date().toISOString()) : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', slip.id)
+      .select('*')
+      .single()
+
+    if (updateError || !data) throw new Error('Não consegui salvar o lançamento.')
+
+    setSlips(current => current.map(item => item.id === slip.id ? mapOfflineBillingSlip(data as OfflineBillingSlipRow) : item))
+  }
+
+  const deleteSlip = async (slip: OfflineBillingSlip) => {
+    const confirmed = window.confirm(`Excluir o lançamento de ${slip.clientName}?`)
+    if (!confirmed) return
+
+    setError('')
+    const { error: deleteError } = await supabase
+      .from(OFFLINE_BILLING_TABLE)
+      .delete()
+      .eq('id', slip.id)
+
+    if (deleteError) {
+      setError('Não consegui excluir o lançamento.')
+      return
+    }
+
+    if (slip.filePath) {
+      await supabase.storage.from(OFFLINE_BILLING_BUCKET).remove([slip.filePath])
+    }
+
+    setSlips(current => current.filter(item => item.id !== slip.id))
+    setMessage('Lançamento excluído.')
+  }
+
+  return (
+    <div className="offline-billing-module crm-module">
+      <div className="crm-module-inner offline-billing-inner">
+        <div className="crm-module-header">
+          <div>
+            <p>Offline</p>
+            <h2>Boletos</h2>
+          </div>
+          <div className="crm-header-right">
+            {error && <span className="crm-global-error">{error}</span>}
+            {message && <span className="offline-billing-message">{message}</span>}
+            <button
+              className="crm-add-btn crm-add-icon-btn"
+              onClick={() => {
+                setEditingClient(null)
+                setIsModalOpen(true)
+              }}
+              type="button"
+              aria-label="Adicionar cliente de boleto"
+              title="Adicionar cliente de boleto"
+            >
+              <PfxPlusIcon />
+            </button>
+          </div>
+        </div>
+
+        <div className="routine-tabs offline-billing-tabs" aria-label="Áreas de Boletos">
+          <button className={activeArea === 'Clientes' ? 'active' : ''} type="button" onClick={() => setActiveArea('Clientes')}>Clientes</button>
+          <button className={activeArea === 'Competências' ? 'active' : ''} type="button" onClick={() => setActiveArea('Competências')}>Competências</button>
+        </div>
+
+        <div className="offline-billing-summary-grid" aria-label="Resumo dos boletos">
+          <div className="pfx-summary-card">
+            <span>Pendentes</span>
+            <strong>{counts.pending}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>Pagos</span>
+            <strong>{counts.paid}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>Vencidos</span>
+            <strong>{counts.overdue}</strong>
+          </div>
+          <div className="pfx-summary-card">
+            <span>E-mail inicial enviado</span>
+            <strong>{counts.sent}</strong>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="crm-loading">Carregando boletos...</div>
+        ) : activeArea === 'Clientes' ? (
+          <div className="offline-billing-table-card">
+            <table className="offline-billing-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Dia de vencimento</th>
+                  <th>Valor padrão</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map(client => (
+                  <tr key={client.id}>
+                    <td>
+                      <div className="offline-billing-client-cell">
+                        <strong>{client.clientName}</strong>
+                        <span>{client.email}</span>
+                        {client.whatsapp ? <small>{client.whatsapp}</small> : null}
+                      </div>
+                    </td>
+                    <td>Todo dia {client.dueDay}</td>
+                    <td>{formatOfflineBillingAmount(client.defaultAmount)}</td>
+                    <td>
+                      <span className={`offline-billing-status ${client.active ? 'is-pago' : 'is-vencido'}`}>
+                        {client.active ? 'ativo' : 'inativo'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="offline-billing-actions">
+                        <button type="button" onClick={() => void updateClientStatus(client, !client.active)}>
+                          {client.active ? 'Inativar' : 'Ativar'}
+                        </button>
+                        <button type="button" onClick={() => {
+                          setEditingClient(client)
+                          setIsModalOpen(true)
+                        }}>
+                          Editar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {clients.length === 0 && (
+              <div className="pfx-empty-state">
+                <strong>Nenhum cliente de boleto cadastrado.</strong>
+                <span>Cadastre o cliente uma vez e depois gere as competências mensais.</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="offline-billing-competence-bar">
+              <label>
+                Mês de vencimento
+                <input type="month" value={dueMonthInput} onChange={event => setDueMonthInput(event.target.value)} />
+              </label>
+              <button className="crm-add-btn" type="button" onClick={() => void generateCompetence()} disabled={generating}>
+                {generating ? 'Gerando...' : 'Gerar competência'}
+              </button>
+              <span>
+                Vencimento em {formatBillingReference(selectedDueMonth)} gera boleto referente a {formatBillingReference(selectedReferenceMonth)}.
+                {' '}Clientes ativos: {activeClients.length}. Lançamentos neste mês: {competenceSlips.length}.
+              </span>
+            </div>
+
+          <div className="offline-billing-table-card">
+            <table className="offline-billing-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Referência</th>
+                  <th>Vencimento</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Envio</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {competenceSlips.map(slip => (
+                  <tr key={slip.id}>
+                    <td>
+                      <div className="offline-billing-client-cell">
+                        <strong>{slip.clientName}</strong>
+                        <span>{slip.email}</span>
+                        {slip.whatsapp ? <small>{slip.whatsapp}</small> : null}
+                      </div>
+                    </td>
+                    <td>{formatBillingReference(slip.referenceMonth)}</td>
+                    <td>{formatOfflineBillingDate(slip.dueDate)}</td>
+                    <td>{formatOfflineBillingAmount(slip.amount)}</td>
+                    <td>
+                      <span className={`offline-billing-status is-${slip.status}`}>{slip.status}</span>
+                    </td>
+                    <td>
+                      <div className="offline-billing-sent-cell">
+                        <strong>{formatOfflineBillingSentAt(slip.initialSentAt)}</strong>
+                        <small>5 dias: {formatOfflineBillingSentAt(slip.reminder5dSentAt)}</small>
+                        <small>Vencimento: {formatOfflineBillingSentAt(slip.dueDateSentAt)}</small>
+                        <small>Recuperação: {formatOfflineBillingSentAt(slip.recoverySentAt)}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="offline-billing-actions">
+                        <label className="offline-billing-file-action">
+                          {uploadingId === slip.id ? 'Anexando...' : slip.filePath ? 'Trocar PDF' : 'Anexar PDF'}
+                          <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            onChange={event => {
+                              const file = event.target.files?.[0]
+                              event.target.value = ''
+                              if (file) void attachSlipFile(slip, file)
+                            }}
+                            hidden
+                          />
+                        </label>
+                        <button type="button" onClick={() => void openSlipFile(slip)} disabled={openingId === slip.id || !slip.filePath}>
+                          {openingId === slip.id ? 'Abrindo...' : 'Abrir'}
+                        </button>
+                        <button type="button" onClick={() => void sendBillingEmail(slip.id, 'initial')} disabled={sendingId === slip.id || !slip.filePath}>
+                          {sendingId === slip.id ? 'Enviando...' : 'Reenviar'}
+                        </button>
+                        <button type="button" onClick={() => setEditingSlip(slip)}>
+                          Editar
+                        </button>
+                        {slip.status === 'pago' ? (
+                          <button type="button" onClick={() => void updateSlipStatus(slip, 'pendente')}>Pendente</button>
+                        ) : (
+                          <button type="button" onClick={() => void updateSlipStatus(slip, 'pago')}>Pago</button>
+                        )}
+                        <button type="button" className="offline-billing-delete-action" onClick={() => void deleteSlip(slip)}>
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {competenceSlips.length === 0 && (
+              <div className="pfx-empty-state">
+                <strong>Nenhum boleto nesta competência.</strong>
+                <span>Gere a competência para os clientes ativos e depois anexe os PDFs.</span>
+              </div>
+            )}
+          </div>
+          </>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <OfflineBillingModal
+          client={editingClient}
+          onClose={() => {
+            setEditingClient(null)
+            setIsModalOpen(false)
+          }}
+          onSave={async formData => {
+            await handleSaveClient(formData, editingClient?.id)
+            setIsModalOpen(false)
+            setEditingClient(null)
+            setMessage(editingClient ? 'Cliente de boleto atualizado.' : 'Cliente de boleto cadastrado.')
+          }}
+        />
+      )}
+
+      {editingSlip && (
+        <OfflineBillingSlipModal
+          slip={editingSlip}
+          onClose={() => setEditingSlip(null)}
+          onSave={async formData => {
+            await handleSaveSlip(editingSlip, formData)
+            setEditingSlip(null)
+            setMessage('Lançamento atualizado.')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function OfflineBillingModal({
+  client,
+  onClose,
+  onSave,
+}: {
+  client: OfflineBillingClient | null
+  onClose: () => void
+  onSave: (formData: OfflineBillingFormData) => Promise<void>
+}) {
+  const [clientName, setClientName] = useState(client?.clientName ?? '')
+  const [email, setEmail] = useState(client?.email ?? '')
+  const [whatsapp, setWhatsapp] = useState(client?.whatsapp ?? '')
+  const [dueDay, setDueDay] = useState(client ? String(client.dueDay) : '15')
+  const [amount, setAmount] = useState(client ? formatOfflineBillingAmount(client.defaultAmount) : '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+
+    if (!clientName.trim() || !email.trim() || !dueDay || !amount.trim()) {
+      setError('Preencha cliente, e-mail, dia de vencimento e valor.')
+      return
+    }
+
+    if (!isValidOfflineBillingEmailList(email)) {
+      setError('Informe um ou mais e-mails válidos, separados por vírgula.')
+      return
+    }
+
+    if (parseOfflineBillingAmount(amount) <= 0) {
+      setError('Informe um valor maior que zero.')
+      return
+    }
+
+    const dueDayNumber = Number(dueDay)
+    if (!Number.isInteger(dueDayNumber) || dueDayNumber < 1 || dueDayNumber > 31) {
+      setError('Informe um dia de vencimento entre 1 e 31.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await onSave({ clientName, email, whatsapp, dueDay, amount })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Não consegui salvar o boleto.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal offline-billing-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>{client ? 'Editar cliente de boleto' : 'Novo cliente de boleto'}</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <form className="crm-modal-form offline-billing-form" onSubmit={handleSubmit}>
+          <div className="offline-billing-form-grid">
+            <label>
+              Cliente
+              <input value={clientName} onChange={event => setClientName(event.target.value)} placeholder="Nome do cliente" />
+            </label>
+            <label>
+              E-mails
+              <input value={email} onChange={event => setEmail(event.target.value)} placeholder="cliente@email.com, financeiro@email.com" />
+            </label>
+            <label>
+              WhatsApp
+              <input value={whatsapp} onChange={event => setWhatsapp(event.target.value)} placeholder="Opcional" />
+            </label>
+            <label>
+              Dia de vencimento
+              <input type="number" min={1} max={31} value={dueDay} onChange={event => setDueDay(event.target.value)} />
+            </label>
+            <label>
+              Valor padrão
+              <input value={amount} onChange={event => setAmount(event.target.value)} placeholder="R$ 0,00" />
+            </label>
+            <label>
+              Geração mensal
+              <input value={`Todo dia ${dueDay || '—'} do mês de vencimento escolhido`} readOnly />
+            </label>
+          </div>
+
+          {error && <p className="crm-modal-error">{error}</p>}
+
+          <div className="crm-modal-footer">
+            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+            <button type="submit" disabled={saving} className="crm-modal-submit">
+              {saving ? 'Salvando...' : client ? 'Salvar alterações' : 'Salvar cliente'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function OfflineBillingSlipModal({
+  slip,
+  onClose,
+  onSave,
+}: {
+  slip: OfflineBillingSlip
+  onClose: () => void
+  onSave: (formData: OfflineBillingSlipEditData) => Promise<void>
+}) {
+  const [clientName, setClientName] = useState(slip.clientName)
+  const [email, setEmail] = useState(slip.email)
+  const [whatsapp, setWhatsapp] = useState(slip.whatsapp)
+  const [dueDate, setDueDate] = useState(slip.dueDate)
+  const [amount, setAmount] = useState(formatOfflineBillingAmount(slip.amount))
+  const [status, setStatus] = useState<OfflineBillingStatus>(slip.status)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+
+    if (!clientName.trim() || !email.trim() || !dueDate || !amount.trim()) {
+      setError('Preencha cliente, e-mails, vencimento e valor.')
+      return
+    }
+
+    if (!isValidOfflineBillingEmailList(email)) {
+      setError('Informe um ou mais e-mails válidos, separados por vírgula.')
+      return
+    }
+
+    if (parseOfflineBillingAmount(amount) <= 0) {
+      setError('Informe um valor maior que zero.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await onSave({ clientName, email, whatsapp, dueDate, amount, status })
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Não consegui salvar o lançamento.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal offline-billing-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>Editar lançamento</h3>
+          <button onClick={onClose} type="button" className="crm-modal-close">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <form className="crm-modal-form offline-billing-form" onSubmit={handleSubmit}>
+          <div className="offline-billing-form-grid">
+            <label>
+              Cliente
+              <input value={clientName} onChange={event => setClientName(event.target.value)} />
+            </label>
+            <label>
+              E-mails
+              <input value={email} onChange={event => setEmail(event.target.value)} />
+            </label>
+            <label>
+              WhatsApp
+              <input value={whatsapp} onChange={event => setWhatsapp(event.target.value)} placeholder="Opcional" />
+            </label>
+            <label>
+              Vencimento
+              <input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} />
+            </label>
+            <label>
+              Valor
+              <input value={amount} onChange={event => setAmount(event.target.value)} />
+            </label>
+            <label>
+              Status
+              <select value={status} onChange={event => setStatus(event.target.value as OfflineBillingStatus)}>
+                <option value="pendente">Pendente</option>
+                <option value="pago">Pago</option>
+                <option value="vencido">Vencido</option>
+              </select>
+            </label>
+          </div>
+
+          {error && <p className="crm-modal-error">{error}</p>}
+
+          <div className="crm-modal-footer">
+            <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
+            <button type="submit" disabled={saving} className="crm-modal-submit">
+              {saving ? 'Salvando...' : 'Salvar lançamento'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function PfxModule() {
   const [clients, setClients] = useState<PfxClient[]>([])
   const [loading, setLoading] = useState(true)
@@ -3571,7 +4527,7 @@ function RoutineBulkIcon() {
 function ModuleIcon({
   type,
 }: {
-  type: 'routines' | 'pfx' | 'clients'
+  type: 'routines' | 'pfx' | 'clients' | 'billing'
 }) {
   if (type === 'routines') {
     return (
@@ -3603,6 +4559,17 @@ function ModuleIcon({
         <circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    )
+  }
+
+  if (type === 'billing') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M7 9h10" />
+        <path d="M7 13h6" />
+        <path d="M16 13h1" />
       </svg>
     )
   }
@@ -3938,9 +4905,14 @@ const ABERTURA_STATUS_OPTIONS = Object.keys(ABERTURA_STATUS_LABELS) as AberturaS
 const MEI_STATUS_OPTIONS = Object.keys(MEI_STATUS_LABELS) as MeiStatus[]
 const ALTERACAO_STATUS_OPTIONS = Object.keys(ALTERACAO_STATUS_LABELS) as AlteracaoStatus[]
 const PRODUCT_LABELS: Record<string, string> = {
-  certificado_pj_a1: 'Certificado Digital A1',
+  certificado_pj_a1: 'Certificado Digital PJ A1',
+  certificado_pf_a1: 'Certificado Digital PF A1',
   abertura_empresa: 'Abertura de empresa',
-  alteracao_cnpj: 'Alteração de CNPJ',
+  alteracao_cnpj: 'Alteração contratual',
+  serasa_pf: 'Consulta Serasa PF',
+  serasa_pj: 'Consulta Serasa PJ',
+  nota_fiscal_servico: 'Nota Fiscal de Serviço',
+  nota_fiscal_produto: 'Nota Fiscal de Produto (DANFE)',
 }
 
 function OnboardingAdminModule() {

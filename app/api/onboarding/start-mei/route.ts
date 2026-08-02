@@ -5,7 +5,7 @@ import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role"
 // Abertura de MEI é gratuita — ao contrário de certificado_pj_a1/
 // abertura_empresa/alteracao_cnpj, não passa por checkout do Stripe nem por
 // product_purchases. Essa rota só marca a intenção (wants_abertura_mei) na
-// triagem do usuário logado, pra liberar o formulário "Meu processo" no hub.
+// triagem do usuário logado, pra liberar o formulário "Serviços" no hub.
 export async function POST() {
   const supabase = await createRouteHandlerSupabaseClient()
   const {

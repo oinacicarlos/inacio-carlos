@@ -1,6 +1,6 @@
 'use client'
 
-import { ChangeEvent, FormEvent, useState } from 'react'
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { safeRedirectPath, buildAuthCallbackUrl } from '@/lib/safe-redirect'
@@ -32,21 +32,52 @@ function translateSignUpError(message: string) {
   return 'Não foi possível criar sua conta agora. Tente novamente em instantes.'
 }
 
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
+}
+
+function formatBrazilWhatsapp(value: string) {
+  const digits = onlyDigits(value).slice(0, 11)
+
+  if (digits.length <= 2) return digits ? `(${digits}` : ''
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
 export default function CadastroClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = safeRedirectPath(searchParams.get('redirect'), '/hub')
+  const rawRedirect = searchParams.get('redirect') ?? searchParams.get('next')
+  const redirectTo = safeRedirectPath(rawRedirect, '/hub')
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmationSent, setConfirmationSent] = useState(false)
 
+  useEffect(() => {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session) {
+          router.replace(redirectTo)
+        }
+      })
+      .catch(() => undefined)
+  }, [redirectTo, router])
+
   const clearErrorOnChange = (setter: (value: string) => void) => (event: ChangeEvent<HTMLInputElement>) => {
     setter(event.target.value)
+    if (error) setError('')
+  }
+
+  const handlePhoneChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setPhone(formatBrazilWhatsapp(event.target.value))
     if (error) setError('')
   }
 
@@ -54,8 +85,10 @@ export default function CadastroClient() {
     event.preventDefault()
     setError('')
 
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Preencha nome, e-mail e senha para continuar.')
+    const phoneDigits = onlyDigits(phone)
+
+    if (!name.trim() || !email.trim() || !phone.trim() || !password) {
+      setError('Preencha nome, e-mail, WhatsApp e senha para continuar.')
       return
     }
 
@@ -64,8 +97,8 @@ export default function CadastroClient() {
       return
     }
 
-    if (password !== confirmPassword) {
-      setError('As senhas não são iguais.')
+    if (phoneDigits.length < 10) {
+      setError('Informe um WhatsApp válido com DDD.')
       return
     }
 
@@ -74,7 +107,7 @@ export default function CadastroClient() {
       email: email.trim(),
       password,
       options: {
-        data: { name: name.trim() },
+        data: { name: name.trim(), phone: phone.trim(), whatsapp: phone.trim() },
         emailRedirectTo: buildAuthCallbackUrl(window.location.origin, redirectTo),
       },
     })
@@ -175,10 +208,22 @@ export default function CadastroClient() {
               <span>E-mail</span>
               <input
                 type="email"
-                placeholder="voce@empresa.com"
+                placeholder="voce@email.com"
                 autoComplete="email"
                 value={email}
                 onChange={clearErrorOnChange(setEmail)}
+              />
+            </label>
+
+            <label className="admin-login-field">
+              <span>WhatsApp</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                placeholder="(21) 99999-9999"
+                autoComplete="tel"
+                value={phone}
+                onChange={handlePhoneChange}
               />
             </label>
 
@@ -190,17 +235,6 @@ export default function CadastroClient() {
                 autoComplete="new-password"
                 value={password}
                 onChange={clearErrorOnChange(setPassword)}
-              />
-            </label>
-
-            <label className="admin-login-field">
-              <span>Confirmar senha</span>
-              <input
-                type="password"
-                placeholder="••••••••••••"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={clearErrorOnChange(setConfirmPassword)}
               />
             </label>
 

@@ -14,7 +14,7 @@ create table if not exists public.client_requests (
   -- usuário dono da solicitação
   user_id uuid not null references auth.users(id) on delete cascade,
 
-  -- categoria inicial, fixa nas 7 opções pedidas
+  -- categoria inicial, fixa nas opções usadas pelo Hub
   category text not null check (
     category in (
       'emissao_nota_fiscal',
@@ -23,6 +23,7 @@ create table if not exists public.client_requests (
       'alteracao_cadastral',
       'envio_documento',
       'duvida_atendimento',
+      'consulta_serasa',
       'outra'
     )
   ),
@@ -30,7 +31,7 @@ create table if not exists public.client_requests (
   title text not null check (char_length(trim(title)) > 0),
   description text not null default '',
 
-  priority text not null default 'normal' check (priority in ('normal', 'urgente')),
+  "priority" text not null default 'normal' check ("priority" in ('normal', 'urgente')),
 
   status text not null default 'recebida' check (
     status in (
@@ -72,7 +73,17 @@ create policy "Clients can create own requests"
 on public.client_requests
 for insert
 to authenticated
-with check (user_id = auth.uid() and status = 'recebida');
+with check (
+  user_id = auth.uid()
+  and status = 'recebida'
+  and exists (
+    select 1
+    from public.client_hub_profiles chp
+    where chp.id = auth.uid()
+      and chp.current_plan <> 'free'
+      and chp.subscription_status in ('active', 'trialing')
+  )
+);
 
 -- Sem policy de update/delete para o cliente nesta etapa: mudar status
 -- (em análise, concluída etc.) é responsabilidade do painel administrativo,

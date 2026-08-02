@@ -6,6 +6,10 @@ import { encryptSecret } from "@/lib/onboarding/crypto"
 type IntakePayload = {
   cpf?: string
   senha_gov?: string
+  wants_certificado?: boolean | null
+  wants_abertura_empresa?: boolean | null
+  wants_abertura_mei?: boolean | null
+  wants_alteracao_cnpj?: boolean | null
   segmento?: string
   descricao_cnpj?: string
   estado_civil?: string
@@ -83,6 +87,18 @@ export async function POST(request: Request) {
   }
   if (typeof payload.has_comprovante_bombeiro === "boolean") {
     update.has_comprovante_bombeiro = payload.has_comprovante_bombeiro
+  }
+  if (typeof payload.wants_certificado === "boolean") {
+    update.wants_certificado = payload.wants_certificado
+  }
+  if (typeof payload.wants_abertura_empresa === "boolean") {
+    update.wants_abertura_empresa = payload.wants_abertura_empresa
+  }
+  if (typeof payload.wants_abertura_mei === "boolean") {
+    update.wants_abertura_mei = payload.wants_abertura_mei
+  }
+  if (typeof payload.wants_alteracao_cnpj === "boolean") {
+    update.wants_alteracao_cnpj = payload.wants_alteracao_cnpj
   }
 
   const senhaGov = cleanString(payload.senha_gov)

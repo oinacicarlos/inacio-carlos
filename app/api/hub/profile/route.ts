@@ -3,7 +3,6 @@ import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route"
 
 type ProfilePayload = {
   name?: unknown
-  company_name?: unknown
   phone?: unknown
 }
 
@@ -28,7 +27,6 @@ export async function PATCH(request: Request) {
   }
 
   const name = cleanString(payload.name)
-  const companyName = cleanString(payload.company_name)
   const phone = cleanString(payload.phone)
 
   if (name.length < 2) {
@@ -40,11 +38,10 @@ export async function PATCH(request: Request) {
       .from("client_hub_profiles")
       .update({
         name,
-        company_name: companyName,
         phone,
       })
       .eq("id", user.id)
-      .select("name, company_name, phone")
+      .select("name, phone")
       .maybeSingle()
 
     if (error) {
@@ -57,10 +54,9 @@ export async function PATCH(request: Request) {
         .insert({
           id: user.id,
           name,
-          company_name: companyName,
           phone,
         })
-        .select("name, company_name, phone")
+        .select("name, phone")
         .single()
 
       data = inserted.data
@@ -71,11 +67,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error?.message || "Não foi possível atualizar seu perfil." }, { status: 500 })
     }
 
-    await authClient.auth.updateUser({ data: { name } }).catch(() => null)
+    await authClient.auth.updateUser({ data: { name, phone, whatsapp: phone } }).catch(() => null)
 
     return NextResponse.json({
       name: data.name,
-      company_name: data.company_name,
       phone: data.phone,
     })
   } catch (error) {

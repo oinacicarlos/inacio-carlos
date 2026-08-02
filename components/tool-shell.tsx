@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
+import { Building2 } from "lucide-react"
 import ToolBackToHub from "@/components/tool-back-to-hub"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 type ToolShellProps = {
   children: ReactNode
@@ -28,13 +30,14 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
       <ToolBackToHub />
       <header className="accounting-header" aria-label="Cabeçalho Tropa">
         <a className="accounting-logo" href="/" aria-label="Tropa">
+          <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
           <span>Tropa</span>
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
           <a href="/#servicos">Serviços</a>
           <a href="/#planos">Planos</a>
-          <a href="/#ferramentas">Ferramentas</a>
+          <a href="/#ferramentas" className="is-active">Ferramentas</a>
           <a href="/blog">Blog</a>
           <a href="/#duvidas">Dúvidas</a>
         </nav>
@@ -48,6 +51,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
             <a className="accounting-logo" href="/" aria-label="Tropa">
+              <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
               <span>Tropa</span>
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
@@ -73,11 +77,10 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
             </div>
 
             <div>
-              <h2>Redes sociais</h2>
-              <a href="#">Instagram</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">Facebook</a>
-              <a href="#">WhatsApp</a>
+              <h2>Contato</h2>
+              <a href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+                WhatsApp
+              </a>
             </div>
           </nav>
         </div>

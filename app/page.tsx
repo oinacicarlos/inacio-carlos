@@ -8,10 +8,50 @@ import {
   Megaphone,
   PieChart,
   Users,
+  type LucideIcon,
 } from "lucide-react"
 import PlanCalculator from "@/components/plan-calculator"
 import { BlogCard } from "@/components/blog/blog-card"
 import { getRecentArticles } from "@/lib/blog/articles"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { ToolSlug } from "@/lib/tool-usage/tools"
+
+const HUB_TOOLS_PATH = "/hub?tab=ferramentas"
+const PLAN_SIMULATOR_ANCHOR = "#simulador-planos"
+const MARKETING_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const
+
+type HomeSearchParams = Promise<Record<string, string | string[] | undefined>>
+
+function firstParamValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+function buildHubToolPath(tool: ToolSlug) {
+  return `${HUB_TOOLS_PATH}&tool=${encodeURIComponent(tool)}`
+}
+
+function buildToolsEntryHref(
+  isAuthenticated: boolean,
+  searchParams: Record<string, string | string[] | undefined>,
+  tool: ToolSlug,
+) {
+  const hubToolPath = buildHubToolPath(tool)
+
+  if (isAuthenticated) {
+    return hubToolPath
+  }
+
+  const params = new URLSearchParams()
+  params.set("redirect", hubToolPath)
+
+  MARKETING_PARAMS.forEach((name) => {
+    const value = firstParamValue(searchParams[name])
+    if (value) params.set(name, value)
+  })
+
+  return `/cadastro?${params.toString()}`
+}
 
 const accountingServices = [
   {
@@ -64,27 +104,27 @@ const accountingTools = [
     title: "Gerador de Contrato",
     description: "Monte contratos empresariais com mais agilidade e organização.",
     icon: FileSignature,
-    href: "/ferramentas/gerador-contrato",
+    slug: "gerador-contrato",
   },
   {
     title: "Simulador de Rescisão",
     description: "Estime valores de rescisão trabalhista de forma rápida.",
     icon: Calculator,
-    href: "/ferramentas/simulador-rescisao",
+    slug: "simulador-rescisao",
   },
   {
     title: "Simulador de Contratação",
     description: "Descubra o custo médio de um funcionário antes de contratar.",
     icon: Users,
-    href: "/ferramentas/simulador-contratacao",
+    slug: "simulador-contratacao",
   },
   {
     title: "Calculadora de Precificação",
     description: "Descubra quanto cobrar por um serviço com base em tempo, custo e ganho desejado.",
     icon: ChartColumnIncreasing,
-    href: "/ferramentas/calculadora-precificacao",
+    slug: "calculadora-precificacao",
   },
-]
+] satisfies Array<{ title: string; description: string; icon: LucideIcon; slug: ToolSlug }>
 
 const accountingFaqs = [
   {
@@ -114,18 +154,25 @@ const accountingFaqs = [
   },
 ]
 
-export default function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams?: HomeSearchParams }) {
   const recentArticles = getRecentArticles(3)
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const isAuthenticated = Boolean(user)
 
   return (
     <main className="accounting-landing">
       <header className="accounting-header" aria-label="Cabeçalho Tropa">
         <a className="accounting-logo" href="/" aria-label="Tropa">
+          <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
           <span>Tropa</span>
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
-          <a href="#servicos">Serviços</a>
+          <a href="#servicos" className="is-active">Serviços</a>
           <a href="#planos">Planos</a>
           <a href="#ferramentas">Ferramentas</a>
           <a href="/blog">Blog</a>
@@ -146,9 +193,7 @@ export default function HomePage() {
       <section className="accounting-hero" aria-labelledby="accounting-hero-title">
         <div className="accounting-hero-copy">
           <h1 id="accounting-hero-title">
-            <span>Assessoria empresarial</span>
-            <span>especializada em</span>
-            <span>prestadores de serviço</span>
+            <span>Contabilidade para prestadores de serviço</span>
           </h1>
           <p className="accounting-hero-subtitle">
             <span>Abra seu CNPJ, emita notas fiscais e organize seus impostos com uma plataforma fácil de usar</span>
@@ -159,7 +204,7 @@ export default function HomePage() {
             <a className="accounting-primary-button" href="/abrir-cnpj">
               Abrir CNPJ
             </a>
-            <a className="accounting-secondary-button" href="#contato">
+            <a className="accounting-secondary-button" href={PLAN_SIMULATOR_ANCHOR}>
               Trocar Contador
             </a>
           </div>
@@ -192,7 +237,9 @@ export default function HomePage() {
           <h2 id="accounting-plans-title">Nossos Planos</h2>
           <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
 
-          <PlanCalculator />
+          <div id="simulador-planos">
+            <PlanCalculator />
+          </div>
         </div>
       </section>
 
@@ -207,7 +254,7 @@ export default function HomePage() {
           </p>
 
           <div className="accounting-tools-grid">
-            {accountingTools.map(({ title, description, icon: Icon, href }) => (
+            {accountingTools.map(({ title, description, icon: Icon, slug }) => (
               <article className="accounting-tool-card" key={title}>
                 <div className="accounting-tool-icon" aria-hidden="true">
                   <Icon size={54} strokeWidth={1.65} />
@@ -216,7 +263,7 @@ export default function HomePage() {
                 <div className="accounting-tool-content">
                   <h3>{title}</h3>
                   <p>{description}</p>
-                  <a className="accounting-tool-link" href={href}>
+                  <a className="accounting-tool-link" href={buildToolsEntryHref(isAuthenticated, resolvedSearchParams, slug)}>
                     Abrir ferramenta
                     <ArrowRight size={22} strokeWidth={2} aria-hidden="true" />
                   </a>
@@ -274,6 +321,7 @@ export default function HomePage() {
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
             <a className="accounting-logo" href="/" aria-label="Tropa">
+              <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
               <span>Tropa</span>
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
@@ -292,18 +340,18 @@ export default function HomePage() {
 
             <div>
               <h2>Ferramentas</h2>
-              <a href="/ferramentas/gerador-contrato">Gerador de Contrato</a>
-              <a href="/ferramentas/simulador-rescisao">Simulador de Rescisão</a>
-              <a href="/ferramentas/simulador-contratacao">Simulador de Contratação</a>
-              <a href="/ferramentas/calculadora-precificacao">Calculadora de Precificação</a>
+              {accountingTools.map(({ title, slug }) => (
+                <a href={buildToolsEntryHref(isAuthenticated, resolvedSearchParams, slug)} key={slug}>
+                  {title}
+                </a>
+              ))}
             </div>
 
             <div>
-              <h2>Redes sociais</h2>
-              <a href="#">Instagram</a>
-              <a href="#">LinkedIn</a>
-              <a href="#">Facebook</a>
-              <a href="#">WhatsApp</a>
+              <h2>Contato</h2>
+              <a href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+                WhatsApp
+              </a>
             </div>
           </nav>
         </div>

@@ -102,7 +102,7 @@ export default function ResetPasswordClient() {
     setPassword('')
     setConfirmPassword('')
     setMessage('Senha redefinida com sucesso.')
-    router.replace(isAdmin ? '/clientes' : '/hub')
+    router.replace(isAdmin ? '/admin' : '/hub')
   }
 
   return (

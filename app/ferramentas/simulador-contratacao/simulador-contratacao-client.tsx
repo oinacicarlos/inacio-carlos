@@ -76,14 +76,22 @@ export default function HiringSimulatorClient({
   isAuthenticated?: boolean
   embedded?: boolean
 }) {
-  const [salary, setSalary] = useState(DEFAULT_SALARY)
-  const [regime, setRegime] = useState<Regime>(DEFAULT_REGIME)
-  const [taxRate, setTaxRate] = useState(String(regimeRates.simplesRegular))
-  const [transport, setTransport] = useState(DEFAULT_TRANSPORT)
-  const [deductTransport, setDeductTransport] = useState(DEFAULT_DEDUCT_TRANSPORT)
-  const [meal, setMeal] = useState(DEFAULT_MEAL)
-  const [health, setHealth] = useState(DEFAULT_HEALTH)
-  const [other, setOther] = useState(DEFAULT_OTHER)
+  const initialSalary = embedded ? "" : DEFAULT_SALARY
+  const initialRegime = DEFAULT_REGIME
+  const initialTaxRate = embedded ? "" : String(regimeRates.simplesRegular)
+  const initialTransport = embedded ? "" : DEFAULT_TRANSPORT
+  const initialDeductTransport = DEFAULT_DEDUCT_TRANSPORT
+  const initialMeal = embedded ? "" : DEFAULT_MEAL
+  const initialHealth = embedded ? "" : DEFAULT_HEALTH
+  const initialOther = embedded ? "" : DEFAULT_OTHER
+  const [salary, setSalary] = useState(initialSalary)
+  const [regime, setRegime] = useState<Regime>(initialRegime)
+  const [taxRate, setTaxRate] = useState(initialTaxRate)
+  const [transport, setTransport] = useState(initialTransport)
+  const [deductTransport, setDeductTransport] = useState(initialDeductTransport)
+  const [meal, setMeal] = useState(initialMeal)
+  const [health, setHealth] = useState(initialHealth)
+  const [other, setOther] = useState(initialOther)
 
   const usageRecordedRef = useRef(false)
   const idempotencyKeyRef = useRef<string | undefined>(undefined)
@@ -94,13 +102,14 @@ export default function HiringSimulatorClient({
   // Só conta como utilização se o usuário de fato alterou algum campo — abrir
   // a página com os valores padrão e sair não deve consumir o limite.
   const isDirty =
-    salary !== DEFAULT_SALARY ||
-    regime !== DEFAULT_REGIME ||
-    transport !== DEFAULT_TRANSPORT ||
-    deductTransport !== DEFAULT_DEDUCT_TRANSPORT ||
-    meal !== DEFAULT_MEAL ||
-    health !== DEFAULT_HEALTH ||
-    other !== DEFAULT_OTHER
+    salary !== initialSalary ||
+    regime !== initialRegime ||
+    taxRate !== initialTaxRate ||
+    transport !== initialTransport ||
+    deductTransport !== initialDeductTransport ||
+    meal !== initialMeal ||
+    health !== initialHealth ||
+    other !== initialOther
 
   const result = useMemo(() => {
     const baseSalary = Math.max(toNumber(salary), 0)

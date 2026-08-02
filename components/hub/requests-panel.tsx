@@ -1,7 +1,25 @@
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
-import { CreditCard, FileQuestion, FileText, Paperclip, Plus, Send, UploadCloud, X } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  FileQuestion,
+  FileText,
+  Landmark,
+  LifeBuoy,
+  LockKeyhole,
+  MessageCircle,
+  Paperclip,
+  ReceiptText,
+  Scale,
+  Send,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import {
   ALLOWED_ATTACHMENT_TYPES,
@@ -15,80 +33,40 @@ import {
   type RequestCategory,
   type RequestPriority,
 } from "@/lib/client-requests/constants"
+import {
+  REQUEST_FLOW_SECTORS,
+  findRequestFlowSector,
+  type RequestFlowAction,
+  type RequestFlowSectorId,
+  type RequestFlowTemplate,
+} from "@/lib/client-requests/flow"
+import { isValidCnpj, isValidCpf } from "@/lib/br-documents"
 
 type View = "list" | "new" | { detail: ClientRequest }
 export type RequestIntent = "billing_due_date" | "document_upload"
-type RequestTemplate = {
-  label: string
-  description: string
-  category: RequestCategory
-  title: string
-  body: string
-  icon: typeof FileText
+
+type RequestTemplate = RequestFlowTemplate
+
+const SECTOR_ICONS: Record<RequestFlowSectorId, LucideIcon> = {
+  legalizacao: Landmark,
+  pessoal: Users,
+  fiscal: ReceiptText,
+  contabil: Scale,
+  comercial: BriefcaseBusiness,
+  suporte: LifeBuoy,
 }
 
-const REQUEST_TEMPLATES: RequestTemplate[] = [
-  {
-    label: "Emitir nota fiscal",
-    description: "Dados do tomador, serviço, valor e observações.",
-    category: "emissao_nota_fiscal",
-    title: "Emitir nota fiscal",
-    body: "Preciso emitir uma nota fiscal. Seguem os dados do tomador, descrição do serviço, valor e observações:",
-    icon: FileText,
-  },
-  {
-    label: "Enviar documento",
-    description: "Contrato, comprovante, guia, extrato ou arquivo para análise.",
-    category: "envio_documento",
-    title: "Envio de documento",
-    body: "Estou enviando um documento para análise da equipe:",
-    icon: UploadCloud,
-  },
-  {
-    label: "Alterar vencimento",
-    description: "Solicite ajuste da data de cobrança do plano.",
-    category: "duvida_atendimento",
-    title: "Solicitar alteração da data de vencimento",
-    body: "Gostaria de alterar a data de vencimento da minha assinatura para o dia:",
-    icon: CreditCard,
-  },
-  {
-    label: "Dúvida contábil",
-    description: "Impostos, rotina mensal, DAS, pró-labore ou orientação geral.",
-    category: "duvida_atendimento",
-    title: "Dúvida contábil",
-    body: "Tenho uma dúvida sobre:",
-    icon: FileQuestion,
-  },
-  {
-    label: "Alteração cadastral",
-    description: "Endereço, atividade, razão social, sócios ou dados fiscais.",
-    category: "alteracao_cadastral",
-    title: "Alteração cadastral",
-    body: "Preciso alterar os seguintes dados cadastrais:",
-    icon: FileText,
-  },
-  {
-    label: "Inscrição municipal",
-    description: "Pedidos e pendências ligados à prefeitura.",
-    category: "inscricao_municipal",
-    title: "Inscrição municipal",
-    body: "Preciso de ajuda com inscrição municipal:",
-    icon: FileText,
-  },
-  {
-    label: "Inscrição estadual",
-    description: "Pedidos e pendências ligados ao estado.",
-    category: "inscricao_estadual",
-    title: "Inscrição estadual",
-    body: "Preciso de ajuda com inscrição estadual:",
-    icon: FileText,
-  },
-]
+const ACTION_ICONS: Record<RequestFlowAction["actionType"], LucideIcon> = {
+  product: Building2,
+  process: FileText,
+  route: ArrowRight,
+  request: FileQuestion,
+  contact: MessageCircle,
+}
 
-function templateForIntent(intent: RequestIntent | null) {
-  if (intent === "billing_due_date") return REQUEST_TEMPLATES.find((template) => template.title.includes("vencimento"))
-  if (intent === "document_upload") return REQUEST_TEMPLATES.find((template) => template.category === "envio_documento")
+function sectorForIntent(intent: RequestIntent | null): RequestFlowSectorId | null {
+  if (intent === "billing_due_date") return "suporte"
+  if (intent === "document_upload") return "contabil"
   return null
 }
 
@@ -102,11 +80,36 @@ function statusClassName(status: ClientRequest["status"]) {
   return "is-open"
 }
 
-export default function RequestsPanel({ initialIntent }: { initialIntent?: RequestIntent | null }) {
+export default function RequestsPanel({
+  initialIntent,
+  canCreateRequests,
+  onUpgrade,
+  onFlowAction,
+}: {
+  initialIntent?: RequestIntent | null
+  canCreateRequests: boolean
+  onUpgrade: () => void
+  onFlowAction: (action: RequestFlowAction) => void
+}) {
   const [requests, setRequests] = useState<ClientRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<View>(initialIntent ? "new" : "list")
-  const [draftTemplate, setDraftTemplate] = useState<RequestTemplate | null>(templateForIntent(initialIntent ?? null) ?? null)
+  const [view, setView] = useState<View>("list")
+  const [selectedSectorId, setSelectedSectorId] = useState<RequestFlowSectorId | null>(sectorForIntent(initialIntent ?? null))
+  const [draftTemplate, setDraftTemplate] = useState<RequestTemplate | null>(null)
+  const [blockedTopicTitle, setBlockedTopicTitle] = useState("")
+  const selectedSector = findRequestFlowSector(selectedSectorId)
+
+  useEffect(() => {
+    if (!canCreateRequests && view === "new") {
+      setView("list")
+      setDraftTemplate(null)
+    }
+  }, [canCreateRequests, view])
+
+  useEffect(() => {
+    const nextSector = sectorForIntent(initialIntent ?? null)
+    if (nextSector) setSelectedSectorId(nextSector)
+  }, [initialIntent])
 
   useEffect(() => {
     let active = true
@@ -142,23 +145,67 @@ export default function RequestsPanel({ initialIntent }: { initialIntent?: Reque
     setRequests((current) => [request, ...current])
     setView("list")
     setDraftTemplate(null)
+    setBlockedTopicTitle("")
   }
 
   function openTemplate(template: RequestTemplate) {
+    if (!canCreateRequests) return
     setDraftTemplate(template)
+    setBlockedTopicTitle("")
     setView("new")
   }
 
+  function selectSector(sectorId: RequestFlowSectorId | null) {
+    setSelectedSectorId(sectorId)
+    setBlockedTopicTitle("")
+  }
+
+  function handleTopicAction(action: RequestFlowAction, topicTitle: string) {
+    if (action.actionType === "request") {
+      if (!canCreateRequests) {
+        setBlockedTopicTitle(topicTitle)
+        return
+      }
+
+      openTemplate(action.template)
+      return
+    }
+
+    setBlockedTopicTitle("")
+    onFlowAction(action)
+  }
+
   if (view === "new") {
+    if (!canCreateRequests) {
+      return null
+    }
+
     return (
-      <RequestForm
-        initialTemplate={draftTemplate}
-        onCancel={() => {
+      <div
+        className="client-hub-modal-backdrop"
+        role="presentation"
+        onMouseDown={() => {
           setDraftTemplate(null)
           setView("list")
         }}
-        onCreated={handleCreated}
-      />
+      >
+        <div
+          className="client-hub-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="client-requests-form-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <RequestForm
+            initialTemplate={draftTemplate}
+            onCancel={() => {
+              setDraftTemplate(null)
+              setView("list")
+            }}
+            onCreated={handleCreated}
+          />
+        </div>
+      </div>
     )
   }
 
@@ -167,59 +214,147 @@ export default function RequestsPanel({ initialIntent }: { initialIntent?: Reque
   }
 
   return (
-    <article className="client-hub-panel">
+    <article className="client-hub-panel client-requests-flow-panel">
       <div className="client-hub-section-head client-requests-head">
         <div>
           <h2>Solicitações</h2>
-          <p>Acompanhamento das suas solicitações enviadas.</p>
+          <p>Escolha o setor e o assunto para seguir pelo caminho certo.</p>
         </div>
-        <button className="client-requests-new-button" type="button" onClick={() => setView("new")}>
-          <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
-          Nova solicitação
-        </button>
       </div>
 
-      <div className="client-requests-template-strip" aria-label="Atalhos de solicitação">
-        {REQUEST_TEMPLATES.slice(0, 4).map((template) => {
-          const Icon = template.icon
-          return (
-          <button
-            type="button"
-            key={template.label}
-            onClick={() => openTemplate(template)}
-          >
-            <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
-            {template.label}
+      {!canCreateRequests ? (
+        <div className="client-requests-upgrade-state">
+          <span className="client-requests-upgrade-icon" aria-hidden="true">
+            <LockKeyhole size={20} strokeWidth={2.2} />
+          </span>
+          <div>
+            <strong>Solicitações contábeis estão disponíveis nos planos pagos.</strong>
+            <p>Você ainda pode usar as ferramentas gratuitas, comprar produtos avulsos e acompanhar seu perfil normalmente.</p>
+          </div>
+          <button className="client-requests-new-button" type="button" onClick={onUpgrade}>
+            Conhecer planos
           </button>
-          )
-        })}
+        </div>
+      ) : null}
+
+      <div className="client-requests-flow" aria-label="Fluxo orientado de solicitações">
+        {!selectedSector ? (
+          <>
+            <div className="client-requests-step-head">
+              <span>1</span>
+              <div>
+                <strong>Escolha o setor</strong>
+                <p>Comece pela área que melhor combina com o que você precisa.</p>
+              </div>
+            </div>
+
+            <div className="client-requests-sector-grid">
+              {REQUEST_FLOW_SECTORS.map((sector) => {
+                const Icon = SECTOR_ICONS[sector.id]
+
+                return (
+                  <button
+                    className="client-requests-sector-card"
+                    type="button"
+                    key={sector.id}
+                    onClick={() => selectSector(sector.id)}
+                  >
+                    <span className="client-requests-card-icon" aria-hidden="true">
+                      <Icon size={18} strokeWidth={2.2} />
+                    </span>
+                    <strong>{sector.title}</strong>
+                    <small>{sector.description}</small>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="client-requests-topic-zone">
+            <div className="client-requests-step-head">
+              <span>2</span>
+              <div>
+                <strong>Escolha o assunto</strong>
+                <p>{selectedSector.title}: só aparecem os caminhos desse setor.</p>
+              </div>
+              <button className="client-requests-back-button" type="button" onClick={() => selectSector(null)}>
+                Trocar setor
+              </button>
+            </div>
+
+            <div className="client-requests-topic-grid">
+              {selectedSector.topics.map((topic) => {
+                const Icon = ACTION_ICONS[topic.action.actionType]
+                const isRequestBlocked = topic.action.actionType === "request" && !canCreateRequests
+
+                return (
+                  <button
+                    className={isRequestBlocked ? "client-requests-topic-card is-locked" : "client-requests-topic-card"}
+                    type="button"
+                    key={topic.id}
+                    onClick={() => handleTopicAction(topic.action, topic.title)}
+                  >
+                    <span className="client-requests-card-icon" aria-hidden="true">
+                      <Icon size={18} strokeWidth={2.2} />
+                    </span>
+                    <span>
+                      <strong>{topic.title}</strong>
+                      <small>{topic.description}</small>
+                    </span>
+                    <em>
+                      {isRequestBlocked ? "Plano pago" : topic.action.label}
+                      <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />
+                    </em>
+                  </button>
+                )
+              })}
+            </div>
+
+            {blockedTopicTitle ? (
+              <div className="client-requests-topic-blocked">
+                <strong>{blockedTopicTitle}</strong>
+                <p>Solicitações contábeis estão disponíveis nos planos pagos.</p>
+                <button className="client-requests-new-button" type="button" onClick={onUpgrade}>
+                  Aumentar plano
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
-      {loading ? (
-        <p className="client-hub-empty-state">Carregando...</p>
-      ) : requests.length === 0 ? (
-        <p className="client-hub-empty-state">Nenhuma solicitação enviada ainda.</p>
-      ) : (
-        <div className="client-hub-request-list">
-          {requests.map((request) => (
-            <button
-              className="client-hub-request client-requests-item"
-              type="button"
-              key={request.id}
-              onClick={() => setView({ detail: request })}
-            >
-              <div>
-                <strong>{request.title}</strong>
-                <span>
-                  {CATEGORY_LABELS[request.category]} · {formatDate(request.created_at)}
-                  {request.priority === "urgente" ? " · Urgente" : ""}
-                </span>
-              </div>
-              <em className={statusClassName(request.status)}>{STATUS_LABELS[request.status]}</em>
-            </button>
-          ))}
+      <section className="client-requests-history" aria-label="Histórico de solicitações">
+        <div className="client-requests-history-head">
+          <strong>Histórico</strong>
+          <span>{requests.length} solicitação{requests.length === 1 ? "" : "es"}</span>
         </div>
-      )}
+
+        {loading ? (
+          <p className="client-hub-empty-state">Carregando...</p>
+        ) : requests.length === 0 ? (
+          <p className="client-hub-empty-state">Nenhuma solicitação enviada ainda.</p>
+        ) : (
+          <div className="client-hub-request-list">
+            {requests.map((request) => (
+              <button
+                className="client-hub-request client-requests-item"
+                type="button"
+                key={request.id}
+                onClick={() => setView({ detail: request })}
+              >
+                <div>
+                  <strong>{request.title}</strong>
+                  <span>
+                    {CATEGORY_LABELS[request.category]} · {formatDate(request.created_at)}
+                    {request.priority === "urgente" ? " · Urgente" : ""}
+                  </span>
+                </div>
+                <em className={statusClassName(request.status)}>{STATUS_LABELS[request.status]}</em>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
     </article>
   )
 }
@@ -306,17 +441,24 @@ function RequestForm({
 }) {
   const [category, setCategory] = useState<RequestCategory>(initialTemplate?.category ?? CATEGORY_OPTIONS[0].value)
   const [title, setTitle] = useState(initialTemplate?.title ?? "")
-  const [description, setDescription] = useState(initialTemplate?.body ?? "")
+  const [description, setDescription] = useState(initialTemplate?.fields?.length ? "" : (initialTemplate?.body ?? ""))
   const [priority, setPriority] = useState<RequestPriority>("normal")
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(
+    Object.fromEntries((initialTemplate?.fields ?? []).map((field) => [field.name, ""])),
+  )
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
-  function applyTemplate(template: (typeof REQUEST_TEMPLATES)[number]) {
-    setCategory(template.category)
-    setTitle(template.title)
-    setDescription(template.body)
-  }
+  useEffect(() => {
+    setCategory(initialTemplate?.category ?? CATEGORY_OPTIONS[0].value)
+    setTitle(initialTemplate?.title ?? "")
+    setDescription(initialTemplate?.fields?.length ? "" : (initialTemplate?.body ?? ""))
+    setPriority("normal")
+    setFieldValues(Object.fromEntries((initialTemplate?.fields ?? []).map((field) => [field.name, ""])))
+    setFile(null)
+    setError("")
+  }, [initialTemplate])
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null
@@ -353,6 +495,22 @@ function RequestForm({
       return
     }
 
+    for (const field of initialTemplate?.fields ?? []) {
+      const value = (fieldValues[field.name] ?? "").trim()
+      if (field.required && !value) {
+        setError(`Preencha o campo "${field.label}".`)
+        return
+      }
+      if (field.document === "cpf" && value && !isValidCpf(value)) {
+        setError("Informe um CPF válido.")
+        return
+      }
+      if (field.document === "cnpj" && value && !isValidCnpj(value)) {
+        setError("Informe um CNPJ válido.")
+        return
+      }
+    }
+
     setSubmitting(true)
 
     try {
@@ -383,26 +541,36 @@ function RequestForm({
         attachmentPath = path
       }
 
-      const { data, error: insertError } = await supabase
-        .from("client_requests")
-        .insert({
-          user_id: user.id,
+      const structuredDescription = (initialTemplate?.fields ?? [])
+        .map((field) => {
+          const value = (fieldValues[field.name] ?? "").trim()
+          return value ? `${field.label}: ${value}` : null
+        })
+        .filter(Boolean)
+        .join("\n")
+      const finalDescription = [initialTemplate?.body, structuredDescription, description.trim()].filter(Boolean).join("\n\n")
+
+      const response = await fetch("/api/client-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           category,
           title: title.trim(),
-          description: description.trim(),
+          description: finalDescription,
           priority,
           attachment_path: attachmentPath,
-        })
-        .select("id, category, title, description, priority, status, attachment_path, created_at")
-        .single()
+        }),
+      })
 
-      if (insertError || !data) {
-        setError("Não foi possível enviar a solicitação. Tente novamente.")
+      const data = (await response.json().catch(() => null)) as { request?: ClientRequest; error?: string } | null
+
+      if (!response.ok || !data?.request) {
+        setError(data?.error || "Não foi possível enviar a solicitação. Tente novamente.")
         setSubmitting(false)
         return
       }
 
-      onCreated(data as ClientRequest)
+      onCreated(data.request)
     } catch {
       setError("Não foi possível enviar a solicitação. Tente novamente.")
       setSubmitting(false)
@@ -413,7 +581,7 @@ function RequestForm({
     <article className="client-hub-panel">
       <div className="client-hub-section-head client-requests-head">
         <div>
-          <h2>Nova solicitação</h2>
+          <h2 id="client-requests-form-title">Nova solicitação</h2>
           <p>Preencha os dados abaixo para enviar sua solicitação.</p>
         </div>
         <button className="client-requests-back-button" type="button" onClick={onCancel} aria-label="Cancelar">
@@ -422,27 +590,30 @@ function RequestForm({
       </div>
 
       <form className="client-requests-form" onSubmit={handleSubmit}>
-        <div className="client-requests-field">
-          <span>Escolha um atalho</span>
-          <div className="client-requests-template-grid">
-            {REQUEST_TEMPLATES.map((template) => {
-              const Icon = template.icon
-              const isActive = title === template.title
-              return (
-                <button
-                  className={isActive ? "is-active" : ""}
-                  type="button"
-                  key={template.label}
-                  onClick={() => applyTemplate(template)}
-                >
-                  <Icon size={17} strokeWidth={2.2} aria-hidden="true" />
-                  <strong>{template.label}</strong>
-                  <small>{template.description}</small>
-                </button>
-              )
-            })}
+        {initialTemplate?.fields?.length ? (
+          <div className="client-requests-special-fields">
+            {initialTemplate.fields.map((field) => (
+              <label className={field.type === "textarea" ? "client-requests-field is-wide" : "client-requests-field"} key={field.name}>
+                <span>{field.label}</span>
+                {field.type === "textarea" ? (
+                  <textarea
+                    value={fieldValues[field.name] ?? ""}
+                    onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                    placeholder={field.placeholder}
+                    rows={3}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={fieldValues[field.name] ?? ""}
+                    onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                    placeholder={field.placeholder}
+                  />
+                )}
+              </label>
+            ))}
           </div>
-        </div>
+        ) : null}
 
         <div className="client-requests-field">
           <span>Categoria</span>
@@ -472,7 +643,7 @@ function RequestForm({
         </label>
 
         <label className="client-requests-field">
-          <span>Descrição</span>
+          <span>{initialTemplate?.fields?.length ? "Observações adicionais" : "Descrição"}</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}

@@ -1,0 +1,178 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/admin/onboarding/[id]/reveal-senha",
+      "regex": "^/api/admin/onboarding/([^/]+?)/reveal\\-senha(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/onboarding/(?<nxtPid>[^/]+?)/reveal\\-senha(?:/)?$"
+    },
+    {
+      "page": "/blog/[slug]",
+      "regex": "^/blog/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPslug": "nxtPslug"
+      },
+      "namedRegex": "^/blog/(?<nxtPslug>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/abrir-cnpj",
+      "regex": "^/abrir\\-cnpj(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/abrir\\-cnpj(?:/)?$"
+    },
+    {
+      "page": "/auth/callback",
+      "regex": "^/auth/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/auth/callback(?:/)?$"
+    },
+    {
+      "page": "/blog",
+      "regex": "^/blog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/blog(?:/)?$"
+    },
+    {
+      "page": "/cadastro",
+      "regex": "^/cadastro(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cadastro(?:/)?$"
+    },
+    {
+      "page": "/clientes",
+      "regex": "^/clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/clientes(?:/)?$"
+    },
+    {
+      "page": "/contabilidade",
+      "regex": "^/contabilidade(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/contabilidade(?:/)?$"
+    },
+    {
+      "page": "/ferramentas/calculadora-precificacao",
+      "regex": "^/ferramentas/calculadora\\-precificacao(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ferramentas/calculadora\\-precificacao(?:/)?$"
+    },
+    {
+      "page": "/ferramentas/gerador-contrato",
+      "regex": "^/ferramentas/gerador\\-contrato(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ferramentas/gerador\\-contrato(?:/)?$"
+    },
+    {
+      "page": "/ferramentas/simulador-contratacao",
+      "regex": "^/ferramentas/simulador\\-contratacao(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ferramentas/simulador\\-contratacao(?:/)?$"
+    },
+    {
+      "page": "/ferramentas/simulador-rescisao",
+      "regex": "^/ferramentas/simulador\\-rescisao(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ferramentas/simulador\\-rescisao(?:/)?$"
+    },
+    {
+      "page": "/hub",
+      "regex": "^/hub(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/hub(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/onboarding-clientes",
+      "regex": "^/onboarding\\-clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/onboarding\\-clientes(?:/)?$"
+    },
+    {
+      "page": "/pfx",
+      "regex": "^/pfx(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/pfx(?:/)?$"
+    },
+    {
+      "page": "/redefinir-senha",
+      "regex": "^/redefinir\\-senha(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/redefinir\\-senha(?:/)?$"
+    },
+    {
+      "page": "/robots.txt",
+      "regex": "^/robots\\.txt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/robots\\.txt(?:/)?$"
+    },
+    {
+      "page": "/sitemap.xml",
+      "regex": "^/sitemap\\.xml(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sitemap\\.xml(?:/)?$"
+    },
+    {
+      "page": "/solicitacoes-clientes",
+      "regex": "^/solicitacoes\\-clientes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/solicitacoes\\-clientes(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

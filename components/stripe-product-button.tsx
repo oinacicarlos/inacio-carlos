@@ -3,7 +3,15 @@
 import { useState } from "react"
 
 type StripeProductButtonProps = {
-  product: "certificado_pj_a1" | "abertura_empresa" | "alteracao_cnpj"
+  product:
+    | "certificado_pj_a1"
+    | "certificado_pf_a1"
+    | "abertura_empresa"
+    | "alteracao_cnpj"
+    | "serasa_pf"
+    | "serasa_pj"
+    | "nota_fiscal_servico"
+    | "nota_fiscal_produto"
   children: React.ReactNode
   className?: string
 }

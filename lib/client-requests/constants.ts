@@ -5,6 +5,7 @@ export type RequestCategory =
   | "alteracao_cadastral"
   | "envio_documento"
   | "duvida_atendimento"
+  | "consulta_serasa"
   | "outra"
 
 export type RequestPriority = "normal" | "urgente"
@@ -24,6 +25,7 @@ export const CATEGORY_OPTIONS: { value: RequestCategory; label: string }[] = [
   { value: "alteracao_cadastral", label: "Alteração cadastral" },
   { value: "envio_documento", label: "Envio de documento" },
   { value: "duvida_atendimento", label: "Dúvida ou atendimento" },
+  { value: "consulta_serasa", label: "Consulta Serasa" },
   { value: "outra", label: "Outra solicitação" },
 ]
 

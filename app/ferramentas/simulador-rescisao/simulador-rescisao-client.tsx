@@ -38,6 +38,15 @@ const defaultValues: FormValues = {
   terminationType: "noCause",
 }
 
+const embeddedDefaultValues: FormValues = {
+  salary: "",
+  admissionDate: "",
+  terminationDate: "",
+  fgtsBalance: "",
+  otherDiscounts: "",
+  terminationType: "noCause",
+}
+
 function getDefaultNotice(type: TerminationType): NoticeOption {
   if (type === "cause") {
     return "none"
@@ -81,7 +90,8 @@ export default function TerminationSimulatorClient({
   isAuthenticated?: boolean
   embedded?: boolean
 }) {
-  const [values, setValues] = useState<FormValues>(defaultValues)
+  const initialValues = embedded ? embeddedDefaultValues : defaultValues
+  const [values, setValues] = useState<FormValues>(initialValues)
   const input = useMemo(() => toInput(values), [values])
   const result = useMemo(() => calculateTermination(input), [input])
 
@@ -94,8 +104,8 @@ export default function TerminationSimulatorClient({
   // Só conta como utilização se o usuário de fato alterou algum campo — abrir
   // a página com os valores padrão e sair não deve consumir o limite.
   const isDirty = useMemo(
-    () => (Object.keys(defaultValues) as (keyof FormValues)[]).some((key) => values[key] !== defaultValues[key]),
-    [values],
+    () => (Object.keys(initialValues) as (keyof FormValues)[]).some((key) => values[key] !== initialValues[key]),
+    [initialValues, values],
   )
 
   useEffect(() => {
