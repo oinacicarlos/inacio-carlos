@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { BrandLogo } from '@/components/brand-logo'
+import AdminOnlineOnboardingActions from '@/components/admin-online-onboarding-actions'
 import AdminOnlineRequestActions from '@/components/admin-online-request-actions'
 import {
   ArrowLeft,
@@ -23,6 +24,16 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { CATEGORY_LABELS, PRIORITY_LABELS, STATUS_LABELS, type RequestCategory, type RequestPriority, type RequestStatus } from '@/lib/client-requests/constants'
+import {
+  ABERTURA_STATUS_LABELS,
+  ALTERACAO_STATUS_LABELS,
+  CERTIFICADO_STATUS_LABELS,
+  MEI_STATUS_LABELS,
+  type AberturaStatus,
+  type AlteracaoStatus,
+  type CertificadoStatus,
+  type MeiStatus,
+} from '@/lib/onboarding/constants'
 import { isPlanSlug, PLAN_DETAILS, type PlanSlug } from '@/lib/plans'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/service-role'
@@ -77,10 +88,10 @@ type OnboardingRow = {
   wants_abertura_empresa: boolean | null
   wants_abertura_mei?: boolean | null
   wants_alteracao_cnpj?: boolean | null
-  certificado_status: string | null
-  abertura_status: string | null
-  mei_status?: string | null
-  alteracao_status?: string | null
+  certificado_status: CertificadoStatus | null
+  abertura_status: AberturaStatus | null
+  mei_status?: MeiStatus | null
+  alteracao_status?: AlteracaoStatus | null
   updated_at: string
   created_at: string
 }
@@ -246,6 +257,22 @@ function activeProcessStatuses(onboarding: OnboardingRow) {
     onboarding.wants_abertura_empresa ? onboarding.abertura_status : null,
     onboarding.wants_alteracao_cnpj ? onboarding.alteracao_status : null,
   ].filter(Boolean) as string[]
+}
+
+function meiStatusLabel(status: MeiStatus | null | undefined) {
+  return MEI_STATUS_LABELS[status ?? 'nao_iniciado']
+}
+
+function certificadoStatusLabel(status: CertificadoStatus | null | undefined) {
+  return CERTIFICADO_STATUS_LABELS[status ?? 'nao_iniciado']
+}
+
+function aberturaStatusLabel(status: AberturaStatus | null | undefined) {
+  return ABERTURA_STATUS_LABELS[status ?? 'nao_iniciado']
+}
+
+function alteracaoStatusLabel(status: AlteracaoStatus | null | undefined) {
+  return ALTERACAO_STATUS_LABELS[status ?? 'nao_iniciado']
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -614,10 +641,8 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
                     <tr>
                       <th>Cliente</th>
                       <th>Processos</th>
-                      <th>MEI</th>
-                      <th>Certificado</th>
-                      <th>Abertura</th>
-                      <th>Alteração</th>
+                      <th>Status atual</th>
+                      <th>Gestão</th>
                       <th>Atualizado</th>
                     </tr>
                   </thead>
@@ -629,10 +654,27 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
                         <tr key={onboarding.id}>
                           <td>{clientLabel(profile, emailByUserId.get(onboarding.user_id))}</td>
                           <td>{compactList(processLabels(onboarding), 'Sem processo')}</td>
-                          <td>{onboarding.wants_abertura_mei ? (onboarding.mei_status ?? 'nao_iniciado').replaceAll('_', ' ') : '—'}</td>
-                          <td>{onboarding.wants_certificado ? (onboarding.certificado_status ?? 'nao_iniciado').replaceAll('_', ' ') : '—'}</td>
-                          <td>{onboarding.wants_abertura_empresa ? (onboarding.abertura_status ?? 'nao_iniciado').replaceAll('_', ' ') : '—'}</td>
-                          <td>{onboarding.wants_alteracao_cnpj ? (onboarding.alteracao_status ?? 'nao_iniciado').replaceAll('_', ' ') : '—'}</td>
+                          <td>
+                            <div className="admin-online-process-status-list">
+                              {onboarding.wants_abertura_mei ? <span>MEI: {meiStatusLabel(onboarding.mei_status)}</span> : null}
+                              {onboarding.wants_certificado ? <span>Certificado: {certificadoStatusLabel(onboarding.certificado_status)}</span> : null}
+                              {onboarding.wants_abertura_empresa ? <span>Abertura: {aberturaStatusLabel(onboarding.abertura_status)}</span> : null}
+                              {onboarding.wants_alteracao_cnpj ? <span>Alteração: {alteracaoStatusLabel(onboarding.alteracao_status)}</span> : null}
+                            </div>
+                          </td>
+                          <td>
+                            <AdminOnlineOnboardingActions
+                              onboardingId={onboarding.id}
+                              wantsMei={Boolean(onboarding.wants_abertura_mei)}
+                              wantsCertificado={Boolean(onboarding.wants_certificado)}
+                              wantsAbertura={Boolean(onboarding.wants_abertura_empresa)}
+                              wantsAlteracao={Boolean(onboarding.wants_alteracao_cnpj)}
+                              initialMeiStatus={onboarding.mei_status ?? 'nao_iniciado'}
+                              initialCertificadoStatus={onboarding.certificado_status ?? 'nao_iniciado'}
+                              initialAberturaStatus={onboarding.abertura_status ?? 'nao_iniciado'}
+                              initialAlteracaoStatus={onboarding.alteracao_status ?? 'nao_iniciado'}
+                            />
+                          </td>
                           <td>{formatDate(onboarding.updated_at)}</td>
                         </tr>
                       )
