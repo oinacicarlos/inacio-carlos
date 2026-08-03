@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { BrandLogo } from '@/components/brand-logo'
 import { supabase } from '@/lib/supabaseClient'
 import { safeRedirectPath, buildAuthCallbackUrl } from '@/lib/safe-redirect'
 
@@ -145,7 +146,7 @@ export default function LoginClient() {
       <section className="admin-login-panel" aria-label="Acesso ao hub admin">
         <div className="admin-login-content">
           <a className="admin-auth-logo" href="/" aria-label="Tropa">
-            <span>Tropa</span>
+            <BrandLogo variant="black" />
           </a>
 
           <header className="admin-login-header">

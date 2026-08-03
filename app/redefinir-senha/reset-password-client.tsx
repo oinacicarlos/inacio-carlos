@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BrandLogo } from '@/components/brand-logo'
 import { supabase } from '@/lib/supabaseClient'
 
 function isInvalidRefreshTokenError(error: unknown) {
@@ -109,7 +110,7 @@ export default function ResetPasswordClient() {
     <main className="password-reset-page">
       <section className="password-reset-panel" aria-label="Redefinir senha">
         <a className="admin-auth-logo" href="/" aria-label="Tropa">
-          <span>Tropa</span>
+          <BrandLogo variant="black" />
         </a>
 
         <header className="password-reset-header">

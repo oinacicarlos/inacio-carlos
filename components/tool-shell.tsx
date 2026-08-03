@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Building2 } from "lucide-react"
+import { BrandLogo } from "@/components/brand-logo"
 import ToolBackToHub from "@/components/tool-back-to-hub"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
@@ -30,8 +30,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
       <ToolBackToHub />
       <header className="accounting-header" aria-label="Cabeçalho Tropa">
         <a className="accounting-logo" href="/" aria-label="Tropa">
-          <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
-          <span>Tropa</span>
+          <BrandLogo variant="black" />
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
@@ -51,8 +50,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
             <a className="accounting-logo" href="/" aria-label="Tropa">
-              <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
-              <span>Tropa</span>
+              <BrandLogo variant="black" />
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
           </div>

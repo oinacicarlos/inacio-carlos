@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import PlanCalculator from "@/components/plan-calculator"
+import { BrandLogo } from "@/components/brand-logo"
 import { BlogCard } from "@/components/blog/blog-card"
 import { getRecentArticles } from "@/lib/blog/articles"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
@@ -167,8 +168,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
     <main className="accounting-landing">
       <header className="accounting-header" aria-label="Cabeçalho Tropa">
         <a className="accounting-logo" href="/" aria-label="Tropa">
-          <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
-          <span>Tropa</span>
+          <BrandLogo variant="black" />
         </a>
 
         <nav className="accounting-nav" aria-label="Navegação principal">
@@ -321,8 +321,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         <div className="accounting-footer-inner">
           <div className="accounting-footer-brand">
             <a className="accounting-logo" href="/" aria-label="Tropa">
-              <Building2 size={22} strokeWidth={2.2} aria-hidden="true" />
-              <span>Tropa</span>
+              <BrandLogo variant="black" />
             </a>
             <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
           </div>

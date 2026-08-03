@@ -11,12 +11,37 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Tropa",
-  description: "Aplicação para empresas que querem vender mais.",
+  title: {
+    default: "Tropa | Contabilidade Online",
+    template: "%s",
+  },
+  applicationName: "Tropa",
+  description: "Contabilidade online para prestadores de serviço, com hub do cliente, ferramentas, solicitações, rotinas e suporte especializado.",
+  keywords: [
+    "Tropa",
+    "contabilidade online",
+    "contabilidade para prestadores de serviço",
+    "abrir CNPJ",
+    "MEI",
+    "Simples Nacional",
+    "hub do cliente",
+  ],
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
     apple: "/favicon.svg",
+  },
+  openGraph: {
+    title: "Tropa | Contabilidade Online",
+    description: "Contabilidade online para prestadores de serviço, com ferramentas, rotinas e suporte em um só hub.",
+    siteName: "Tropa",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Tropa | Contabilidade Online",
+    description: "Contabilidade online para prestadores de serviço, com ferramentas, rotinas e suporte em um só hub.",
   },
 }
 
@@ -28,6 +53,15 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
       <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18367655896" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'AW-18367655896');`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `!function(f,b,e,v,n,t,s)

@@ -30,6 +30,7 @@ import PricingCalculatorClient from "@/app/ferramentas/calculadora-precificacao/
 import ContractGeneratorClient from "@/app/ferramentas/gerador-contrato/gerador-contrato-client"
 import HiringSimulatorClient from "@/app/ferramentas/simulador-contratacao/simulador-contratacao-client"
 import TerminationSimulatorClient from "@/app/ferramentas/simulador-rescisao/simulador-rescisao-client"
+import { BrandLogo } from "@/components/brand-logo"
 import AccountPanel from "@/components/hub/account-panel"
 import RequestsPanel from "@/components/hub/requests-panel"
 import type { RequestIntent } from "@/components/hub/requests-panel"
@@ -401,7 +402,7 @@ export default function HubContent({
     <main className="client-hub-page">
       <div className="client-hub-mobile-bar">
         <a className="client-hub-logo" href="/" aria-label="Tropa">
-          <span>Tropa</span>
+          <BrandLogo variant="black" />
         </a>
         <button
           className="client-hub-menu-toggle"
@@ -418,7 +419,7 @@ export default function HubContent({
 
       <aside className={sidebarOpen ? "client-hub-sidebar is-open" : "client-hub-sidebar"} aria-label="Menu do hub do cliente">
         <a className="client-hub-logo" href="/" aria-label="Tropa">
-          <span>Tropa</span>
+          <BrandLogo variant="black" />
         </a>
 
         <nav className="client-hub-nav" aria-label="Navegação do hub">

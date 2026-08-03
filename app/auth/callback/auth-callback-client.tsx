@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { BrandLogo } from '@/components/brand-logo'
 import { supabase } from '@/lib/supabaseClient'
 import { safeRedirectPath } from '@/lib/safe-redirect'
 
@@ -56,7 +57,7 @@ export default function AuthCallbackClient() {
       <section className="admin-login-panel" aria-label="Confirmando acesso">
         <div className="admin-login-content">
           <a className="admin-auth-logo" href="/" aria-label="Tropa">
-            <span>Tropa</span>
+            <BrandLogo variant="black" />
           </a>
 
           <header className="admin-login-header">

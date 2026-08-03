@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BrandLogo } from '@/components/brand-logo'
 
 export const dynamic = 'force-dynamic'
 
@@ -6,7 +7,9 @@ export default function AdminPage() {
   return (
     <main className="admin-entry-page">
       <section className="admin-entry-shell" aria-labelledby="admin-entry-title">
-        <div className="admin-entry-brand">Tropa</div>
+        <div className="admin-entry-brand">
+          <BrandLogo variant="black" />
+        </div>
         <header className="admin-entry-header">
           <span>Login admin</span>
           <h1 id="admin-entry-title">Escolha o módulo de atendimento.</h1>

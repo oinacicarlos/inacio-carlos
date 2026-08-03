@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { BrandLogo } from '@/components/brand-logo'
+import AdminOnlineRequestActions from '@/components/admin-online-request-actions'
 import {
   ArrowLeft,
   Building2,
@@ -55,7 +57,9 @@ type ClientRequestRow = {
   priority: RequestPriority
   status: RequestStatus
   attachment_path: string | null
+  internal_note?: string | null
   created_at: string
+  updated_at: string
 }
 
 type ProductPurchaseRow = {
@@ -292,7 +296,7 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
         .order('updated_at', { ascending: false }),
       serviceClient
         .from('client_requests')
-        .select('id, user_id, category, title, description, priority, status, attachment_path, created_at')
+        .select('id, user_id, category, title, description, priority, status, attachment_path, created_at, updated_at')
         .order('created_at', { ascending: false }),
       serviceClient
         .from('product_purchases')
@@ -315,6 +319,19 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
     purchases = (purchasesResult.data as ProductPurchaseRow[] | null) ?? []
     onboardings = (onboardingResult.data as OnboardingRow[] | null) ?? []
     toolUsage = (toolUsageResult.data as ToolUsageRow[] | null) ?? []
+
+    if (requests.length > 0) {
+      const { data: notesData } = await serviceClient
+        .from('client_requests')
+        .select('id, internal_note')
+        .in('id', requests.map((requestRow) => requestRow.id))
+
+      const notesByRequest = new Map((notesData as { id: string; internal_note: string | null }[] | null ?? []).map((requestRow) => [requestRow.id, requestRow.internal_note]))
+      requests = requests.map((requestRow) => ({
+        ...requestRow,
+        internal_note: notesByRequest.get(requestRow.id) ?? null,
+      }))
+    }
 
     if (!usersResult.error) {
       emailByUserId = new Map(usersResult.data.users.map((onlineUser) => [onlineUser.id, onlineUser.email ?? '']))
@@ -384,7 +401,9 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
           <ArrowLeft size={16} strokeWidth={2.2} aria-hidden="true" />
           Módulos
         </Link>
-        <div className="admin-online-logo">Tropa</div>
+        <div className="admin-online-logo">
+          <BrandLogo variant="black" />
+        </div>
         <nav className="admin-online-nav" aria-label="Navegação do Online">
           {ADMIN_ONLINE_NAV.map((item) => {
             const Icon = item.icon
@@ -537,9 +556,8 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
                       <th>Cliente</th>
                       <th>Solicitação</th>
                       <th>Status</th>
-                      <th>Prioridade</th>
-                      <th>Anexo</th>
-                      <th>Enviada em</th>
+                      <th>Gestão</th>
+                      <th>Atualização</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -552,11 +570,22 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
                           <td>
                             <strong>{request.title}</strong>
                             <small>{CATEGORY_LABELS[request.category] ?? request.category}</small>
+                            {request.description ? <small>{request.description}</small> : null}
                           </td>
                           <td><StatusPill status={request.status} /></td>
-                          <td>{PRIORITY_LABELS[request.priority] ?? request.priority}</td>
-                          <td>{request.attachment_path ? 'Com anexo' : 'Sem anexo'}</td>
-                          <td>{formatDate(request.created_at)}</td>
+                          <td>
+                            <AdminOnlineRequestActions
+                              requestId={request.id}
+                              initialStatus={request.status}
+                              initialPriority={request.priority}
+                              initialInternalNote={request.internal_note}
+                              hasAttachment={Boolean(request.attachment_path)}
+                            />
+                          </td>
+                          <td>
+                            {formatDate(request.updated_at)}
+                            <small>Enviada em {formatDate(request.created_at)}</small>
+                          </td>
                         </tr>
                       )
                     })}

@@ -10071,6 +10071,125 @@ a:focus-visible {
 	font-weight: 900;
 }
 
+.admin-online-request-actions {
+	display: grid;
+	gap: 9px;
+	min-width: 320px;
+}
+
+.admin-online-request-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.admin-online-request-actions label {
+	display: grid;
+	gap: 5px;
+}
+
+.admin-online-request-actions label span,
+.admin-online-request-footer > span {
+	color: var(--admin-muted);
+	font-size: 10px;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.admin-online-request-actions select,
+.admin-online-request-actions textarea {
+	width: 100%;
+	border: 1px solid var(--admin-line);
+	border-radius: 12px;
+	background: #ffffff;
+	color: var(--admin-ink);
+	font: inherit;
+	font-size: 12px;
+	font-weight: 750;
+	outline: none;
+	transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-online-request-actions select {
+	height: 34px;
+	padding: 0 10px;
+}
+
+.admin-online-request-actions textarea {
+	min-height: 72px;
+	resize: vertical;
+	padding: 9px 10px;
+	line-height: 1.35;
+}
+
+.admin-online-request-actions select:focus-visible,
+.admin-online-request-actions textarea:focus-visible {
+	border-color: var(--admin-blue);
+	box-shadow: 0 0 0 3px rgba(36, 107, 253, 0.13);
+}
+
+.admin-online-request-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.admin-online-request-footer a,
+.admin-online-request-footer button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 34px;
+	padding: 0 12px;
+	border: 1px solid var(--admin-line);
+	border-radius: 999px;
+	background: #ffffff;
+	color: var(--admin-blue);
+	font-size: 12px;
+	font-weight: 900;
+	text-decoration: none;
+	transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.admin-online-request-footer button {
+	border-color: var(--admin-blue);
+	background: var(--admin-blue);
+	color: #ffffff;
+	cursor: pointer;
+}
+
+.admin-online-request-footer button:disabled {
+	cursor: not-allowed;
+	opacity: 0.65;
+}
+
+.admin-online-request-footer a:hover,
+.admin-online-request-footer a:focus-visible,
+.admin-online-request-footer button:hover:not(:disabled),
+.admin-online-request-footer button:focus-visible {
+	transform: translateY(-1px);
+	box-shadow: 0 8px 18px rgba(36, 107, 253, 0.14);
+}
+
+.admin-online-request-message,
+.admin-online-request-error {
+	margin: 0;
+	font-size: 11px;
+	font-weight: 850;
+	line-height: 1.35;
+}
+
+.admin-online-request-message {
+	color: #0b8c45;
+}
+
+.admin-online-request-error {
+	color: #a03a3a;
+}
+
 @media (max-width: 1120px) {
 	.admin-online-metrics {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -10113,6 +10232,10 @@ a:focus-visible {
 
 	.admin-online-split-grid {
 		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.admin-online-request-actions {
+		min-width: 280px;
 	}
 }
 
@@ -19565,15 +19688,23 @@ a:focus-visible {
 	padding: 16px 6px;
 }
 
+.tropa-brand-logo {
+	display: block;
+	width: 112px;
+	height: auto;
+	object-fit: contain;
+}
+
 .accounting-logo {
 	display: inline-flex;
 	align-items: center;
-	gap: 10px;
+	gap: 0;
 	color: var(--accounting-ink);
 	font-size: 22px;
 	font-weight: 800;
 	letter-spacing: 0;
 	white-space: nowrap;
+	text-decoration: none;
 }
 
 .accounting-logo svg {
@@ -19583,6 +19714,10 @@ a:focus-visible {
 
 .accounting-logo span {
 	color: var(--accounting-ink);
+}
+
+.accounting-logo .tropa-brand-logo {
+	width: 112px;
 }
 
 .accounting-nav {
@@ -20181,6 +20316,10 @@ a:focus-visible {
 
 .accounting-footer-brand .accounting-logo {
 	font-size: 24px;
+}
+
+.accounting-footer-brand .accounting-logo .tropa-brand-logo {
+	width: 124px;
 }
 
 .accounting-footer-brand p {
@@ -23235,5 +23374,51 @@ a:focus-visible {
 
 	.plan-calc-compare-grid {
 		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* Brand assets */
+.accounting-logo,
+.client-hub-logo,
+.admin-auth-logo,
+.admin-entry-brand,
+.admin-online-logo {
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+	line-height: 1;
+	letter-spacing: 0;
+	text-decoration: none;
+}
+
+.accounting-logo .tropa-brand-logo {
+	width: 112px;
+}
+
+.accounting-footer-brand .accounting-logo .tropa-brand-logo {
+	width: 124px;
+}
+
+.client-hub-logo .tropa-brand-logo {
+	width: 94px;
+}
+
+.admin-auth-logo .tropa-brand-logo {
+	width: 106px;
+}
+
+.admin-entry-brand .tropa-brand-logo,
+.admin-online-logo .tropa-brand-logo {
+	width: 118px;
+}
+
+@media (max-width: 640px) {
+	.accounting-logo .tropa-brand-logo {
+		width: 100px;
+	}
+
+	.client-hub-logo .tropa-brand-logo,
+	.admin-auth-logo .tropa-brand-logo {
+		width: 96px;
 	}
 }
