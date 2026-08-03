@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "O MEI foi desenhado para ser simples o suficiente pra funcionar sem contador: o DAS é fixo, a declaração anual (DASN-SIMEI) é curta, e boa parte da rotina cabe no aplicativo MEI. Por isso, muita gente nem cogita contratar um contador — e, na maior parte do tempo, faz sentido não contratar. O ponto é que existem momentos específicos em que isso muda, e vale entender quanto custa antes de precisar decidir com pressa.",
+      text: "O MEI foi desenhado para ser simples o suficiente pra funcionar sem contador: o DAS é fixo, a declaração anual (DASN-SIMEI) é curta, e boa parte da rotina cabe no aplicativo MEI. Por isso, muita gente nem cogita contratar um contador, e, na maior parte do tempo, faz sentido não contratar. O ponto é que existem momentos específicos em que isso muda, e vale entender quanto custa antes de precisar decidir com pressa.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Não. O MEI é a única categoria empresarial no Brasil dispensada da obrigatoriedade de contador para cumprir suas obrigações básicas — pagar o DAS e enviar a declaração anual. Isso foi uma escolha deliberada do legislador pra reduzir o custo de manter um MEI regular. O contador se torna útil (às vezes necessário na prática) quando a operação cresce ou fica mais complexa — não porque a lei exige, mas porque o risco de errar sozinho aumenta.",
+      text: "Não. O MEI é a única categoria empresarial no Brasil dispensada da obrigatoriedade de contador para cumprir suas obrigações básicas, pagar o DAS e enviar a declaração anual. Isso foi uma escolha deliberada do legislador pra reduzir o custo de manter um MEI regular. O contador se torna útil (às vezes necessário na prática) quando a operação cresce ou fica mais complexa, não porque a lei exige, mas porque o risco de errar sozinho aumenta.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O valor varia bastante conforme a região, o volume de notas emitidas e o que está incluso no plano, mas costuma ser um valor mensal fixo e acessível — bem mais barato do que a contabilidade de uma empresa de outro porte, já que o volume de obrigações do MEI é bem menor. Em vez de comparar só o preço final, vale olhar o que está incluso:",
+      text: "O valor varia bastante conforme a região, o volume de notas emitidas e o que está incluso no plano, mas costuma ser um valor mensal fixo e acessível, bem mais barato do que a contabilidade de uma empresa de outro porte, já que o volume de obrigações do MEI é bem menor. Em vez de comparar só o preço final, vale olhar o que está incluso:",
     },
     {
       type: "list",
@@ -45,7 +45,7 @@ export const article: BlogArticle = {
         "Emissão de nota fiscal (ou orientação de como emitir você mesmo).",
         "Acompanhamento do DAS e alerta antes do vencimento.",
         "Envio da declaração anual (DASN-SIMEI) dentro do prazo.",
-        "Suporte para dúvidas do dia a dia — sem cobrança extra por pergunta.",
+        "Suporte para dúvidas do dia a dia, sem cobrança extra por pergunta.",
         "Orientação sobre quando migrar de categoria, se o faturamento crescer.",
       ],
     },
@@ -58,7 +58,7 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Você contratou (ou está perto de contratar) um funcionário — a folha de pagamento e os encargos exigem mais atenção.",
+        "Você contratou (ou está perto de contratar) um funcionário, a folha de pagamento e os encargos exigem mais atenção.",
         "Seu faturamento está se aproximando do limite anual do MEI.",
         "Você emite muitas notas fiscais por mês e perde tempo fazendo isso manualmente.",
         "Você já recebeu alguma notificação da Receita ou está com o DAS atrasado.",
@@ -88,7 +88,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Os planos da Tropa foram pensados pra cobrir exatamente esses momentos: emissão de nota fiscal, acompanhamento do DAS, envio de declarações, ferramentas ilimitadas de precificação e contratação, e suporte humanizado quando você precisar de uma resposta de verdade — sem esperar dias por retorno.",
+      text: "Os planos da Tropa foram pensados pra cobrir exatamente esses momentos: emissão de nota fiscal, acompanhamento do DAS, envio de declarações, ferramentas ilimitadas de precificação e contratação, e suporte humanizado quando você precisar de uma resposta de verdade, sem esperar dias por retorno.",
     },
   ],
   faq: [
@@ -100,12 +100,12 @@ export const article: BlogArticle = {
     {
       question: "Contratar contador é mais caro do que fazer sozinho?",
       answer:
-        "Em valor mensal, sim — fazer sozinho é gratuito. Mas o cálculo relevante não é só o custo do contador: é o custo do contador comparado ao tempo perdido, ao risco de erro e às multas evitadas quando a situação já não é tão simples.",
+        "Em valor mensal, sim, fazer sozinho é gratuito. Mas o cálculo relevante não é só o custo do contador: é o custo do contador comparado ao tempo perdido, ao risco de erro e às multas evitadas quando a situação já não é tão simples.",
     },
     {
       question: "Dá pra trocar de plano conforme o negócio cresce?",
       answer:
-        "Sim. O ideal é começar com o plano que cobre suas necessidades atuais e migrar quando o negócio crescer — por exemplo, ao contratar o primeiro funcionário ou ao se aproximar do limite de faturamento do MEI.",
+        "Sim. O ideal é começar com o plano que cobre suas necessidades atuais e migrar quando o negócio crescer, por exemplo, ao contratar o primeiro funcionário ou ao se aproximar do limite de faturamento do MEI.",
     },
   ],
   relatedTool: {

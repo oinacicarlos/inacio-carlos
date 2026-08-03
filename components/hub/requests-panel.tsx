@@ -40,7 +40,7 @@ import {
   type RequestFlowSectorId,
   type RequestFlowTemplate,
 } from "@/lib/client-requests/flow"
-import { isValidCnpj, isValidCpf } from "@/lib/br-documents"
+import { buildStructuredDescription, validateIntakeField } from "@/lib/client-requests/product-intake"
 
 type View = "list" | "new" | { detail: ClientRequest }
 export type RequestIntent = "billing_due_date" | "document_upload"
@@ -497,16 +497,9 @@ function RequestForm({
 
     for (const field of initialTemplate?.fields ?? []) {
       const value = (fieldValues[field.name] ?? "").trim()
-      if (field.required && !value) {
-        setError(`Preencha o campo "${field.label}".`)
-        return
-      }
-      if (field.document === "cpf" && value && !isValidCpf(value)) {
-        setError("Informe um CPF válido.")
-        return
-      }
-      if (field.document === "cnpj" && value && !isValidCnpj(value)) {
-        setError("Informe um CNPJ válido.")
+      const fieldError = validateIntakeField(field, value)
+      if (fieldError) {
+        setError(fieldError)
         return
       }
     }
@@ -541,14 +534,9 @@ function RequestForm({
         attachmentPath = path
       }
 
-      const structuredDescription = (initialTemplate?.fields ?? [])
-        .map((field) => {
-          const value = (fieldValues[field.name] ?? "").trim()
-          return value ? `${field.label}: ${value}` : null
-        })
-        .filter(Boolean)
-        .join("\n")
-      const finalDescription = [initialTemplate?.body, structuredDescription, description.trim()].filter(Boolean).join("\n\n")
+      const finalDescription = initialTemplate?.fields?.length
+        ? buildStructuredDescription(initialTemplate, fieldValues, description)
+        : [initialTemplate?.body, description.trim()].filter(Boolean).join("\n\n")
 
       const response = await fetch("/api/client-requests", {
         method: "POST",

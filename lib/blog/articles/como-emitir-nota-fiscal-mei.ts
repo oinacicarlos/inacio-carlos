@@ -5,19 +5,19 @@ export const article: BlogArticle = {
   title: "Como emitir nota fiscal sendo MEI",
   metaTitle: "Como emitir nota fiscal MEI (passo a passo)",
   metaDescription:
-    "Entenda quando o MEI precisa emitir nota fiscal, como fazer isso de graça pelo Emissor Nacional e o que guardar depois.",
+    "Entenda quando o MEI precisa emitir nota fiscal, como usar o Emissor Nacional, o que muda em 2027 e como tratar Pix.",
   excerpt:
-    "Nem todo MEI precisa emitir nota fiscal o tempo todo — mas saber quando é obrigatório evita problema com cliente e com a Receita. Veja como funciona.",
+    "Nem todo MEI precisa emitir nota fiscal o tempo todo, mas saber quando é obrigatório evita problema com cliente e com a Receita. Veja como funciona.",
   pillar: "mei",
   coverImage: "/blog/covers/como-emitir-nota-fiscal-mei.jpg",
   coverImageAlt: "Mãos operando uma impressora portátil de recibos",
   publishedAt: "2026-01-28",
-  updatedAt: "2026-01-28",
-  readingTimeMinutes: 6,
+  updatedAt: "2026-08-03",
+  readingTimeMinutes: 8,
   sections: [
     {
       type: "paragraph",
-      text: "A emissão de nota fiscal costuma ser uma das dúvidas mais recorrentes de quem é MEI — principalmente porque a obrigatoriedade muda dependendo de quem é o cliente. Entender essa regra evita tanto o transtorno de emitir nota sem precisar quanto o risco de deixar de emitir quando era obrigatório.",
+      text: "A emissão de nota fiscal costuma ser uma das dúvidas mais recorrentes de quem é MEI, principalmente porque a obrigatoriedade muda dependendo de quem é o cliente. Entender essa regra evita tanto o transtorno de emitir nota sem precisar quanto o risco de deixar de emitir quando era obrigatório.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "A regra prática é simples: sempre que a venda ou o serviço for para uma empresa (pessoa jurídica) ou órgão público, a nota fiscal é obrigatória. Já para vendas a pessoas físicas, a emissão não é obrigatória por padrão — mas, se o cliente pedir a nota, o MEI é obrigado a emitir, garantindo o direito do consumidor previsto no Código de Defesa do Consumidor.",
+      text: "A regra prática é simples: sempre que a venda ou o serviço for para uma empresa (pessoa jurídica) ou órgão público, a nota fiscal é obrigatória. Já para vendas a pessoas físicas, a emissão não é obrigatória por padrão, mas, se o cliente pedir a nota, o MEI é obrigado a emitir, garantindo o direito do consumidor previsto no Código de Defesa do Consumidor.",
     },
     {
       type: "list",
@@ -66,7 +66,41 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Nesse caso, a nota é a NF-e (nota fiscal eletrônica de produto), emitida pela Secretaria da Fazenda do estado onde o MEI está registrado, já que envolve ICMS — diferente da nota de serviço, que é municipal. O processo de emissão varia um pouco de estado para estado, mas segue a mesma lógica: dados do cliente, descrição dos itens e valores.",
+      text: "Nesse caso, a nota é a NF-e (nota fiscal eletrônica de produto), emitida pela Secretaria da Fazenda do estado onde o MEI está registrado, já que envolve ICMS, diferente da nota de serviço, que é municipal. O processo de emissão varia um pouco de estado para estado, mas segue a mesma lógica: dados do cliente, descrição dos itens e valores.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "O que muda com a Reforma Tributária e 2027",
+      id: "reforma-tributaria-2027",
+    },
+    {
+      type: "paragraph",
+      text: "A rotina de notas fiscais está passando por adaptação por causa da Reforma Tributária. Para o MEI, a principal atenção é acompanhar as regras do Emissor Nacional, a classificação correta do serviço e as orientações para emissão a pessoas físicas e jurídicas a partir de 2027.",
+    },
+    {
+      type: "paragraph",
+      text: "O Sebrae informa que, a partir de 1º de janeiro de 2027, a emissão pelo MEI deverá alcançar aquisições feitas por pessoas físicas e jurídicas. Isso torna ainda mais importante manter cadastro, atividade e acesso ao emissor em ordem antes de chegar a obrigatoriedade.",
+    },
+    {
+      type: "heading",
+      level: 3,
+      text: "NBS, NF-e e NFS-e",
+      id: "nbs-nfe-nfse",
+    },
+    {
+      type: "paragraph",
+      text: "A NFS-e é a nota de serviço. A NF-e é a nota de produto. A NBS ajuda a classificar serviços e ganha relevância na adaptação da NFS-e nacional. Confundir produto com serviço, ou usar descrição genérica demais, pode gerar rejeição ou problema de classificação.",
+    },
+    {
+      type: "heading",
+      level: 3,
+      text: "Recebimentos por Pix",
+      id: "pix",
+    },
+    {
+      type: "paragraph",
+      text: "Pix não muda a obrigação de emitir nota. Se o valor recebido é pagamento de cliente por venda ou serviço, ele entra no faturamento do MEI, mesmo que caia em conta pessoal. Transferência entre contas próprias não é faturamento, mas precisa estar bem controlada para não virar confusão na declaração.",
     },
     {
       type: "heading",
@@ -77,7 +111,7 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Guardar o arquivo XML por pelo menos 5 anos — é o documento que comprova a operação perante a Receita.",
+        "Guardar o arquivo XML por pelo menos 5 anos, é o documento que comprova a operação perante a Receita.",
         "Somar o total das notas emitidas no mês, junto com as vendas sem nota, para o controle de faturamento mensal.",
         "Usar esse total na Declaração Anual do MEI (DASN-SIMEI), feita uma vez por ano.",
       ],
@@ -85,7 +119,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "A nota fiscal não muda o valor do DAS",
-      text: "Diferente de outros regimes, o valor do DAS do MEI é fixo e não muda conforme a quantidade de notas emitidas. A nota fiscal serve para documentar a operação e controlar se o faturamento está dentro do limite anual permitido — não gera cobrança adicional por nota.",
+      text: "Diferente de outros regimes, o valor do DAS do MEI é fixo e não muda conforme a quantidade de notas emitidas. A nota fiscal serve para documentar a operação e controlar se o faturamento está dentro do limite anual permitido, não gera cobrança adicional por nota.",
     },
     {
       type: "heading",
@@ -95,7 +129,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se a rotina de emitir e controlar notas fiscais está tomando tempo demais, um contador especializado em MEI e pequenas empresas pode assumir essa parte — deixando você focado no que realmente importa: o seu negócio.",
+      text: "Se a rotina de emitir e controlar notas fiscais está tomando tempo demais, um contador especializado em MEI e pequenas empresas pode assumir essa parte, deixando você focado no que realmente importa: o seu negócio.",
     },
   ],
   faq: [
@@ -107,12 +141,17 @@ export const article: BlogArticle = {
     {
       question: "O que acontece se eu não emitir nota quando era obrigatório?",
       answer:
-        "Deixar de emitir nota fiscal quando obrigatório pode gerar problemas com o cliente (que precisa da nota para lançar a despesa) e, em fiscalizações, pode ser interpretado como omissão de faturamento — o que traz risco de autuação.",
+        "Deixar de emitir nota fiscal quando obrigatório pode gerar problemas com o cliente (que precisa da nota para lançar a despesa) e, em fiscalizações, pode ser interpretado como omissão de faturamento, o que traz risco de autuação.",
     },
     {
       question: "Preciso emitir nota mesmo recebendo por Pix ou dinheiro?",
       answer:
         "Sim, a forma de recebimento não muda a obrigatoriedade da nota fiscal. O que determina se é obrigatório é quem é o cliente (pessoa jurídica ou física) e se o cliente pessoa física solicitou o documento.",
+    },
+    {
+      question: "O MEI terá que emitir nota para pessoa física em 2027?",
+      answer:
+        "A orientação divulgada pelo Sebrae é que, a partir de 1º de janeiro de 2027, a emissão pelo MEI deverá alcançar aquisições feitas por pessoas físicas e jurídicas. Acompanhe o Emissor Nacional e mantenha o cadastro regular.",
     },
   ],
   relatedTool: {
@@ -120,5 +159,5 @@ export const article: BlogArticle = {
     href: "/abrir-cnpj",
     description: "Tire dúvidas sobre emissão de notas fiscais ou terceirize essa rotina para o seu MEI.",
   },
-  relatedSlugs: ["o-que-e-das-mei-como-pagar", "como-abrir-mei-passo-a-passo", "quanto-custa-um-contador-para-mei"],
+  relatedSlugs: ["simples-nacional-precisa-destacar-ibs-cbs-2026", "mei-pode-receber-pix-na-conta-pessoal", "o-que-e-das-mei-como-pagar"],
 }

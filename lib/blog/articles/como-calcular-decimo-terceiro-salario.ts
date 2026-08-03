@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Aprenda a calcular o 13º salário passo a passo, incluindo a primeira e a segunda parcela, descontos e o que muda em caso de desligamento.",
   excerpt:
-    "O 13º salário parece simples até a hora de calcular direito — primeira parcela, segunda parcela, descontos. Veja o passo a passo com exemplo prático.",
+    "O 13º salário parece simples até a hora de calcular direito, primeira parcela, segunda parcela, descontos. Veja o passo a passo com exemplo prático.",
   pillar: "contratacao",
   coverImage: "/blog/covers/como-calcular-decimo-terceiro-salario.jpg",
   coverImageAlt: "Mulher sorrindo segurando dinheiro e um envelope",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "O 13º salário é um direito garantido a todo funcionário CLT, mas o cálculo tem mais detalhes do que parece à primeira vista — principalmente na hora de dividir entre a primeira e a segunda parcela, e de aplicar os descontos corretos. Veja o passo a passo pra calcular sem erro.",
+      text: "O 13º salário é um direito garantido a todo funcionário CLT, mas o cálculo tem mais detalhes do que parece à primeira vista, principalmente na hora de dividir entre a primeira e a segunda parcela, e de aplicar os descontos corretos. Veja o passo a passo pra calcular sem erro.",
     },
     {
       type: "heading",
@@ -52,7 +52,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "A primeira parcela corresponde a 50% do valor bruto do 13º, paga sem nenhum desconto. A segunda parcela corresponde ao valor total do 13º, descontada a primeira parcela já paga — e é sobre essa segunda parcela que incidem os descontos de INSS e, quando aplicável, de Imposto de Renda, calculados sobre o valor cheio do 13º (não apenas sobre a segunda parcela isoladamente).",
+      text: "A primeira parcela corresponde a 50% do valor bruto do 13º, paga sem nenhum desconto. A segunda parcela corresponde ao valor total do 13º, descontada a primeira parcela já paga, e é sobre essa segunda parcela que incidem os descontos de INSS e, quando aplicável, de Imposto de Renda, calculados sobre o valor cheio do 13º (não apenas sobre a segunda parcela isoladamente).",
     },
     {
       type: "heading",
@@ -63,8 +63,8 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "INSS — calculado sobre o valor total do 13º, seguindo a mesma tabela progressiva usada no salário mensal.",
-        "Imposto de Renda — incide apenas se o valor do 13º (já descontado o INSS) ultrapassar a faixa de isenção da tabela do IR, e é retido somente na segunda parcela.",
+        "INSS, calculado sobre o valor total do 13º, seguindo a mesma tabela progressiva usada no salário mensal.",
+        "Imposto de Renda, incide apenas se o valor do 13º (já descontado o INSS) ultrapassar a faixa de isenção da tabela do IR, e é retido somente na segunda parcela.",
       ],
     },
     {
@@ -75,7 +75,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Quando o contrato é encerrado antes do fim do ano, o 13º proporcional aos meses trabalhados entra como uma das verbas da rescisão — e o tratamento varia conforme o tipo de desligamento (sem justa causa, pedido de demissão ou acordo).",
+      text: "Quando o contrato é encerrado antes do fim do ano, o 13º proporcional aos meses trabalhados entra como uma das verbas da rescisão, e o tratamento varia conforme o tipo de desligamento (sem justa causa, pedido de demissão ou acordo).",
     },
     {
       type: "heading",
@@ -85,7 +85,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se você está avaliando contratar, o 13º é um dos encargos que precisa entrar na conta desde o início — junto com férias, FGTS e demais obrigações. O Simulador de Contratação da Tropa já inclui esses valores na estimativa de custo total.",
+      text: "Se você está avaliando contratar, o 13º é um dos encargos que precisa entrar na conta desde o início, junto com férias, FGTS e demais obrigações. O Simulador de Contratação da Tropa já inclui esses valores na estimativa de custo total.",
     },
   ],
   faq: [

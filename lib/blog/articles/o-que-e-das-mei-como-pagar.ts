@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda o que é o DAS do MEI, o que ele cobre, quanto custa por mês e o que acontece se você atrasar o pagamento.",
   excerpt:
-    "O DAS é a guia mensal que todo MEI precisa pagar — e a dúvida mais comum de quem está começando. Veja o que ele cobre, quanto custa e o que fazer se atrasar.",
+    "O DAS é a guia mensal que todo MEI precisa pagar, e a dúvida mais comum de quem está começando. Veja o que ele cobre, quanto custa e o que fazer se atrasar.",
   pillar: "mei",
   coverImage: "/blog/covers/o-que-e-das-mei-como-pagar.jpg",
   coverImageAlt: "Mulher usando o celular para organizar as finanças em casa",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Se você é MEI ou está pensando em abrir um, uma das primeiras siglas que vai aparecer no seu caminho é o DAS. É o boleto mensal que mantém o CNPJ regularizado — e entender como ele funciona evita boa parte dos problemas que MEIs enfrentam com a Receita Federal.",
+      text: "Se você é MEI ou está pensando em abrir um, uma das primeiras siglas que vai aparecer no seu caminho é o DAS. É o boleto mensal que mantém o CNPJ regularizado, e entender como ele funciona evita boa parte dos problemas que MEIs enfrentam com a Receita Federal.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O valor do DAS é fixo e reajustado todo ano com base no salário mínimo vigente — por isso não muda dependendo de quanto o MEI faturou naquele mês específico. O valor varia de acordo com o tipo de atividade:",
+      text: "O valor do DAS é fixo e reajustado todo ano com base no salário mínimo vigente, por isso não muda dependendo de quanto o MEI faturou naquele mês específico. O valor varia de acordo com o tipo de atividade:",
     },
     {
       type: "list",
@@ -64,8 +64,8 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Aposentadoria e benefícios do INSS — o MEI que paga o DAS em dia contribui para a previdência, tendo direito a aposentadoria por idade, auxílio-doença, salário-maternidade e pensão por morte para dependentes.",
-        "Regularidade fiscal do CNPJ — sem o DAS em dia, o CNPJ pode ser bloqueado, impedindo emissão de nota fiscal e outras operações.",
+        "Aposentadoria e benefícios do INSS, o MEI que paga o DAS em dia contribui para a previdência, tendo direito a aposentadoria por idade, auxílio-doença, salário-maternidade e pensão por morte para dependentes.",
+        "Regularidade fiscal do CNPJ, sem o DAS em dia, o CNPJ pode ser bloqueado, impedindo emissão de nota fiscal e outras operações.",
       ],
     },
     {
@@ -108,14 +108,14 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Como o valor não muda de mês para mês, a forma mais simples de nunca atrasar é configurar um débito automático pelo aplicativo MEI ou pelo internet banking, ou simplesmente colocar um lembrete fixo alguns dias antes do vencimento. Ter um contador acompanhando sua situação também ajuda — além de cuidar do DAS, ele avisa sobre outras obrigações que o MEI às vezes esquece, como a Declaração Anual (DASN-SIMEI).",
+      text: "Como o valor não muda de mês para mês, a forma mais simples de nunca atrasar é configurar um débito automático pelo aplicativo MEI ou pelo internet banking, ou simplesmente colocar um lembrete fixo alguns dias antes do vencimento. Ter um contador acompanhando sua situação também ajuda, além de cuidar do DAS, ele avisa sobre outras obrigações que o MEI às vezes esquece, como a Declaração Anual (DASN-SIMEI).",
     },
   ],
   faq: [
     {
       question: "O DAS muda de valor se eu faturar mais em um mês?",
       answer:
-        "Não. O DAS do MEI é um valor fixo mensal, definido pela atividade (comércio, serviço ou os dois) e reajustado uma vez por ano com base no salário mínimo — independentemente de quanto você faturou naquele mês específico.",
+        "Não. O DAS do MEI é um valor fixo mensal, definido pela atividade (comércio, serviço ou os dois) e reajustado uma vez por ano com base no salário mínimo, independentemente de quanto você faturou naquele mês específico.",
     },
     {
       question: "Posso parcelar o DAS atrasado?",

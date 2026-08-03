@@ -12,7 +12,7 @@ export const article: BlogArticle = {
   coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
   coverImageAlt: "Colegas discutindo gráficos de crescimento em um quadro branco",
   publishedAt: "2026-02-11",
-  updatedAt: "2026-02-11",
+  updatedAt: "2026-08-03",
   readingTimeMinutes: 7,
   sections: [
     {
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O MEI (Microempreendedor Individual) é um enquadramento simplificado dentro do Simples Nacional, criado para formalizar quem trabalha sozinho com faturamento baixo. A ME (Microempresa) é uma categoria maior dentro do próprio Simples Nacional, com limite de faturamento bem mais alto, sem restrição rígida de número de funcionários e com um leque maior de atividades permitidas — mas também com uma rotina fiscal mais robusta.",
+      text: "O MEI (Microempreendedor Individual) é um enquadramento simplificado dentro do Simples Nacional, criado para formalizar quem trabalha sozinho com faturamento baixo. A ME (Microempresa) é uma categoria maior dentro do próprio Simples Nacional, com limite de faturamento bem mais alto, sem restrição rígida de número de funcionários e com um leque maior de atividades permitidas, mas também com uma rotina fiscal mais robusta.",
     },
     {
       type: "table",
@@ -64,12 +64,16 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Ultrapassar o limite de faturamento do MEI não gera punição automática, mas obriga a um processo de desenquadramento — a saída do regime de MEI e a migração para o Simples Nacional como ME, com efeitos que podem ser retroativos ao mês em que o limite foi ultrapassado. Dependendo do quanto excedeu, pode haver cálculo de impostos sobre a diferença, o que torna a situação mais cara do que se a migração tivesse sido feita de forma planejada.",
+      text: "Ultrapassar o limite de faturamento do MEI não gera punição automática, mas obriga a analisar o desenquadramento. O efeito depende do tamanho do excesso. Quando o excesso fica dentro da margem de até 20%, a saída tende a produzir efeitos no ano seguinte. Quando passa de 20%, pode haver efeito retroativo ao início do ano ou à data de abertura no primeiro ano de atividade.",
+    },
+    {
+      type: "paragraph",
+      text: "Essa diferença muda tudo: impostos, declarações, multas e juros. Por isso, antes de retificar DASN-SIMEI ou comunicar o desenquadramento, vale calcular mês a mês o faturamento e confirmar se o excesso foi de até 20% ou acima disso.",
     },
     {
       type: "callout",
       title: "Migrar antes costuma sair mais barato",
-      text: "Migrar de forma planejada, antes de estourar o limite, evita cálculo retroativo de impostos e dá tempo de organizar a contabilidade da nova categoria com calma — em vez de resolver tudo sob pressão de um prazo da Receita.",
+      text: "Migrar de forma planejada, antes de estourar o limite, evita cálculo retroativo de impostos e dá tempo de organizar a contabilidade da nova categoria com calma, em vez de resolver tudo sob pressão de um prazo da Receita.",
     },
     {
       type: "heading",
@@ -79,7 +83,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "A migração passa por três frentes: a comunicação de desenquadramento do MEI (feita pelo próprio empreendedor ou pelo contador), a opção formal pelo Simples Nacional como ME, e o ajuste da contabilidade — que passa a exigir escrituração regular, já que a ME não tem a mesma dispensa contábil simplificada do MEI. É nesse ponto que ter um contador acompanhando deixa de ser opcional na prática, mesmo sem ser uma exigência do MEI original.",
+      text: "A migração passa por três frentes: a comunicação de desenquadramento do MEI (feita pelo próprio empreendedor ou pelo contador), a opção formal pelo Simples Nacional como ME, e o ajuste da contabilidade, que passa a exigir escrituração regular, já que a ME não tem a mesma dispensa contábil simplificada do MEI. É nesse ponto que ter um contador acompanhando deixa de ser opcional na prática, mesmo sem ser uma exigência do MEI original.",
     },
     {
       type: "heading",
@@ -89,14 +93,24 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se os sinais de crescimento já apareceram — mais de um funcionário necessário, faturamento subindo mês a mês, necessidade de sócio — migrar de forma planejada tende a ser mais barato e menos estressante do que esperar o limite estourar. O primeiro passo prático costuma ser entender o custo real de ter mais funcionários, já que é o gatilho mais comum para a migração.",
+      text: "Se os sinais de crescimento já apareceram, mais de um funcionário necessário, faturamento subindo mês a mês, necessidade de sócio, migrar de forma planejada tende a ser mais barato e menos estressante do que esperar o limite estourar. O primeiro passo prático costuma ser entender o custo real de ter mais funcionários, já que é o gatilho mais comum para a migração.",
+    },
+    {
+      type: "heading",
+      level: 2,
+      text: "Dá para voltar ao MEI depois?",
+      id: "da-para-voltar",
+    },
+    {
+      type: "paragraph",
+      text: "Sim, pode ser possível voltar ao SIMEI com o mesmo CNPJ quando a empresa volta a cumprir todas as condições do MEI e faz as opções necessárias no prazo correto. Não é automaticamente necessário fechar o CNPJ e abrir outro.",
     },
   ],
   faq: [
     {
       question: "Migrar de MEI para ME é definitivo?",
       answer:
-        "Sim, uma vez desenquadrado do MEI, o retorno para essa categoria não é automático — é preciso reabrir como MEI depois, caso o faturamento volte a se enquadrar nos limites, respeitando as regras vigentes na época.",
+        "Não necessariamente. O retorno não é automático, mas pode ser possível solicitar novamente o enquadramento no SIMEI com o mesmo CNPJ quando a empresa cumpre as condições e faz as opções no prazo correto.",
     },
     {
       question: "Preciso de contador para migrar de MEI para ME?",
@@ -106,7 +120,7 @@ export const article: BlogArticle = {
     {
       question: "O que acontece com as notas fiscais já emitidas como MEI depois da migração?",
       answer:
-        "Elas continuam válidas e fazem parte do seu histórico fiscal. A migração muda o enquadramento daí em diante — não invalida o que já foi emitido antes.",
+        "Elas continuam válidas e fazem parte do seu histórico fiscal. A migração muda o enquadramento daí em diante, não invalida o que já foi emitido antes.",
     },
   ],
   relatedTool: {

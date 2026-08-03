@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Falta de atendimento, atraso em obrigações, preço fora da realidade do negócio ou simplesmente a sensação de que ninguém do outro lado está prestando atenção — os motivos pra trocar de contador são variados, mas a hesitação é sempre a mesma: 'será que vai dar trabalho?'. Na prática, a troca é bem mais simples do que parece, desde que você siga a ordem certa.",
+      text: "Falta de atendimento, atraso em obrigações, preço fora da realidade do negócio ou simplesmente a sensação de que ninguém do outro lado está prestando atenção, os motivos pra trocar de contador são variados, mas a hesitação é sempre a mesma: 'será que vai dar trabalho?'. Na prática, a troca é bem mais simples do que parece, desde que você siga a ordem certa.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Não existe período de fidelidade nem necessidade de justificar a troca. A relação entre empresa (ou MEI) e contador é um serviço contratado, e você pode encerrá-lo quando quiser — respeitando apenas o aviso combinado no contrato, se houver algum prazo formal definido. O importante é organizar a transição pra não deixar nenhuma obrigação sem responsável no meio do caminho.",
+      text: "Não existe período de fidelidade nem necessidade de justificar a troca. A relação entre empresa (ou MEI) e contador é um serviço contratado, e você pode encerrá-lo quando quiser, respeitando apenas o aviso combinado no contrato, se houver algum prazo formal definido. O importante é organizar a transição pra não deixar nenhuma obrigação sem responsável no meio do caminho.",
     },
     {
       type: "heading",
@@ -39,10 +39,10 @@ export const article: BlogArticle = {
       type: "list",
       ordered: true,
       items: [
-        "Escolha o novo contador antes de encerrar com o atual — nunca fique sem nenhum dos dois no meio do processo.",
+        "Escolha o novo contador antes de encerrar com o atual, nunca fique sem nenhum dos dois no meio do processo.",
         "Peça ao contador atual os documentos e acessos: XML das notas emitidas, folha de pagamento (se tiver funcionário), balancetes e relatórios do período.",
         "Comunique o encerramento formalmente, de preferência por escrito (e-mail), registrando a data de corte.",
-        "Transfira a procuração digital no e-CAC para o novo contador — sem isso, o novo responsável não consegue acessar suas informações na Receita Federal.",
+        "Transfira a procuração digital no e-CAC para o novo contador, sem isso, o novo responsável não consegue acessar suas informações na Receita Federal.",
         "Confirme que todas as obrigações da competência atual (DAS, folha, declarações) estão em dia antes da transição efetivamente acontecer.",
       ],
     },
@@ -65,7 +65,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "O melhor momento pra trocar",
-      text: "Sempre que possível, feche a transição logo após o encerramento de uma competência (mês) — assim nenhuma obrigação fica pela metade entre o contador antigo e o novo, e a confusão sobre 'quem cuidou de quê' desaparece.",
+      text: "Sempre que possível, feche a transição logo após o encerramento de uma competência (mês), assim nenhuma obrigação fica pela metade entre o contador antigo e o novo, e a confusão sobre 'quem cuidou de quê' desaparece.",
     },
     {
       type: "heading",
@@ -75,7 +75,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Na maioria dos casos, entre alguns dias e duas semanas — o tempo necessário pra reunir os documentos, transferir a procuração no e-CAC e o novo contador revisar a situação atual antes de assumir. Negócios mais simples, como um MEI sem funcionário, costumam migrar mais rápido do que empresas com folha de pagamento e histórico fiscal mais longo.",
+      text: "Na maioria dos casos, entre alguns dias e duas semanas, o tempo necessário pra reunir os documentos, transferir a procuração no e-CAC e o novo contador revisar a situação atual antes de assumir. Negócios mais simples, como um MEI sem funcionário, costumam migrar mais rápido do que empresas com folha de pagamento e histórico fiscal mais longo.",
     },
     {
       type: "heading",
@@ -97,7 +97,7 @@ export const article: BlogArticle = {
     {
       question: "Preciso avisar a Receita Federal quando troco de contador?",
       answer:
-        "Não existe um aviso formal obrigatório à Receita — o que precisa acontecer é a atualização da procuração digital no e-CAC, transferindo o acesso do contador anterior para o novo responsável.",
+        "Não existe um aviso formal obrigatório à Receita, o que precisa acontecer é a atualização da procuração digital no e-CAC, transferindo o acesso do contador anterior para o novo responsável.",
     },
     {
       question: "O contador antigo pode reter meus documentos?",

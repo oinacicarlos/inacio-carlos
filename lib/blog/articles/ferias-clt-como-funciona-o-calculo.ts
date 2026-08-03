@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Todo funcionário CLT tem direito a 30 dias de férias por ano, mas o valor pago e as regras em volta disso — adicional, proporcionalidade, venda de dias, pagamento em dobro — costumam gerar mais dúvida do que o próprio período de descanso. Veja como cada parte funciona.",
+      text: "Todo funcionário CLT tem direito a 30 dias de férias por ano, mas o valor pago e as regras em volta disso, adicional, proporcionalidade, venda de dias, pagamento em dobro, costumam gerar mais dúvida do que o próprio período de descanso. Veja como cada parte funciona.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O direito às férias nasce após 12 meses de trabalho, chamado de período aquisitivo. A partir daí, a empresa tem os 12 meses seguintes (período concessivo) para conceder os 30 dias de descanso. Ou seja: entre o início do direito e o prazo final para tirar as férias, o funcionário e a empresa têm até dois anos de janela — mas deixar para a última hora é arriscado, como você vai ver mais adiante.",
+      text: "O direito às férias nasce após 12 meses de trabalho, chamado de período aquisitivo. A partir daí, a empresa tem os 12 meses seguintes (período concessivo) para conceder os 30 dias de descanso. Ou seja: entre o início do direito e o prazo final para tirar as férias, o funcionário e a empresa têm até dois anos de janela, mas deixar para a última hora é arriscado, como você vai ver mais adiante.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O valor das férias é o salário normal do funcionário acrescido de um terço constitucional — um adicional garantido pela Constituição, pago junto com as férias. A fórmula é simples: salário + (salário ÷ 3).",
+      text: "O valor das férias é o salário normal do funcionário acrescido de um terço constitucional, um adicional garantido pela Constituição, pago junto com as férias. A fórmula é simples: salário + (salário ÷ 3).",
     },
     {
       type: "callout",
@@ -52,7 +52,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Quando o funcionário é desligado antes de completar um novo período aquisitivo de 12 meses, ele tem direito às férias proporcionais aos meses trabalhados — calculadas na base de 1/12 do valor das férias integrais para cada mês completo trabalhado, também com o adicional de um terço.",
+      text: "Quando o funcionário é desligado antes de completar um novo período aquisitivo de 12 meses, ele tem direito às férias proporcionais aos meses trabalhados, calculadas na base de 1/12 do valor das férias integrais para cada mês completo trabalhado, também com o adicional de um terço.",
     },
     {
       type: "heading",
@@ -62,7 +62,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O funcionário pode optar por vender até 1/3 dos dias de férias (10 dos 30 dias) para a empresa, recebendo o valor correspondente em dinheiro em vez de descansar esses dias. Essa opção precisa ser comunicada até 15 dias antes do fim do período aquisitivo, e cabe ao funcionário decidir — não à empresa impor.",
+      text: "O funcionário pode optar por vender até 1/3 dos dias de férias (10 dos 30 dias) para a empresa, recebendo o valor correspondente em dinheiro em vez de descansar esses dias. Essa opção precisa ser comunicada até 15 dias antes do fim do período aquisitivo, e cabe ao funcionário decidir, não à empresa impor.",
     },
     {
       type: "heading",
@@ -72,7 +72,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se a empresa não conceder as férias dentro do período concessivo (os 12 meses após o funcionário completar o direito), ela é obrigada a pagar o valor das férias em dobro — ou seja, o dobro do salário mais o adicional de um terço, também dobrado. É uma penalidade prevista em lei justamente para evitar que férias fiquem acumulando indefinidamente sem serem tiradas.",
+      text: "Se a empresa não conceder as férias dentro do período concessivo (os 12 meses após o funcionário completar o direito), ela é obrigada a pagar o valor das férias em dobro, ou seja, o dobro do salário mais o adicional de um terço, também dobrado. É uma penalidade prevista em lei justamente para evitar que férias fiquem acumulando indefinidamente sem serem tiradas.",
     },
     {
       type: "table",
@@ -91,7 +91,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Assim como o 13º, o custo de férias precisa entrar na conta desde a decisão de contratar — não só no mês em que elas acontecem. O Simulador de Contratação da Tropa já estima esse valor junto com os demais encargos.",
+      text: "Assim como o 13º, o custo de férias precisa entrar na conta desde a decisão de contratar, não só no mês em que elas acontecem. O Simulador de Contratação da Tropa já estima esse valor junto com os demais encargos.",
     },
   ],
   faq: [

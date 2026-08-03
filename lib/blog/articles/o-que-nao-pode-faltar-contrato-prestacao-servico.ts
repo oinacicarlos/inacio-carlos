@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Muita gente só sente falta de um contrato quando algo já deu errado: o cliente não paga, pede alterações fora do combinado ou discorda do que foi entregue. Um contrato de prestação de serviço bem feito não precisa ser complicado nem caro — mas precisa ter alguns pontos específicos para realmente proteger as duas partes, não só existir no papel.",
+      text: "Muita gente só sente falta de um contrato quando algo já deu errado: o cliente não paga, pede alterações fora do combinado ou discorda do que foi entregue. Um contrato de prestação de serviço bem feito não precisa ser complicado nem caro, mas precisa ter alguns pontos específicos para realmente proteger as duas partes, não só existir no papel.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Essa é a cláusula que evita mais conflito: descrever com detalhes o que está incluído no serviço — e, se possível, o que NÃO está incluído. Um contrato vago do tipo 'prestação de serviços de design' abre margem para o cliente pedir revisões e entregas extras achando que tudo está incluso no mesmo valor.",
+      text: "Essa é a cláusula que evita mais conflito: descrever com detalhes o que está incluído no serviço, e, se possível, o que NÃO está incluído. Um contrato vago do tipo 'prestação de serviços de design' abre margem para o cliente pedir revisões e entregas extras achando que tudo está incluso no mesmo valor.",
     },
     {
       type: "list",
@@ -55,7 +55,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Além do valor total, o contrato deve deixar claro como o pagamento será feito: à vista, parcelado, com entrada e saldo, ou por etapa. E, principalmente, o que acontece em caso de atraso — se há multa, juros, suspensão do serviço ou qualquer outra consequência combinada.",
+      text: "Além do valor total, o contrato deve deixar claro como o pagamento será feito: à vista, parcelado, com entrada e saldo, ou por etapa. E, principalmente, o que acontece em caso de atraso, se há multa, juros, suspensão do serviço ou qualquer outra consequência combinada.",
     },
     {
       type: "heading",
@@ -65,7 +65,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Vale definir a data (ou o prazo) de entrega, e também deixar claro se esse prazo depende de alguma ação do cliente — como envio de materiais, aprovações ou acesso a algum sistema. Sem essa cláusula, um atraso causado pelo próprio cliente pode ser injustamente atribuído ao prestador.",
+      text: "Vale definir a data (ou o prazo) de entrega, e também deixar claro se esse prazo depende de alguma ação do cliente, como envio de materiais, aprovações ou acesso a algum sistema. Sem essa cláusula, um atraso causado pelo próprio cliente pode ser injustamente atribuído ao prestador.",
     },
     {
       type: "heading",
@@ -80,7 +80,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "Dica",
-      text: "Sempre que o serviço tiver risco de o cliente 'sumir' no meio (comum em projetos de longo prazo ou por etapas), vale detalhar o que já foi produzido e é devido em caso de cancelamento — isso evita ter que provar depois quanto do trabalho já estava pronto.",
+      text: "Sempre que o serviço tiver risco de o cliente 'sumir' no meio (comum em projetos de longo prazo ou por etapas), vale detalhar o que já foi produzido e é devido em caso de cancelamento, isso evita ter que provar depois quanto do trabalho já estava pronto.",
     },
     {
       type: "heading",
@@ -90,7 +90,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Um contrato de prestação de serviço não precisa de reconhecimento em cartório para ter validade jurídica — o que importa é que as duas partes concordem e assinem (à mão ou eletronicamente). Ter testemunhas é opcional, mas reforça a segurança em casos de valor mais alto.",
+      text: "Um contrato de prestação de serviço não precisa de reconhecimento em cartório para ter validade jurídica, o que importa é que as duas partes concordem e assinem (à mão ou eletronicamente). Ter testemunhas é opcional, mas reforça a segurança em casos de valor mais alto.",
     },
     {
       type: "heading",

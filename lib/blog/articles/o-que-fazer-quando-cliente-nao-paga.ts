@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Veja os passos práticos para cobrar um cliente que não pagou, e como um contrato bem feito evita esse problema desde o início.",
   excerpt:
-    "Prestar o serviço e não receber é um dos maiores medos de quem trabalha por conta própria. Veja o que fazer se já aconteceu — e como evitar da próxima vez.",
+    "Prestar o serviço e não receber é um dos maiores medos de quem trabalha por conta própria. Veja o que fazer se já aconteceu, e como evitar da próxima vez.",
   pillar: "contratos",
   coverImage: "/blog/covers/o-que-fazer-quando-cliente-nao-paga.jpg",
   coverImageAlt: "Mulher preocupada organizando contas em frente ao notebook",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Não receber por um serviço já entregue é frustrante e, infelizmente, comum. A boa notícia é que existem passos práticos para tentar resolver a maioria dos casos sem precisar entrar na justiça — e cláusulas simples que, incluídas desde o início, reduzem bastante a chance de isso acontecer.",
+      text: "Não receber por um serviço já entregue é frustrante e, infelizmente, comum. A boa notícia é que existem passos práticos para tentar resolver a maioria dos casos sem precisar entrar na justiça, e cláusulas simples que, incluídas desde o início, reduzem bastante a chance de isso acontecer.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Antes de qualquer coisa, vale enviar uma cobrança por escrito — e-mail ou mensagem — deixando registrado o valor devido, a data de vencimento e uma nova data limite para o pagamento. Isso serve tanto para dar ao cliente a chance de resolver de boa-fé (às vezes é só esquecimento) quanto para criar um registro caso o caso precise avançar.",
+      text: "Antes de qualquer coisa, vale enviar uma cobrança por escrito, e-mail ou mensagem, deixando registrado o valor devido, a data de vencimento e uma nova data limite para o pagamento. Isso serve tanto para dar ao cliente a chance de resolver de boa-fé (às vezes é só esquecimento) quanto para criar um registro caso o caso precise avançar.",
     },
     {
       type: "heading",
@@ -62,9 +62,9 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Juizado Especial Cível — para causas de menor valor, sem necessidade de advogado até um certo limite, com processo mais rápido.",
-        "Protesto em cartório — pode ser feito com um contrato ou nota promissória como título de crédito, pressionando o devedor sem precisar de um processo judicial completo.",
-        "Ação de cobrança comum — para valores mais altos ou casos mais complexos, geralmente com acompanhamento de advogado.",
+        "Juizado Especial Cível, para causas de menor valor, sem necessidade de advogado até um certo limite, com processo mais rápido.",
+        "Protesto em cartório, pode ser feito com um contrato ou nota promissória como título de crédito, pressionando o devedor sem precisar de um processo judicial completo.",
+        "Ação de cobrança comum, para valores mais altos ou casos mais complexos, geralmente com acompanhamento de advogado.",
       ],
     },
     {
@@ -89,7 +89,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "Importante",
-      text: "Um contrato não impede que o cliente atrase — mas transforma uma discussão de 'ele disse, ela disse' em algo com base documentada, o que muda completamente a força de uma cobrança formal ou de um processo, se for necessário chegar lá.",
+      text: "Um contrato não impede que o cliente atrase, mas transforma uma discussão de 'ele disse, ela disse' em algo com base documentada, o que muda completamente a força de uma cobrança formal ou de um processo, se for necessário chegar lá.",
     },
     {
       type: "heading",
@@ -99,7 +99,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Gerador de Contrato da Tropa já inclui, entre as opções, cláusulas de forma de pagamento, multa por atraso e condições de cancelamento — prontas para você incluir no seu próximo contrato sem precisar escrever do zero.",
+      text: "O Gerador de Contrato da Tropa já inclui, entre as opções, cláusulas de forma de pagamento, multa por atraso e condições de cancelamento, prontas para você incluir no seu próximo contrato sem precisar escrever do zero.",
     },
   ],
   faq: [
@@ -111,7 +111,7 @@ export const article: BlogArticle = {
     {
       question: "Um print de conversa serve como prova de que o serviço foi combinado?",
       answer:
-        "Pode ajudar como evidência complementar, mas não substitui um contrato formal — é mais fácil de contestar e não deixa tão claro todos os termos combinados. Sempre que possível, formalizar por contrato (mesmo simples) é mais seguro.",
+        "Pode ajudar como evidência complementar, mas não substitui um contrato formal, é mais fácil de contestar e não deixa tão claro todos os termos combinados. Sempre que possível, formalizar por contrato (mesmo simples) é mais seguro.",
     },
   ],
   relatedTool: {

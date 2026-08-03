@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Veja as vantagens e desvantagens de cobrar por hora versus por projeto fechado, e como escolher o melhor modelo para o seu tipo de serviço.",
   excerpt:
-    "Não existe modelo certo ou errado — existe o modelo certo para cada tipo de serviço. Veja como decidir entre cobrar por hora ou por projeto fechado.",
+    "Não existe modelo certo ou errado, existe o modelo certo para cada tipo de serviço. Veja como decidir entre cobrar por hora ou por projeto fechado.",
   pillar: "precificacao",
   coverImage: "/blog/covers/cobrar-por-hora-ou-por-projeto.jpg",
   coverImageAlt: "Mesa de trabalho organizada com notebook e relógio analógico",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Uma das primeiras decisões na hora de precificar um serviço é: cobro por hora trabalhada ou fecho um valor único pelo projeto inteiro? Os dois modelos são igualmente válidos, mas funcionam melhor em situações diferentes — e escolher o modelo errado para o tipo de trabalho é uma fonte comum de frustração, tanto para quem presta quanto para quem contrata.",
+      text: "Uma das primeiras decisões na hora de precificar um serviço é: cobro por hora trabalhada ou fecho um valor único pelo projeto inteiro? Os dois modelos são igualmente válidos, mas funcionam melhor em situações diferentes, e escolher o modelo errado para o tipo de trabalho é uma fonte comum de frustração, tanto para quem presta quanto para quem contrata.",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Cobrar por hora funciona bem quando o escopo do trabalho é difícil de prever com precisão — situações em que o tempo necessário pode variar bastante dependendo de imprevistos, complexidade descoberta ao longo do caminho, ou mudanças frequentes de direção pedidas pelo cliente.",
+      text: "Cobrar por hora funciona bem quando o escopo do trabalho é difícil de prever com precisão, situações em que o tempo necessário pode variar bastante dependendo de imprevistos, complexidade descoberta ao longo do caminho, ou mudanças frequentes de direção pedidas pelo cliente.",
     },
     {
       type: "list",
@@ -49,7 +49,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O preço fechado funciona melhor quando o escopo é claro e bem definido — o cliente sabe exatamente o que vai receber, e você consegue estimar com razoável precisão quanto tempo e recurso o trabalho vai exigir.",
+      text: "O preço fechado funciona melhor quando o escopo é claro e bem definido, o cliente sabe exatamente o que vai receber, e você consegue estimar com razoável precisão quanto tempo e recurso o trabalho vai exigir.",
     },
     {
       type: "list",
@@ -66,7 +66,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "Um risco do preço fechado: o 'escopo que cresce'",
-      text: "É comum, num contrato de preço fechado, o cliente ir pedindo pequenos ajustes 'a mais' ao longo do caminho, achando que ainda está dentro do combinado. Por isso, contratos com preço fechado precisam descrever bem o que está incluído — e o que é considerado extra, cobrado à parte.",
+      text: "É comum, num contrato de preço fechado, o cliente ir pedindo pequenos ajustes 'a mais' ao longo do caminho, achando que ainda está dentro do combinado. Por isso, contratos com preço fechado precisam descrever bem o que está incluído, e o que é considerado extra, cobrado à parte.",
     },
     {
       type: "heading",
@@ -76,7 +76,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Muitos prestadores de serviço combinam os dois modelos: cobram um valor fechado pelo escopo principal, mas definem um número de revisões ou ajustes incluídos — e cobram por hora (ou por pacote adicional) qualquer coisa além disso. Esse modelo dá previsibilidade ao cliente e proteção a você contra o 'escopo que cresce'.",
+      text: "Muitos prestadores de serviço combinam os dois modelos: cobram um valor fechado pelo escopo principal, mas definem um número de revisões ou ajustes incluídos, e cobram por hora (ou por pacote adicional) qualquer coisa além disso. Esse modelo dá previsibilidade ao cliente e proteção a você contra o 'escopo que cresce'.",
     },
     {
       type: "heading",
@@ -86,18 +86,18 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se não tiver certeza de qual modelo escolher, vale estimar o tempo total do projeto, multiplicar pelo seu valor-hora, e comparar com o que cobraria fechado. Isso ajuda a verificar se o preço fechado realmente compensa — ou se está, sem perceber, cobrando abaixo do que o tempo investido vale.",
+      text: "Se não tiver certeza de qual modelo escolher, vale estimar o tempo total do projeto, multiplicar pelo seu valor-hora, e comparar com o que cobraria fechado. Isso ajuda a verificar se o preço fechado realmente compensa, ou se está, sem perceber, cobrando abaixo do que o tempo investido vale.",
     },
     {
       type: "paragraph",
-      text: "A Calculadora de Precificação da Tropa ajuda nessa conta: você informa seus custos, o valor do seu tempo e a margem que quer, e vê o preço sugerido — seja para um projeto fechado ou para calcular quanto vale a sua hora de trabalho.",
+      text: "A Calculadora de Precificação da Tropa ajuda nessa conta: você informa seus custos, o valor do seu tempo e a margem que quer, e vê o preço sugerido, seja para um projeto fechado ou para calcular quanto vale a sua hora de trabalho.",
     },
   ],
   faq: [
     {
       question: "Posso cobrar por hora e ainda assim dar um valor estimado ao cliente?",
       answer:
-        "Sim, e é recomendado. Mesmo cobrando por hora, é possível (e saudável) dar uma faixa estimada de horas e valor total ao cliente, com base em projetos parecidos anteriores — isso reduz a sensação de imprevisibilidade sem abrir mão da flexibilidade do modelo.",
+        "Sim, e é recomendado. Mesmo cobrando por hora, é possível (e saudável) dar uma faixa estimada de horas e valor total ao cliente, com base em projetos parecidos anteriores, isso reduz a sensação de imprevisibilidade sem abrir mão da flexibilidade do modelo.",
     },
     {
       question: "Como sei quanto vale a minha hora de trabalho?",
@@ -108,7 +108,7 @@ export const article: BlogArticle = {
   relatedTool: {
     title: "Calculadora de Precificação",
     href: "/ferramentas/calculadora-precificacao",
-    description: "Informe seus custos, seu tempo e a margem que você quer — o preço sugerido aparece na hora.",
+    description: "Informe seus custos, seu tempo e a margem que você quer, o preço sugerido aparece na hora.",
   },
   relatedSlugs: ["como-calcular-preco-de-servico", "o-que-nao-pode-faltar-contrato-prestacao-servico"],
 }

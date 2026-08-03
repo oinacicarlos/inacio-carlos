@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda o que é aviso prévio, a diferença entre trabalhado e indenizado, e como ele varia conforme o tempo de casa do funcionário.",
   excerpt:
-    "O aviso prévio é uma das partes mais confusas da rescisão — porque muda de acordo com quem pede o desligamento e quanto tempo de casa a pessoa tem. Veja como funciona.",
+    "O aviso prévio é uma das partes mais confusas da rescisão, porque muda de acordo com quem pede o desligamento e quanto tempo de casa a pessoa tem. Veja como funciona.",
   pillar: "rescisao",
   coverImage: "/blog/covers/o-que-e-aviso-previo-como-funciona.jpg",
   coverImageAlt: "Mulher planejando a agenda em um calendário de mesa",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "O aviso prévio existe para dar tempo de ajuste para as duas partes de um contrato de trabalho: a empresa se organizar para substituir a pessoa, ou o funcionário se organizar para buscar uma nova oportunidade. Na prática, porém, é uma das partes da rescisão que mais gera dúvida — porque muda de formato dependendo de quem tomou a iniciativa de encerrar o contrato.",
+      text: "O aviso prévio existe para dar tempo de ajuste para as duas partes de um contrato de trabalho: a empresa se organizar para substituir a pessoa, ou o funcionário se organizar para buscar uma nova oportunidade. Na prática, porém, é uma das partes da rescisão que mais gera dúvida, porque muda de formato dependendo de quem tomou a iniciativa de encerrar o contrato.",
     },
     {
       type: "heading",
@@ -32,8 +32,8 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Trabalhado — o funcionário continua trabalhando normalmente durante o período do aviso (geralmente 30 dias), recebendo o salário normal desse período.",
-        "Indenizado — a empresa dispensa o funcionário de cumprir o período, mas paga o valor correspondente como se ele tivesse trabalhado. O funcionário já sai da empresa, mas recebe o valor equivalente.",
+        "Trabalhado, o funcionário continua trabalhando normalmente durante o período do aviso (geralmente 30 dias), recebendo o salário normal desse período.",
+        "Indenizado, a empresa dispensa o funcionário de cumprir o período, mas paga o valor correspondente como se ele tivesse trabalhado. O funcionário já sai da empresa, mas recebe o valor equivalente.",
       ],
     },
     {
@@ -75,7 +75,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Quando o aviso é trabalhado, o funcionário tem direito a uma redução na jornada durante esse período — 2 horas por dia a menos, ou a opção de faltar os últimos 7 dias corridos do aviso, sem prejuízo do salário. Isso serve justamente para dar tempo de buscar uma nova colocação enquanto ainda está empregado.",
+      text: "Quando o aviso é trabalhado, o funcionário tem direito a uma redução na jornada durante esse período, 2 horas por dia a menos, ou a opção de faltar os últimos 7 dias corridos do aviso, sem prejuízo do salário. Isso serve justamente para dar tempo de buscar uma nova colocação enquanto ainda está empregado.",
     },
     {
       type: "heading",
@@ -95,19 +95,19 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Simulador de Rescisão da Tropa já considera o tipo de aviso prévio de acordo com o tipo de desligamento escolhido, junto com as demais verbas — saldo de salário, 13º, férias e multa do FGTS — para dar uma estimativa completa em segundos.",
+      text: "O Simulador de Rescisão da Tropa já considera o tipo de aviso prévio de acordo com o tipo de desligamento escolhido, junto com as demais verbas, saldo de salário, 13º, férias e multa do FGTS, para dar uma estimativa completa em segundos.",
     },
   ],
   faq: [
     {
       question: "O aviso prévio é descontado do FGTS?",
       answer:
-        "Não. O aviso prévio, seja trabalhado ou indenizado, integra a remuneração para efeito de FGTS e demais verbas — inclusive conta como tempo de serviço para o cálculo de 13º e férias proporcionais, mesmo quando indenizado.",
+        "Não. O aviso prévio, seja trabalhado ou indenizado, integra a remuneração para efeito de FGTS e demais verbas, inclusive conta como tempo de serviço para o cálculo de 13º e férias proporcionais, mesmo quando indenizado.",
     },
     {
       question: "Posso ser dispensado de cumprir o aviso prévio quando peço demissão?",
       answer:
-        "Sim, mas depende da empresa concordar. Se a empresa dispensar o cumprimento, o funcionário não precisa trabalhar os 30 dias, mas também não recebe o valor correspondente de forma indenizada — diferente de quando é a empresa que demite.",
+        "Sim, mas depende da empresa concordar. Se a empresa dispensar o cumprimento, o funcionário não precisa trabalhar os 30 dias, mas também não recebe o valor correspondente de forma indenizada, diferente de quando é a empresa que demite.",
     },
   ],
   relatedTool: {

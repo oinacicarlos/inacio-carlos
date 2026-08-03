@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "O MEI (Microempreendedor Individual) é a porta de entrada mais simples para formalizar um negócio no Brasil. É gratuito, pode ser feito online e, na maioria dos casos, o CNPJ sai na hora. Mesmo assim, algumas dúvidas — qual atividade escolher, o que é preciso ter em mãos, o que fazer depois — travam quem está começando. Veja o caminho completo.",
+      text: "O MEI (Microempreendedor Individual) é a porta de entrada mais simples para formalizar um negócio no Brasil. É gratuito, pode ser feito online e, na maioria dos casos, o CNPJ sai na hora. Mesmo assim, algumas dúvidas, qual atividade escolher, o que é preciso ter em mãos, o que fazer depois, travam quem está começando. Veja o caminho completo.",
     },
     {
       type: "heading",
@@ -64,7 +64,7 @@ export const article: BlogArticle = {
     {
       type: "callout",
       title: "Atenção na escolha da atividade",
-      text: "Nem toda atividade profissional pode ser MEI — algumas exigem outro tipo de enquadramento, geralmente por envolverem regulação profissional específica (como algumas atividades de saúde ou jurídicas). Antes de escolher, vale conferir se a atividade desejada está na lista de ocupações permitidas.",
+      text: "Nem toda atividade profissional pode ser MEI, algumas exigem outro tipo de enquadramento, geralmente por envolverem regulação profissional específica (como algumas atividades de saúde ou jurídicas). Antes de escolher, vale conferir se a atividade desejada está na lista de ocupações permitidas.",
     },
     {
       type: "heading",
@@ -75,7 +75,7 @@ export const article: BlogArticle = {
     {
       type: "list",
       items: [
-        "Guardar o CCMEI — é o documento que comprova o CNPJ e substitui o cartão CNPJ tradicional.",
+        "Guardar o CCMEI, é o documento que comprova o CNPJ e substitui o cartão CNPJ tradicional.",
         "Verificar se é preciso Inscrição Municipal ou Estadual, dependendo da atividade e do município.",
         "Organizar como e onde emitir nota fiscal, caso a atividade exija (venda para empresas ou órgãos públicos, por exemplo).",
         "Anotar o vencimento do DAS (todo dia 20) e programar o pagamento mensal.",
@@ -97,12 +97,12 @@ export const article: BlogArticle = {
     {
       question: "Quanto custa abrir um MEI?",
       answer:
-        "A abertura do MEI é 100% gratuita, feita diretamente pelo Portal do Empreendedor. Não é necessário pagar taxas de registro nem contratar ninguém para formalizar — o processo pode ser feito sozinho, em poucos minutos.",
+        "A abertura do MEI é 100% gratuita, feita diretamente pelo Portal do Empreendedor. Não é necessário pagar taxas de registro nem contratar ninguém para formalizar, o processo pode ser feito sozinho, em poucos minutos.",
     },
     {
       question: "Posso ser MEI e ter carteira assinada ao mesmo tempo?",
       answer:
-        "Sim, é permitido ser MEI e, ao mesmo tempo, ter um emprego CLT. As duas atividades são independentes — o importante é que o faturamento do MEI respeite o limite anual da categoria.",
+        "Sim, é permitido ser MEI e, ao mesmo tempo, ter um emprego CLT. As duas atividades são independentes, o importante é que o faturamento do MEI respeite o limite anual da categoria.",
     },
     {
       question: "Em quanto tempo o CNPJ do MEI fica pronto?",

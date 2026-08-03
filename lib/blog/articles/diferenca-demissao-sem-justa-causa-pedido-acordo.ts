@@ -5,7 +5,7 @@ export const article: BlogArticle = {
   title: "Demissão sem justa causa, pedido de demissão ou acordo: qual a diferença",
   metaTitle: "Demissão sem justa causa vs. pedido vs. acordo: diferenças",
   metaDescription:
-    "Entenda a diferença entre demissão sem justa causa, pedido de demissão e rescisão por acordo — e o que cada uma muda no valor final da rescisão.",
+    "Entenda a diferença entre demissão sem justa causa, pedido de demissão e rescisão por acordo, e o que cada uma muda no valor final da rescisão.",
   excerpt:
     "O tipo de desligamento muda completamente o valor que a pessoa recebe (ou paga) na rescisão. Veja a diferença entre as três formas mais comuns de encerrar um contrato CLT.",
   pillar: "rescisao",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Encerrar um contrato de trabalho CLT parece simples até a hora de calcular o que é devido — porque o valor final muda bastante dependendo de quem tomou a iniciativa e de como. As três formas mais comuns de desligamento sem justa causa por parte do funcionário são bem diferentes entre si, e confundir uma com a outra é a maior fonte de erro (e de expectativa frustrada) na hora do acerto final.",
+      text: "Encerrar um contrato de trabalho CLT parece simples até a hora de calcular o que é devido, porque o valor final muda bastante dependendo de quem tomou a iniciativa e de como. As três formas mais comuns de desligamento sem justa causa por parte do funcionário são bem diferentes entre si, e confundir uma com a outra é a maior fonte de erro (e de expectativa frustrada) na hora do acerto final.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "É quando o próprio funcionário decide sair. Nesse caso, os direitos são bem mais limitados: recebe saldo de salário, 13º proporcional e férias proporcionais mais um terço — mas não tem direito à multa de 40% do FGTS, não pode sacar o saldo do FGTS (salvo exceções específicas) e não tem direito ao seguro-desemprego. Além disso, se o funcionário não cumprir o aviso prévio de 30 dias (ou não for dispensado dele pela empresa), o valor correspondente pode ser descontado das verbas rescisórias.",
+      text: "É quando o próprio funcionário decide sair. Nesse caso, os direitos são bem mais limitados: recebe saldo de salário, 13º proporcional e férias proporcionais mais um terço, mas não tem direito à multa de 40% do FGTS, não pode sacar o saldo do FGTS (salvo exceções específicas) e não tem direito ao seguro-desemprego. Além disso, se o funcionário não cumprir o aviso prévio de 30 dias (ou não for dispensado dele pela empresa), o valor correspondente pode ser descontado das verbas rescisórias.",
     },
     {
       type: "heading",
@@ -75,7 +75,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "A multa do FGTS costuma ser a maior verba de toda a rescisão, então a diferença entre 40%, 20% e zero já explica boa parte da distância entre os três cenários. Some a isso o aviso prévio (integral, parcial ou nenhum) e o acesso ou não ao seguro-desemprego, e fica claro por que a mesma pessoa, com o mesmo salário e tempo de casa, pode receber valores bem diferentes dependendo apenas de quem tomou a decisão de encerrar o contrato — e como.",
+      text: "A multa do FGTS costuma ser a maior verba de toda a rescisão, então a diferença entre 40%, 20% e zero já explica boa parte da distância entre os três cenários. Some a isso o aviso prévio (integral, parcial ou nenhum) e o acesso ou não ao seguro-desemprego, e fica claro por que a mesma pessoa, com o mesmo salário e tempo de casa, pode receber valores bem diferentes dependendo apenas de quem tomou a decisão de encerrar o contrato, e como.",
     },
     {
       type: "heading",
@@ -85,7 +85,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Em vez de tentar calcular tudo isso na mão, o Simulador de Rescisão da Tropa já aplica essas regras automaticamente: você escolhe o tipo de desligamento e informa salário, datas e saldo do FGTS, e recebe uma estimativa das principais verbas — incluindo o custo estimado para a empresa.",
+      text: "Em vez de tentar calcular tudo isso na mão, o Simulador de Rescisão da Tropa já aplica essas regras automaticamente: você escolhe o tipo de desligamento e informa salário, datas e saldo do FGTS, e recebe uma estimativa das principais verbas, incluindo o custo estimado para a empresa.",
     },
   ],
   faq: [
@@ -97,7 +97,7 @@ export const article: BlogArticle = {
     {
       question: "A rescisão por acordo pode ser proposta pelo funcionário?",
       answer:
-        "Sim. A rescisão por acordo pode partir tanto da empresa quanto do funcionário — o ponto central é que as duas partes precisam concordar formalmente com essa modalidade para que ela seja válida.",
+        "Sim. A rescisão por acordo pode partir tanto da empresa quanto do funcionário, o ponto central é que as duas partes precisam concordar formalmente com essa modalidade para que ela seja válida.",
     },
     {
       question: "Justa causa entra nessa comparação?",

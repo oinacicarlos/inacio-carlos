@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda se o MEI pode contratar funcionário CLT, quantos, quanto custa e o que muda nas obrigações mensais quando isso acontece.",
   excerpt:
-    "O MEI pode ter um funcionário — mas só um, com regras específicas de salário e obrigações. Veja como funciona antes de contratar.",
+    "O MEI pode ter um funcionário, mas só um, com regras específicas de salário e obrigações. Veja como funciona antes de contratar.",
   pillar: "contratacao",
   coverImage: "/blog/covers/mei-pode-ter-funcionario.jpg",
   coverImageAlt: "Três pessoas colaborando em um projeto com notebook",
@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Uma dúvida comum de quem está crescendo como MEI é se dá para contratar alguém para ajudar. A resposta é sim, mas com uma regra importante que muita gente não sabe: o MEI só pode ter um único funcionário registrado — não dois, não três. Entender essa e outras regras evita problema com a Receita e com o funcionário.",
+      text: "Uma dúvida comum de quem está crescendo como MEI é se dá para contratar alguém para ajudar. A resposta é sim, mas com uma regra importante que muita gente não sabe: o MEI só pode ter um único funcionário registrado, não dois, não três. Entender essa e outras regras evita problema com a Receita e com o funcionário.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O salário do funcionário do MEI deve respeitar o piso de um salário mínimo nacional, ou o piso da categoria profissional (definido por convenção coletiva), o que for maior. Não há um teto específico além disso — o MEI pode pagar mais do que o piso, se quiser e puder.",
+      text: "O salário do funcionário do MEI deve respeitar o piso de um salário mínimo nacional, ou o piso da categoria profissional (definido por convenção coletiva), o que for maior. Não há um teto específico além disso, o MEI pode pagar mais do que o piso, se quiser e puder.",
     },
     {
       type: "heading",
@@ -51,13 +51,13 @@ export const article: BlogArticle = {
         "O DAS do MEI passa a incluir a contribuição previdenciária patronal de 3% sobre o salário do funcionário, somada ao valor fixo mensal já pago.",
         "Passa a ser obrigatório recolher o FGTS (8% sobre o salário) mensalmente.",
         "É preciso fazer o registro do funcionário na carteira de trabalho digital e cumprir as obrigações trabalhistas básicas (férias, 13º, rescisão quando aplicável).",
-        "A folha de pagamento e os encargos passam a exigir mais atenção — muitos MEIs contam com um contador nesse momento, mesmo que não fosse necessário antes.",
+        "A folha de pagamento e os encargos passam a exigir mais atenção, muitos MEIs contam com um contador nesse momento, mesmo que não fosse necessário antes.",
       ],
     },
     {
       type: "callout",
       title: "Vale a pena calcular antes de contratar",
-      text: "Mesmo com o limite de um funcionário e o piso do salário mínimo, os encargos (INSS patronal, FGTS, férias e 13º proporcionais) somam um valor considerável acima do salário combinado — vale estimar o custo total antes de decidir contratar.",
+      text: "Mesmo com o limite de um funcionário e o piso do salário mínimo, os encargos (INSS patronal, FGTS, férias e 13º proporcionais) somam um valor considerável acima do salário combinado, vale estimar o custo total antes de decidir contratar.",
     },
     {
       type: "heading",
@@ -67,7 +67,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Sim, o MEI pode contratar outros prestadores de serviço (PJ ou autônomos) para ajudar em demandas específicas, sem que isso conte como o 'funcionário CLT' permitido. A diferença é que, nesse caso, não existe vínculo empregatício — é uma relação de prestação de serviço entre duas empresas ou entre empresa e autônomo, sem os mesmos direitos trabalhistas.",
+      text: "Sim, o MEI pode contratar outros prestadores de serviço (PJ ou autônomos) para ajudar em demandas específicas, sem que isso conte como o 'funcionário CLT' permitido. A diferença é que, nesse caso, não existe vínculo empregatício, é uma relação de prestação de serviço entre duas empresas ou entre empresa e autônomo, sem os mesmos direitos trabalhistas.",
     },
     {
       type: "heading",
@@ -77,7 +77,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "O Simulador de Contratação da Tropa ajuda a estimar o custo real de contratar — salário, encargos e benefícios — antes de tomar a decisão, seja você MEI ou uma empresa maior.",
+      text: "O Simulador de Contratação da Tropa ajuda a estimar o custo real de contratar, salário, encargos e benefícios, antes de tomar a decisão, seja você MEI ou uma empresa maior.",
     },
   ],
   faq: [

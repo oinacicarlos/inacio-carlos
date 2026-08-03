@@ -40,8 +40,8 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin") || new URL(request.url).origin
   const body = new URLSearchParams({
     mode: "payment",
-    success_url: `${origin}/hub?tab=processo&compra=success`,
-    cancel_url: `${origin}/hub?tab=processo`,
+    success_url: `${origin}/hub?tab=ferramentas&compra=success&product=${product}`,
+    cancel_url: `${origin}/hub?tab=ferramentas`,
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     client_reference_id: user.id,

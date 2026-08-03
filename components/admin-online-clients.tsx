@@ -37,7 +37,8 @@ import {
 import { isPlanSlug, PLAN_DETAILS, type PlanSlug } from '@/lib/plans'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createServiceRoleSupabaseClient } from '@/lib/supabase/service-role'
-import type { ToolSlug } from '@/lib/tool-usage/tools'
+import { FREE_PLAN_MONTHLY_LIMIT } from '@/lib/tool-usage/status'
+import { TOOL_SLUGS, type ToolSlug } from '@/lib/tool-usage/tools'
 
 type AdminOnlineModule = 'clientes' | 'solicitacoes' | 'processos' | 'compras' | 'ferramentas' | 'assinaturas'
 
@@ -179,6 +180,13 @@ const PRODUCT_LABELS: Record<string, string> = {
   nota_fiscal_produto: 'Nota Fiscal de Produto',
 }
 
+const REQUEST_PRODUCT_TITLES: Record<string, string> = {
+  serasa_pf: 'Consulta Serasa PF',
+  serasa_pj: 'Consulta Serasa PJ',
+  nota_fiscal_servico: 'Nota Fiscal de Serviço',
+  nota_fiscal_produto: 'Nota Fiscal de Produto (DANFE)',
+}
+
 const TOOL_LABELS: Record<string, string> = {
   'gerador-contrato': 'Gerador de Contratos',
   'simulador-rescisao': 'Simulador de Rescisão',
@@ -203,6 +211,24 @@ function formatDate(value: string | null | undefined) {
   })
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return '—'
+
+  return new Date(value).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function daysUntil(value: string | null | undefined) {
+  if (!value) return null
+  const end = new Date(value).getTime()
+  if (!Number.isFinite(end)) return null
+  return Math.ceil((end - Date.now()) / (24 * 60 * 60 * 1000))
+}
+
 function formatCurrencyFromCents(value: number | null | undefined) {
   if (typeof value !== 'number') return '—'
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value / 100)
@@ -222,6 +248,10 @@ function getPlanOrder(plan: string) {
   }
 
   return isPlanSlug(plan) ? order[plan] : -1
+}
+
+function getPlanPrice(plan: string) {
+  return isPlanSlug(plan) ? PLAN_DETAILS[plan].priceLabel : '—'
 }
 
 function compactList(items: string[], empty = 'Sem registros') {
@@ -273,6 +303,49 @@ function aberturaStatusLabel(status: AberturaStatus | null | undefined) {
 
 function alteracaoStatusLabel(status: AlteracaoStatus | null | undefined) {
   return ALTERACAO_STATUS_LABELS[status ?? 'nao_iniciado']
+}
+
+function isRequestProduct(product: string) {
+  return product in REQUEST_PRODUCT_TITLES
+}
+
+function findPurchaseRequest(purchase: ProductPurchaseRow, requestsByUser: Map<string, ClientRequestRow[]>) {
+  const expectedTitle = REQUEST_PRODUCT_TITLES[purchase.product]
+  if (!expectedTitle) return undefined
+
+  const purchaseTime = new Date(purchase.created_at).getTime()
+  return (requestsByUser.get(purchase.user_id) ?? [])
+    .filter((request) => request.title === expectedTitle)
+    .sort((left, right) => {
+      const leftDistance = Math.abs(new Date(left.created_at).getTime() - purchaseTime)
+      const rightDistance = Math.abs(new Date(right.created_at).getTime() - purchaseTime)
+      return leftDistance - rightDistance
+    })[0]
+}
+
+function onboardingStatusForProduct(product: string, onboarding: OnboardingRow | undefined) {
+  if (!onboarding) return 'Processo não localizado'
+  if (product === 'certificado_pj_a1' || product === 'certificado_pf_a1') return certificadoStatusLabel(onboarding.certificado_status)
+  if (product === 'abertura_empresa') return aberturaStatusLabel(onboarding.abertura_status)
+  if (product === 'alteracao_cnpj') return alteracaoStatusLabel(onboarding.alteracao_status)
+  return 'Sem processo'
+}
+
+function isPurchaseActionable(purchase: ProductPurchaseRow, request: ClientRequestRow | undefined, onboarding: OnboardingRow | undefined) {
+  if (isRequestProduct(purchase.product)) return request ? OPEN_REQUEST_STATUSES.has(request.status) : true
+  if (!onboarding) return true
+
+  if (purchase.product === 'certificado_pj_a1' || purchase.product === 'certificado_pf_a1') {
+    return PENDING_PROCESS_STATUSES.has(onboarding.certificado_status ?? 'nao_iniciado')
+  }
+  if (purchase.product === 'abertura_empresa') {
+    return PENDING_PROCESS_STATUSES.has(onboarding.abertura_status ?? 'nao_iniciado')
+  }
+  if (purchase.product === 'alteracao_cnpj') {
+    return PENDING_PROCESS_STATUSES.has(onboarding.alteracao_status ?? 'nao_iniciado')
+  }
+
+  return false
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -373,6 +446,8 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
   const onboardingByUser = new Map<string, OnboardingRow>()
   const toolUsageByUser = new Map<string, number>()
   const toolUsageByTool = new Map<string, number>()
+  const toolUsageByUserTool = new Map<string, Map<string, number>>()
+  const lastToolUsageByUser = new Map<string, string>()
 
   requests.forEach((request) => {
     requestsByUser.set(request.user_id, [...(requestsByUser.get(request.user_id) ?? []), request])
@@ -389,6 +464,15 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
   toolUsage.forEach((usage) => {
     toolUsageByUser.set(usage.user_id, (toolUsageByUser.get(usage.user_id) ?? 0) + 1)
     toolUsageByTool.set(usage.tool, (toolUsageByTool.get(usage.tool) ?? 0) + 1)
+
+    const userToolMap = toolUsageByUserTool.get(usage.user_id) ?? new Map<string, number>()
+    userToolMap.set(usage.tool, (userToolMap.get(usage.tool) ?? 0) + 1)
+    toolUsageByUserTool.set(usage.user_id, userToolMap)
+
+    const currentLastUse = lastToolUsageByUser.get(usage.user_id)
+    if (!currentLastUse || new Date(usage.used_at).getTime() > new Date(currentLastUse).getTime()) {
+      lastToolUsageByUser.set(usage.user_id, usage.used_at)
+    }
   })
 
   const paidClients = profiles.filter((profile) => profile.current_plan !== 'free').length
@@ -414,12 +498,39 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
   })
 
   const orderedOnboardings = [...onboardings].sort((left, right) => new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime())
+  const orderedPurchases = [...purchases].sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+  const orderedToolUsers = Array.from(toolUsageByUser.entries()).sort((left, right) => right[1] - left[1])
   const orderedSubscriptions = [...profiles].sort((left, right) => {
     if (left.subscription_status === 'past_due' && right.subscription_status !== 'past_due') return -1
     if (right.subscription_status === 'past_due' && left.subscription_status !== 'past_due') return 1
+    const leftDays = daysUntil(left.current_period_end)
+    const rightDays = daysUntil(right.current_period_end)
+    if (leftDays !== null && rightDays !== null && leftDays !== rightDays) return leftDays - rightDays
     return getPlanOrder(right.current_plan) - getPlanOrder(left.current_plan)
   })
   const toolRows = Array.from(toolUsageByTool.entries()).sort((left, right) => right[1] - left[1])
+  const mostUsedTool = toolRows[0]
+  const freeUsersAtLimit = orderedToolUsers.filter(([userId]) => {
+    const profile = profilesByUser.get(userId)
+    if (profile?.current_plan !== 'free') return false
+    const userToolMap = toolUsageByUserTool.get(userId)
+    return TOOL_SLUGS.some((tool) => (userToolMap?.get(tool) ?? 0) >= FREE_PLAN_MONTHLY_LIMIT)
+  }).length
+  const purchaseRevenueCents = purchases.reduce((total, purchase) => total + (purchase.amount_total ?? 0), 0)
+  const requestPurchases = purchases.filter((purchase) => isRequestProduct(purchase.product)).length
+  const processPurchases = purchases.length - requestPurchases
+  const actionablePurchases = purchases.filter((purchase) =>
+    isPurchaseActionable(purchase, findPurchaseRequest(purchase, requestsByUser), onboardingByUser.get(purchase.user_id)),
+  ).length
+  const paidSubscriptions = profiles.filter((profile) => profile.current_plan !== 'free')
+  const pastDueSubscriptions = profiles.filter((profile) => profile.subscription_status === 'past_due').length
+  const canceledSubscriptions = profiles.filter((profile) => profile.subscription_status === 'canceled').length
+  const missingStripeCustomers = paidSubscriptions.filter((profile) => !profile.stripe_customer_id).length
+  const upcomingRenewals = paidSubscriptions.filter((profile) => {
+    const days = daysUntil(profile.current_period_end)
+    return days !== null && days >= 0 && days <= 7
+  }).length
+  const planDistribution = ['bronze', 'prata', 'ouro', 'diamante'] as const
 
   return (
     <main className="admin-online-page">
@@ -698,35 +809,83 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
             {purchases.length === 0 ? (
               <EmptyState>Nenhuma compra avulsa registrada.</EmptyState>
             ) : (
-              <div className="admin-online-table-wrap">
-                <table className="admin-online-table admin-online-table-compact">
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Produto</th>
-                      <th>Valor</th>
-                      <th>Destino operacional</th>
-                      <th>Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchases.map((purchase, index) => {
-                      const product = PRODUCT_LABELS[purchase.product] ?? purchase.product
-                      const isRequestProduct = purchase.product.startsWith('serasa') || purchase.product.startsWith('nota_fiscal')
+              <>
+                <div className="admin-online-purchase-summary" aria-label="Resumo de compras avulsas">
+                  <article>
+                    <span>Receita registrada</span>
+                    <strong>{formatCurrencyFromCents(purchaseRevenueCents)}</strong>
+                  </article>
+                  <article>
+                    <span>Viraram solicitação</span>
+                    <strong>{requestPurchases}</strong>
+                  </article>
+                  <article>
+                    <span>Viraram processo</span>
+                    <strong>{processPurchases}</strong>
+                  </article>
+                  <article>
+                    <span>Pedem atenção</span>
+                    <strong>{actionablePurchases}</strong>
+                  </article>
+                </div>
 
-                      return (
-                        <tr key={`${purchase.user_id}-${purchase.product}-${purchase.created_at}-${index}`}>
-                          <td>{clientLabel(profilesByUser.get(purchase.user_id), emailByUserId.get(purchase.user_id))}</td>
-                          <td><strong>{product}</strong></td>
-                          <td>{formatCurrencyFromCents(purchase.amount_total)}</td>
-                          <td>{isRequestProduct ? 'Solicitação automática' : 'Onboarding / processo'}</td>
-                          <td>{formatDate(purchase.created_at)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                <div className="admin-online-table-wrap">
+                  <table className="admin-online-table admin-online-table-compact">
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Produto</th>
+                        <th>Valor</th>
+                        <th>Destino operacional</th>
+                        <th>Status atual</th>
+                        <th>Pagamento</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedPurchases.map((purchase, index) => {
+                        const product = PRODUCT_LABELS[purchase.product] ?? purchase.product
+                        const request = findPurchaseRequest(purchase, requestsByUser)
+                        const onboarding = onboardingByUser.get(purchase.user_id)
+                        const requestProduct = isRequestProduct(purchase.product)
+                        const destination = requestProduct ? 'Solicitação automática' : 'Onboarding / processo'
+                        const status = requestProduct
+                          ? request ? (STATUS_LABELS[request.status] ?? request.status) : 'Solicitação não localizada'
+                          : onboardingStatusForProduct(purchase.product, onboarding)
+                        const actionHref = requestProduct ? '/clientes/online?modulo=solicitacoes' : '/clientes/online?modulo=processos'
+                        const needsAttention = isPurchaseActionable(purchase, request, onboarding)
+
+                        return (
+                          <tr key={`${purchase.user_id}-${purchase.product}-${purchase.created_at}-${index}`}>
+                            <td>{clientLabel(profilesByUser.get(purchase.user_id), emailByUserId.get(purchase.user_id))}</td>
+                            <td>
+                              <strong>{product}</strong>
+                              <small>{purchase.product}</small>
+                            </td>
+                            <td>{formatCurrencyFromCents(purchase.amount_total)}</td>
+                            <td>{destination}</td>
+                            <td>
+                              <span className={needsAttention ? 'admin-online-status' : 'admin-online-status is-active'}>
+                                <ShieldCheck size={13} strokeWidth={2.1} aria-hidden="true" />
+                                {status}
+                              </span>
+                            </td>
+                            <td>
+                              {formatDate(purchase.created_at)}
+                              <small>{purchase.stripe_checkout_session_id ?? 'Sem sessão Stripe'}</small>
+                            </td>
+                            <td>
+                              <Link className="admin-online-row-link" href={actionHref}>
+                                {requestProduct ? 'Ver solicitação' : 'Ver processo'}
+                              </Link>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -736,36 +895,106 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
             <div className="admin-online-table-head">
               <div>
                 <h2>Uso de ferramentas</h2>
-                <p>Resumo do mês atual por ferramenta e clientes com maior uso.</p>
+                <p>Resumo do mês atual por ferramenta, cliente e limite do plano grátis.</p>
               </div>
               <span>{toolUsage.length} uso{toolUsage.length === 1 ? '' : 's'} no mês</span>
             </div>
             {toolUsage.length === 0 ? (
               <EmptyState>Nenhum uso de ferramenta registrado neste mês.</EmptyState>
             ) : (
-              <div className="admin-online-split-grid">
-                <div className="admin-online-mini-card">
-                  <h3>Por ferramenta</h3>
-                  {toolRows.map(([tool, count]) => (
-                    <div className="admin-online-list-row" key={tool}>
-                      <span>{TOOL_LABELS[tool] ?? tool}</span>
-                      <strong>{count}</strong>
-                    </div>
-                  ))}
+              <>
+                <div className="admin-online-tool-summary" aria-label="Resumo de ferramentas">
+                  <article>
+                    <span>Clientes ativos</span>
+                    <strong>{orderedToolUsers.length}</strong>
+                  </article>
+                  <article>
+                    <span>Ferramenta líder</span>
+                    <strong>{mostUsedTool ? (TOOL_LABELS[mostUsedTool[0]] ?? mostUsedTool[0]) : '—'}</strong>
+                  </article>
+                  <article>
+                    <span>Usos da líder</span>
+                    <strong>{mostUsedTool?.[1] ?? 0}</strong>
+                  </article>
+                  <article>
+                    <span>Grátis no limite</span>
+                    <strong>{freeUsersAtLimit}</strong>
+                  </article>
                 </div>
-                <div className="admin-online-mini-card">
-                  <h3>Clientes com uso no mês</h3>
-                  {Array.from(toolUsageByUser.entries())
-                    .sort((left, right) => right[1] - left[1])
-                    .slice(0, 12)
-                    .map(([userId, count]) => (
+
+                <div className="admin-online-split-grid">
+                  <div className="admin-online-mini-card">
+                    <h3>Por ferramenta</h3>
+                    {TOOL_SLUGS.map((tool) => (
+                      <div className="admin-online-list-row" key={tool}>
+                        <span>{TOOL_LABELS[tool] ?? tool}</span>
+                        <strong>{toolUsageByTool.get(tool) ?? 0}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="admin-online-mini-card">
+                    <h3>Clientes com maior uso</h3>
+                    {orderedToolUsers.slice(0, 8).map(([userId, count]) => (
                       <div className="admin-online-list-row" key={userId}>
                         <span>{clientLabel(profilesByUser.get(userId), emailByUserId.get(userId))}</span>
                         <strong>{count}</strong>
                       </div>
                     ))}
+                  </div>
                 </div>
-              </div>
+
+                <div className="admin-online-table-wrap">
+                  <table className="admin-online-table admin-online-table-compact">
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Plano</th>
+                        <th>Total no mês</th>
+                        <th>Uso por ferramenta</th>
+                        <th>Último uso</th>
+                        <th>Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedToolUsers.map(([userId, count]) => {
+                        const profile = profilesByUser.get(userId)
+                        const userToolMap = toolUsageByUserTool.get(userId)
+                        const isFree = profile?.current_plan === 'free'
+                        const reachedLimit = isFree && TOOL_SLUGS.some((tool) => (userToolMap?.get(tool) ?? 0) >= FREE_PLAN_MONTHLY_LIMIT)
+
+                        return (
+                          <tr key={userId}>
+                            <td>{clientLabel(profile, emailByUserId.get(userId))}</td>
+                            <td>
+                              <span className="admin-online-plan-pill">{getPlanLabel(profile?.current_plan ?? 'free')}</span>
+                            </td>
+                            <td><strong>{count}</strong></td>
+                            <td>
+                              <div className="admin-online-tool-chip-list">
+                                {TOOL_SLUGS.map((tool) => {
+                                  const toolCount = userToolMap?.get(tool) ?? 0
+                                  return (
+                                    <span className={isFree && toolCount >= FREE_PLAN_MONTHLY_LIMIT ? 'is-limit' : ''} key={tool}>
+                                      {TOOL_LABELS[tool] ?? tool}: {toolCount}{isFree ? `/${FREE_PLAN_MONTHLY_LIMIT}` : ''}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </td>
+                            <td>{formatDateTime(lastToolUsageByUser.get(userId))}</td>
+                            <td>
+                              <span className={reachedLimit ? 'admin-online-status' : 'admin-online-status is-active'}>
+                                <ShieldCheck size={13} strokeWidth={2.1} aria-hidden="true" />
+                                {isFree ? reachedLimit ? 'Limite grátis atingido' : 'Dentro do limite grátis' : 'Ilimitado'}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -775,40 +1004,114 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
             <div className="admin-online-table-head">
               <div>
                 <h2>Assinaturas</h2>
-                <p>Leitura operacional dos planos e status gravados pelo Stripe.</p>
+                <p>Leitura operacional dos planos, vencimentos, riscos e vínculos com Stripe.</p>
               </div>
               <span>{activeSubscriptions} ativa{activeSubscriptions === 1 ? '' : 's'}</span>
             </div>
             {orderedSubscriptions.length === 0 ? (
               <EmptyState>Nenhuma assinatura encontrada.</EmptyState>
             ) : (
-              <div className="admin-online-table-wrap">
-                <table className="admin-online-table admin-online-table-compact">
-                  <thead>
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Plano</th>
-                      <th>Status</th>
-                      <th>Vencimento</th>
-                      <th>Stripe</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orderedSubscriptions.map((profile) => (
-                      <tr key={profile.id}>
-                        <td>{clientLabel(profile, emailByUserId.get(profile.id))}</td>
-                        <td><span className="admin-online-plan-pill">{getPlanLabel(profile.current_plan)}</span></td>
-                        <td><StatusPill status={profile.subscription_status} /></td>
-                        <td>{profile.current_period_end ? formatDate(profile.current_period_end) : 'Sem vencimento ativo'}</td>
-                        <td>
-                          <strong>{profile.stripe_customer_id ? 'Cliente vinculado' : 'Sem customer'}</strong>
-                          <small>{profile.stripe_customer_id ?? '—'}</small>
-                        </td>
-                      </tr>
+              <>
+                <div className="admin-online-subscription-summary" aria-label="Resumo de assinaturas">
+                  <article>
+                    <span>Planos pagos</span>
+                    <strong>{paidSubscriptions.length}</strong>
+                  </article>
+                  <article>
+                    <span>Vencem em 7 dias</span>
+                    <strong>{upcomingRenewals}</strong>
+                  </article>
+                  <article>
+                    <span>Pagamento pendente</span>
+                    <strong>{pastDueSubscriptions}</strong>
+                  </article>
+                  <article>
+                    <span>Sem vínculo Stripe</span>
+                    <strong>{missingStripeCustomers}</strong>
+                  </article>
+                </div>
+
+                <div className="admin-online-split-grid">
+                  <div className="admin-online-mini-card">
+                    <h3>Distribuição por plano</h3>
+                    {planDistribution.map((plan) => (
+                      <div className="admin-online-list-row" key={plan}>
+                        <span>{getPlanLabel(plan)}</span>
+                        <strong>{profiles.filter((profile) => profile.current_plan === plan).length}</strong>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                  <div className="admin-online-mini-card">
+                    <h3>Atenção de cobrança</h3>
+                    <div className="admin-online-list-row">
+                      <span>Pagamento pendente</span>
+                      <strong>{pastDueSubscriptions}</strong>
+                    </div>
+                    <div className="admin-online-list-row">
+                      <span>Canceladas</span>
+                      <strong>{canceledSubscriptions}</strong>
+                    </div>
+                    <div className="admin-online-list-row">
+                      <span>Pagos sem customer Stripe</span>
+                      <strong>{missingStripeCustomers}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-online-table-wrap">
+                  <table className="admin-online-table admin-online-table-compact">
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Plano</th>
+                        <th>Status</th>
+                        <th>Vencimento</th>
+                        <th>Stripe</th>
+                        <th>Situação operacional</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderedSubscriptions.map((profile) => {
+                        const renewalDays = daysUntil(profile.current_period_end)
+                        const isPaidPlan = profile.current_plan !== 'free'
+                        const hasStripe = Boolean(profile.stripe_customer_id)
+                        const needsAttention = profile.subscription_status === 'past_due' || (isPaidPlan && !hasStripe)
+
+                        return (
+                          <tr key={profile.id}>
+                            <td>{clientLabel(profile, emailByUserId.get(profile.id))}</td>
+                            <td>
+                              <span className="admin-online-plan-pill">{getPlanLabel(profile.current_plan)}</span>
+                              <small>{getPlanPrice(profile.current_plan)}</small>
+                            </td>
+                            <td><StatusPill status={profile.subscription_status} /></td>
+                            <td>
+                              {profile.current_period_end ? formatDate(profile.current_period_end) : 'Sem vencimento ativo'}
+                              <small>
+                                {renewalDays === null
+                                  ? 'Sem ciclo ativo'
+                                  : renewalDays < 0
+                                    ? `${Math.abs(renewalDays)} dia${Math.abs(renewalDays) === 1 ? '' : 's'} em atraso`
+                                    : `${renewalDays} dia${renewalDays === 1 ? '' : 's'} até renovar`}
+                              </small>
+                            </td>
+                            <td>
+                              <strong>{hasStripe ? 'Customer vinculado' : 'Sem customer'}</strong>
+                              <small>{profile.stripe_customer_id ?? '—'}</small>
+                            </td>
+                            <td>
+                              <span className={needsAttention ? 'admin-online-status' : 'admin-online-status is-active'}>
+                                <ShieldCheck size={13} strokeWidth={2.1} aria-hidden="true" />
+                                {needsAttention ? 'Revisar cobrança' : isPaidPlan ? 'Operação normal' : 'Plano grátis'}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}

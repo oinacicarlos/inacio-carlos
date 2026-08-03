@@ -18,6 +18,12 @@ import {
 import { supabase } from "@/lib/supabaseClient"
 import HorizontalCarousel from "@/components/hub/horizontal-carousel"
 import { StripeProductButton } from "@/components/stripe-product-button"
+import {
+  PRODUCT_REQUEST_INTAKES,
+  isProductRequestSlug,
+  validateIntakeField,
+  type ProductRequestSlug,
+} from "@/lib/client-requests/product-intake"
 import type { ProductSlug } from "@/lib/stripe/products"
 import {
   ABERTURA_STATUS_LABELS,
@@ -175,6 +181,7 @@ export function ServicesProductsSection({
   const [purchasedProducts, setPurchasedProducts] = useState<ProductSlug[]>([])
   const [intake, setIntake] = useState<OnboardingIntake | null>(null)
   const [activeProcess, setActiveProcess] = useState<ServiceProcess | null>(initialProcess)
+  const [activeProductIntake, setActiveProductIntake] = useState<ProductRequestSlug | null>(null)
 
   async function reload() {
     const {
@@ -183,7 +190,7 @@ export function ServicesProductsSection({
 
     if (!user) {
       setState("products")
-      return
+      return { loadedIntake: null, products: [] }
     }
 
     const [{ data: purchases }, { data: intakeRow }] = await Promise.all([
@@ -197,7 +204,7 @@ export function ServicesProductsSection({
     setIntake(loadedIntake)
     const hasIntakeProduct = products.some((product) => INTAKE_PRODUCTS.includes(product))
     setState(hasIntakeProduct || loadedIntake?.wants_abertura_mei || activeProcess ? "form" : "products")
-    return loadedIntake
+    return { loadedIntake, products }
   }
 
   async function startMei() {
@@ -211,10 +218,29 @@ export function ServicesProductsSection({
     setState("products")
   }
 
+  function clearPurchaseParams() {
+    const params = new URLSearchParams(window.location.search)
+    params.delete("compra")
+    params.delete("product")
+    const newSearch = params.toString()
+    window.history.replaceState(null, "", newSearch ? `?${newSearch}` : window.location.pathname)
+  }
+
+  function closeProductIntake() {
+    setActiveProductIntake(null)
+    clearPurchaseParams()
+  }
+
+  async function handleProductIntakeSaved() {
+    await reload()
+    closeProductIntake()
+  }
+
   useEffect(() => {
     async function init() {
       const params = new URLSearchParams(window.location.search)
-      const loadedIntake = await reload()
+      const { loadedIntake } = await reload()
+      const product = params.get("product")
 
       // Suporte ao link "MEI grátis" de /abrir-cnpj: quem ainda não tinha
       // conta é mandado pro cadastro com ?start=mei no redirect; ao voltar
@@ -222,6 +248,10 @@ export function ServicesProductsSection({
       // precisar clicar em nada de novo.
       if (params.get("start") === "mei" && !loadedIntake?.wants_abertura_mei) {
         await startMei()
+      }
+
+      if (params.get("compra") === "success" && isProductRequestSlug(product)) {
+        setActiveProductIntake(product)
       }
 
       if (params.has("start")) {
@@ -273,7 +303,144 @@ export function ServicesProductsSection({
           </div>
         </div>
       )}
+      {activeProductIntake && (
+        <div className="client-hub-modal-backdrop" role="presentation" onMouseDown={() => closeProductIntake()}>
+          <div
+            className="client-hub-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-request-intake-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <ProductRequestIntakeForm
+              product={activeProductIntake}
+              onSaved={() => void handleProductIntakeSaved()}
+              onClose={closeProductIntake}
+            />
+          </div>
+        </div>
+      )}
     </>
+  )
+}
+
+function ProductRequestIntakeForm({
+  product,
+  onSaved,
+  onClose,
+}: {
+  product: ProductRequestSlug
+  onSaved: () => void
+  onClose: () => void
+}) {
+  const intake = PRODUCT_REQUEST_INTAKES[product]
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(
+    Object.fromEntries(intake.fields.map((field) => [field.name, ""])),
+  )
+  const [notes, setNotes] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const [message, setMessage] = useState("")
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError("")
+    setMessage("")
+
+    for (const field of intake.fields) {
+      const fieldError = validateIntakeField(field, fieldValues[field.name] ?? "")
+      if (fieldError) {
+        setError(fieldError)
+        return
+      }
+    }
+
+    setSaving(true)
+
+    try {
+      const response = await fetch("/api/client-requests/product-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product,
+          fields: fieldValues,
+          notes,
+        }),
+      })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || "Não foi possível salvar os dados da compra.")
+      }
+
+      setMessage("Dados enviados com sucesso.")
+      onSaved()
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Não foi possível salvar os dados da compra.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <article className="client-hub-panel">
+      <div className="client-hub-section-head client-requests-head">
+        <div>
+          <h2 id="product-request-intake-title">Dados da compra</h2>
+          <p>{intake.label}: preencha as informações para a equipe iniciar.</p>
+        </div>
+        <button className="client-requests-back-button" type="button" onClick={onClose} aria-label="Fechar formulário">
+          <X size={16} strokeWidth={2.4} aria-hidden="true" />
+        </button>
+      </div>
+
+      <form className="client-requests-form" onSubmit={handleSubmit}>
+        <div className="client-requests-special-fields">
+          {intake.fields.map((field) => (
+            <label className={field.type === "textarea" ? "client-requests-field is-wide" : "client-requests-field"} key={field.name}>
+              <span>{field.label}</span>
+              {field.type === "textarea" ? (
+                <textarea
+                  value={fieldValues[field.name] ?? ""}
+                  onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  placeholder={field.placeholder}
+                  rows={3}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={fieldValues[field.name] ?? ""}
+                  onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  placeholder={field.placeholder}
+                />
+              )}
+            </label>
+          ))}
+        </div>
+
+        <label className="client-requests-field">
+          <span>Observações adicionais</span>
+          <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Inclua qualquer detalhe importante para a equipe"
+            rows={3}
+          />
+        </label>
+
+        {error && <p className="client-requests-error">{error}</p>}
+        {message && <p className="onboarding-save-message">{message}</p>}
+
+        <div className="client-requests-form-actions">
+          <button type="button" className="client-requests-back-button" onClick={onClose} disabled={saving}>
+            Preencher depois
+          </button>
+          <button type="submit" className="client-requests-new-button" disabled={saving}>
+            {saving ? "Enviando..." : "Enviar dados"}
+          </button>
+        </div>
+      </form>
+    </article>
   )
 }
 

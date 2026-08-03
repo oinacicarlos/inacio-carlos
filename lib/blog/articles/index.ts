@@ -16,8 +16,24 @@ import { article as meiOuMeQuandoMigrar } from "./mei-ou-me-quando-migrar"
 import { article as comoCalcularDecimoTerceiroSalario } from "./como-calcular-decimo-terceiro-salario"
 import { article as feriasCltComoFuncionaOCalculo } from "./ferias-clt-como-funciona-o-calculo"
 import { article as contratoVerbalTemValidade } from "./contrato-verbal-tem-validade"
+import { article as rpaOuNotaFiscalPrestadorServico } from "./rpa-ou-nota-fiscal-prestador-servico"
+import { article as simplesNacionalPrestadorServico } from "./simples-nacional-prestador-servico"
+import { article as certificadoDigitalA1ParaEmpresa } from "./certificado-digital-a1-para-empresa"
+import { article as inscricaoMunicipalParaPrestadorServico } from "./inscricao-municipal-para-prestador-servico"
+import { article as reformaTributariaPrestadorServico2026 } from "./reforma-tributaria-prestador-servico-2026"
+import { prioridadeSimples2026Articles } from "./prioridade-simples-2026"
+import { regularizacaoConversaoArticles } from "./regularizacao-conversao"
+import { prestadoresServicoSeoArticles } from "./prestadores-servico-seo"
 
 const ALL_ARTICLES: BlogArticle[] = [
+  ...prioridadeSimples2026Articles,
+  ...regularizacaoConversaoArticles,
+  ...prestadoresServicoSeoArticles,
+  rpaOuNotaFiscalPrestadorServico,
+  simplesNacionalPrestadorServico,
+  certificadoDigitalA1ParaEmpresa,
+  inscricaoMunicipalParaPrestadorServico,
+  reformaTributariaPrestadorServico2026,
   comoCalcularPrecoDeServico,
   oQueEDasMeiComoPagar,
   diferencaDemissaoSemJustaCausaPedidoAcordo,

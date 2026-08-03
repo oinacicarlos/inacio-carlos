@@ -17,7 +17,7 @@ export const article: BlogArticle = {
   sections: [
     {
       type: "paragraph",
-      text: "Boa parte dos prestadores de serviço combina tudo por mensagem, liga pra fechar detalhes e começa a trabalhar sem nunca assinar nada. Funciona bem — até o dia em que o cliente discorda do que foi combinado, atrasa o pagamento ou muda o escopo no meio do caminho. É aí que a pergunta aparece: um contrato verbal vale alguma coisa?",
+      text: "Boa parte dos prestadores de serviço combina tudo por mensagem, liga pra fechar detalhes e começa a trabalhar sem nunca assinar nada. Funciona bem, até o dia em que o cliente discorda do que foi combinado, atrasa o pagamento ou muda o escopo no meio do caminho. É aí que a pergunta aparece: um contrato verbal vale alguma coisa?",
     },
     {
       type: "heading",
@@ -27,7 +27,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Sim. No Brasil, o Código Civil não exige forma escrita para a maioria dos contratos de prestação de serviço — um acordo verbal, feito de boa-fé, é juridicamente válido e pode ser cobrado judicialmente se necessário. O problema não está na validade em si, mas no que vem logo depois: provar o que foi combinado.",
+      text: "Sim. No Brasil, o Código Civil não exige forma escrita para a maioria dos contratos de prestação de serviço, um acordo verbal, feito de boa-fé, é juridicamente válido e pode ser cobrado judicialmente se necessário. O problema não está na validade em si, mas no que vem logo depois: provar o que foi combinado.",
     },
     {
       type: "heading",
@@ -37,7 +37,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Quando surge uma divergência, quem alega algo precisa provar. Num contrato verbal, não existe um documento único que descreva exatamente o que foi combinado — o que sobra são fragmentos espalhados em conversas, e cada parte tende a lembrar (ou defender) uma versão diferente do acordo original.",
+      text: "Quando surge uma divergência, quem alega algo precisa provar. Num contrato verbal, não existe um documento único que descreva exatamente o que foi combinado, o que sobra são fragmentos espalhados em conversas, e cada parte tende a lembrar (ou defender) uma versão diferente do acordo original.",
     },
     {
       type: "list",
@@ -57,7 +57,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Conversas de WhatsApp, e-mails trocados e comprovantes de pagamento podem ajudar a reconstruir o que foi combinado, e não são desprezados judicialmente. O problema é que são provas fragmentadas e indiretas — muito mais fracas e trabalhosas de sustentar do que um único documento assinado por ambas as partes, que já nasce descrevendo o acordo por completo.",
+      text: "Conversas de WhatsApp, e-mails trocados e comprovantes de pagamento podem ajudar a reconstruir o que foi combinado, e não são desprezados judicialmente. O problema é que são provas fragmentadas e indiretas, muito mais fracas e trabalhosas de sustentar do que um único documento assinado por ambas as partes, que já nasce descrevendo o acordo por completo.",
     },
     {
       type: "heading",
@@ -87,7 +87,7 @@ export const article: BlogArticle = {
     },
     {
       type: "paragraph",
-      text: "Se você já tem clientes recorrentes que nunca assinaram nada, a transição pode ser simples: envie um contrato resumindo o que já é praticado entre vocês, deixando claro que é só uma formalização do que já funciona. Na maioria dos casos, o cliente assina sem resistência — porque não muda nada do que já foi combinado, só documenta.",
+      text: "Se você já tem clientes recorrentes que nunca assinaram nada, a transição pode ser simples: envie um contrato resumindo o que já é praticado entre vocês, deixando claro que é só uma formalização do que já funciona. Na maioria dos casos, o cliente assina sem resistência, porque não muda nada do que já foi combinado, só documenta.",
     },
     {
       type: "heading",
@@ -109,12 +109,12 @@ export const article: BlogArticle = {
     {
       question: "Preciso de advogado para fazer um contrato simples de prestação de serviço?",
       answer:
-        "Para a maioria dos serviços do dia a dia, um contrato bem estruturado — com escopo, prazo, valor e condições de pagamento — já cobre o essencial. Um advogado se torna importante em situações específicas ou de maior complexidade jurídica.",
+        "Para a maioria dos serviços do dia a dia, um contrato bem estruturado, com escopo, prazo, valor e condições de pagamento, já cobre o essencial. Um advogado se torna importante em situações específicas ou de maior complexidade jurídica.",
     },
     {
       question: "O contrato precisa ser assinado com certificado digital para valer?",
       answer:
-        "Não necessariamente. Um contrato assinado fisicamente ou por uma plataforma de assinatura eletrônica simples já tem validade — o certificado digital reforça a segurança jurídica, mas não é o único caminho válido.",
+        "Não necessariamente. Um contrato assinado fisicamente ou por uma plataforma de assinatura eletrônica simples já tem validade, o certificado digital reforça a segurança jurídica, mas não é o único caminho válido.",
     },
   ],
   relatedTool: {

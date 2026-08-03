@@ -20,7 +20,7 @@ export default function BlogPage() {
           Blog Tropa
         </span>
         <h1 id="blog-hero-title">Guias práticos para quem presta serviço e tem CNPJ</h1>
-        <p>Precificação, contratos, rescisão, contratação e tudo sobre manter o MEI em dia — sem juridiquês.</p>
+        <p>Precificação, contratos, rescisão, contratação e tudo sobre manter o MEI em dia, sem juridiquês.</p>
       </section>
 
       <section className="blog-listing" aria-label="Todos os artigos">

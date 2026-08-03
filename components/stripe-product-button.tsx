@@ -35,7 +35,7 @@ export function StripeProductButton({ product, children, className }: StripeProd
         // Compra de produto avulso costuma vir de gente nova — manda pro
         // cadastro (que já tem link pra login, se a pessoa já tiver conta)
         // em vez de assumir que ela já é cliente.
-        window.location.href = `/cadastro?redirect=${encodeURIComponent("/hub?tab=processo")}`
+        window.location.href = `/cadastro?redirect=${encodeURIComponent(`/hub?tab=ferramentas&product=${product}`)}`
         return
       }
 

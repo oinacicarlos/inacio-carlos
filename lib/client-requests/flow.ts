@@ -1,5 +1,6 @@
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 import type { RequestCategory } from "@/lib/client-requests/constants"
+import { PRODUCT_REQUEST_INTAKES, type RequestIntakeField } from "@/lib/client-requests/product-intake"
 import type { ProductSlug } from "@/lib/stripe/products"
 import type { ToolSlug } from "@/lib/tool-usage/tools"
 
@@ -11,17 +12,10 @@ export type RequestFlowTemplate = {
   category: RequestCategory
   title: string
   body: string
-  fields?: RequestFlowField[]
+  fields?: RequestIntakeField[]
 }
 
-export type RequestFlowField = {
-  name: string
-  label: string
-  placeholder?: string
-  type?: "text" | "textarea"
-  required?: boolean
-  document?: "cpf" | "cnpj"
-}
+export type RequestFlowField = RequestIntakeField
 
 export type RequestFlowAction =
   | { actionType: "product"; label: string; product: ProductSlug }
@@ -167,20 +161,7 @@ export const REQUEST_FLOW_SECTORS: RequestFlowSector[] = [
         action: {
           actionType: "request",
           label: "Informar dados",
-          template: {
-            label: "Nota fiscal de serviço",
-            category: "emissao_nota_fiscal",
-            title: "Emissão de nota fiscal de serviço",
-            body: "Preciso emitir uma nota fiscal de serviço com os dados abaixo:",
-            fields: [
-              { name: "tomador", label: "Nome/Razão social do tomador", required: true },
-              { name: "documentoTomador", label: "CPF ou CNPJ do tomador", required: true },
-              { name: "emailTomador", label: "E-mail do tomador", required: true },
-              { name: "descricaoServico", label: "Descrição do serviço", type: "textarea", required: true },
-              { name: "valorNota", label: "Valor da nota", placeholder: "R$ 0,00", required: true },
-              { name: "municipio", label: "Município da prestação", required: true },
-            ],
-          },
+          template: PRODUCT_REQUEST_INTAKES.nota_fiscal_servico,
         },
       },
       {
@@ -190,19 +171,7 @@ export const REQUEST_FLOW_SECTORS: RequestFlowSector[] = [
         action: {
           actionType: "request",
           label: "Informar dados",
-          template: {
-            label: "Nota fiscal de produto",
-            category: "emissao_nota_fiscal",
-            title: "Emissão de nota fiscal de produto",
-            body: "Preciso emitir uma nota fiscal de produto com os dados abaixo:",
-            fields: [
-              { name: "comprador", label: "Nome/Razão social do comprador", required: true },
-              { name: "documentoComprador", label: "CPF ou CNPJ do comprador", required: true },
-              { name: "produto", label: "Produto vendido", type: "textarea", required: true },
-              { name: "valorProduto", label: "Valor do produto", placeholder: "R$ 0,00", required: true },
-              { name: "enderecoEntrega", label: "Endereço de entrega", type: "textarea", required: true },
-            ],
-          },
+          template: PRODUCT_REQUEST_INTAKES.nota_fiscal_produto,
         },
       },
       {
@@ -289,16 +258,7 @@ export const REQUEST_FLOW_SECTORS: RequestFlowSector[] = [
         action: {
           actionType: "request",
           label: "Informar CPF",
-          template: {
-            label: "Consulta Serasa PF",
-            category: "consulta_serasa",
-            title: "Consulta Serasa PF",
-            body: "Preciso realizar uma consulta Serasa de pessoa física:",
-            fields: [
-              { name: "cpf", label: "CPF", placeholder: "000.000.000-00", required: true, document: "cpf" },
-              { name: "nome", label: "Nome completo", required: true },
-            ],
-          },
+          template: PRODUCT_REQUEST_INTAKES.serasa_pf,
         },
       },
       {
@@ -308,16 +268,7 @@ export const REQUEST_FLOW_SECTORS: RequestFlowSector[] = [
         action: {
           actionType: "request",
           label: "Informar CNPJ",
-          template: {
-            label: "Consulta Serasa PJ",
-            category: "consulta_serasa",
-            title: "Consulta Serasa PJ",
-            body: "Preciso realizar uma consulta Serasa de pessoa jurídica:",
-            fields: [
-              { name: "cnpj", label: "CNPJ", placeholder: "00.000.000/0001-00", required: true, document: "cnpj" },
-              { name: "razaoSocial", label: "Razão social", required: true },
-            ],
-          },
+          template: PRODUCT_REQUEST_INTAKES.serasa_pj,
         },
       },
       {

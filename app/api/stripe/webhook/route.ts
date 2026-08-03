@@ -139,9 +139,8 @@ const ONBOARDING_WANTS_FIELD: Partial<Record<ProductSlug, string>> = {
   alteracao_cnpj: "wants_alteracao_cnpj",
 }
 
-// Produtos "sob encomenda": não têm formulário de triagem próprio — a compra
-// já cria uma solicitação automática (ver handleProductCheckoutCompleted) na
-// mesma tabela usada pela aba "Solicitações", e o cliente acompanha por lá.
+// Produtos "sob encomenda": a compra cria uma solicitação automática e o Hub
+// abre um popup pós-checkout para o cliente preencher os dados operacionais.
 const REQUEST_PRODUCT_TITLES: Partial<Record<ProductSlug, string>> = {
   serasa_pf: "Consulta Serasa PF",
   serasa_pj: "Consulta Serasa PJ",
@@ -159,7 +158,7 @@ const REQUEST_PRODUCT_CATEGORY: Partial<Record<ProductSlug, string>> = {
 function buildRequestProductEmail(title: string) {
   return {
     subject: `Recebemos o pagamento: ${title}`,
-    text: `Recebemos o pagamento da sua solicitação de ${title}.\n\nJá criamos uma solicitação pra você — acesse a aba "Solicitações" no seu hub pra acompanhar. Nossa equipe vai confirmar os dados necessários por lá e te retornar assim que estiver pronto.`,
+    text: `Recebemos o pagamento da sua solicitação de ${title}.\n\nAcesse o Hub para preencher os dados necessários e acompanhar o andamento na aba "Solicitações".`,
   }
 }
 
@@ -232,18 +231,31 @@ async function handleProductCheckoutCompleted(
       }
     }
   } else if (requestTitle) {
-    // Produto "sob encomenda": não tem triagem própria, então a compra já
-    // vira uma solicitação na mesma tabela da aba "Solicitações" do hub.
-    const { error: requestError } = await supabase.from("client_requests").insert({
-      user_id: userId,
-      category: REQUEST_PRODUCT_CATEGORY[product] ?? "outra",
-      title: requestTitle,
-      description:
-        "Solicitação criada automaticamente após o pagamento. Nossa equipe vai confirmar os dados necessários e retornar por aqui.",
-      priority: "normal",
-    })
-    if (requestError) {
-      throw new Error(`client_requests insert failed: ${requestError.message}`)
+    const { data: existingRequest, error: existingRequestError } = await supabase
+      .from("client_requests")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("title", requestTitle)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingRequestError) {
+      throw new Error(`client_requests lookup failed: ${existingRequestError.message}`)
+    }
+
+    if (!existingRequest) {
+      const { error: requestError } = await supabase.from("client_requests").insert({
+        user_id: userId,
+        category: REQUEST_PRODUCT_CATEGORY[product] ?? "outra",
+        title: requestTitle,
+        description:
+          "Solicitação criada automaticamente após o pagamento. Aguardando o cliente preencher os dados da compra no Hub.",
+        priority: "normal",
+      })
+      if (requestError) {
+        throw new Error(`client_requests insert failed: ${requestError.message}`)
+      }
     }
   }
 
