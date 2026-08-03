@@ -3207,6 +3207,72 @@ function OfflineBillingModule() {
     setClients(current => current.map(item => item.id === client.id ? mapOfflineBillingClient(data as OfflineBillingClientRow) : item))
   }
 
+  const insertCompetenceSlips = async (clientsToGenerate: OfflineBillingClient[]) => {
+    const payload = clientsToGenerate.map(client => ({
+      client_id: client.id,
+      client_name: client.clientName,
+      email: client.email,
+      whatsapp: client.whatsapp,
+      due_date: getBillingDueDateFromDueMonth(selectedDueMonth, client.dueDay),
+      reference_month: selectedReferenceMonth,
+      amount: client.defaultAmount,
+      file_name: '',
+      file_path: null,
+      file_size: 0,
+    }))
+
+    return supabase
+      .from(OFFLINE_BILLING_TABLE)
+      .insert(payload)
+      .select('id')
+  }
+
+  const generateClientCompetence = async (client: OfflineBillingClient) => {
+    setError('')
+    setMessage('')
+    setGenerating(true)
+
+    try {
+      if (!client.active) {
+        setError('Ative o cliente antes de gerar um boleto para ele.')
+        return
+      }
+
+      const { data: existingSlip, error: existingError } = await supabase
+        .from(OFFLINE_BILLING_TABLE)
+        .select('id')
+        .eq('reference_month', selectedReferenceMonth)
+        .eq('client_id', client.id)
+        .maybeSingle()
+
+      if (existingError) {
+        setError('Não consegui verificar se esse cliente já tem boleto neste mês.')
+        return
+      }
+
+      if (existingSlip) {
+        await loadBillingData()
+        setMessage(`${client.clientName} já tem boleto em ${formatBillingReference(selectedDueMonth)}.`)
+        setActiveArea('Competências')
+        return
+      }
+
+      const { data: insertedRows, error: insertError } = await insertCompetenceSlips([client])
+
+      if (insertError || !insertedRows?.length) {
+        const details = insertError ? [insertError.code, insertError.message, insertError.details].filter(Boolean).join(' · ') : ''
+        setError(`Não consegui gerar o boleto deste cliente. ${details}`.trim())
+        return
+      }
+
+      await loadBillingData()
+      setMessage(`Boleto de ${formatBillingReference(selectedDueMonth)} gerado para ${client.clientName}.`)
+      setActiveArea('Competências')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const generateCompetence = async () => {
     setError('')
     setMessage('')
@@ -3242,23 +3308,7 @@ function OfflineBillingModule() {
         return
       }
 
-      const payload = clientsToGenerate.map(client => ({
-        client_id: client.id,
-        client_name: client.clientName,
-        email: client.email,
-        whatsapp: client.whatsapp,
-        due_date: getBillingDueDateFromDueMonth(selectedDueMonth, client.dueDay),
-        reference_month: selectedReferenceMonth,
-        amount: client.defaultAmount,
-        file_name: '',
-        file_path: null,
-        file_size: 0,
-      }))
-
-      const { data: insertedRows, error: insertError } = await supabase
-        .from(OFFLINE_BILLING_TABLE)
-        .insert(payload)
-        .select('id')
+      const { data: insertedRows, error: insertError } = await insertCompetenceSlips(clientsToGenerate)
 
       if (insertError) {
         await loadBillingData()
@@ -3287,7 +3337,7 @@ function OfflineBillingModule() {
     }
   }
 
-  const sendBillingEmail = async (id: string, type: 'initial' | 'reminder_5d' | 'due_date' | 'recovery') => {
+  const sendBillingEmail = async (id: string, type: 'initial' | 'reminder_5d' | 'due_date' | 'recovery', testEmail = '') => {
     setSendingId(id)
     setError('')
     setMessage('')
@@ -3296,7 +3346,7 @@ function OfflineBillingModule() {
       const response = await fetch('/api/offline-boletos/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, type }),
+        body: JSON.stringify({ id, type, testEmail: testEmail || undefined }),
       })
       const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
 
@@ -3304,13 +3354,26 @@ function OfflineBillingModule() {
         throw new Error(data?.error || 'Não consegui enviar o e-mail.')
       }
 
-      setMessage('E-mail enviado com sucesso.')
-      await loadBillingData()
+      setMessage(testEmail ? `E-mail teste enviado para ${testEmail}.` : 'E-mail enviado com sucesso.')
+      if (!testEmail) await loadBillingData()
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : 'Não consegui enviar o e-mail.')
     } finally {
       setSendingId(null)
     }
+  }
+
+  const sendBillingTestEmail = async (slip: OfflineBillingSlip) => {
+    const email = window.prompt('Enviar teste para qual e-mail?')
+    const trimmedEmail = email?.trim()
+
+    if (!trimmedEmail) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Informe um e-mail de teste válido.')
+      return
+    }
+
+    await sendBillingEmail(slip.id, 'initial', trimmedEmail)
   }
 
   const attachSlipFile = async (slip: OfflineBillingSlip, file: File) => {
@@ -3545,6 +3608,9 @@ function OfflineBillingModule() {
                         }}>
                           Editar
                         </button>
+                        <button type="button" onClick={() => void generateClientCompetence(client)} disabled={generating || !client.active}>
+                          Gerar boleto
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -3631,7 +3697,10 @@ function OfflineBillingModule() {
                           {openingId === slip.id ? 'Abrindo...' : 'Abrir'}
                         </button>
                         <button type="button" onClick={() => void sendBillingEmail(slip.id, 'initial')} disabled={sendingId === slip.id || !slip.filePath}>
-                          {sendingId === slip.id ? 'Enviando...' : 'Reenviar'}
+                          {sendingId === slip.id ? 'Enviando...' : slip.initialSentAt ? 'Reenviar boleto' : 'Enviar boleto'}
+                        </button>
+                        <button type="button" onClick={() => void sendBillingTestEmail(slip)} disabled={sendingId === slip.id || !slip.filePath}>
+                          Teste
                         </button>
                         <button type="button" onClick={() => setEditingSlip(slip)}>
                           Editar

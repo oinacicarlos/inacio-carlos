@@ -42,6 +42,10 @@ function parseEmailList(value: string) {
     .filter(Boolean)
 }
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createRouteHandlerSupabaseClient()
   const {
@@ -57,13 +61,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 })
   }
 
-  const payload = (await request.json().catch(() => null)) as { id?: unknown; type?: unknown } | null
+  const payload = (await request.json().catch(() => null)) as { id?: unknown; type?: unknown; testEmail?: unknown } | null
   const id = typeof payload?.id === "string" ? payload.id : ""
   const payloadType = payload?.type
   const type = isSendType(payloadType) ? payloadType : "initial"
+  const testEmail = typeof payload?.testEmail === "string" ? payload.testEmail.trim() : ""
+  const isTest = Boolean(testEmail)
 
   if (!id) {
     return NextResponse.json({ error: "Boleto inválido." }, { status: 400 })
+  }
+
+  if (isTest && !isValidEmail(testEmail)) {
+    return NextResponse.json({ error: "Informe um e-mail de teste válido." }, { status: 400 })
   }
 
   const { data: slip, error: loadError } = await supabase
@@ -81,7 +91,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Anexe o PDF do boleto antes de enviar." }, { status: 400 })
   }
 
-  const recipients = parseEmailList(row.email)
+  const recipients = isTest ? [testEmail] : parseEmailList(row.email)
   if (!recipients.length) {
     return NextResponse.json({ error: "O boleto não tem e-mail cadastrado." }, { status: 400 })
   }
@@ -102,18 +112,22 @@ export async function POST(request: NextRequest) {
 
   const result = await sendEmail({
     to: recipients,
-    subject: email.subject,
-    text: email.text,
+    subject: isTest ? `[TESTE] ${email.subject}` : email.subject,
+    text: isTest
+      ? `E-mail de teste para conferência interna.\n\nCliente real: ${row.client_name}\nDestinatário original: ${row.email}\n\n${email.text}`
+      : email.text,
   })
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  await supabase
-    .from("offline_billing_slips")
-    .update({ [SENT_FIELD_BY_TYPE[type]]: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("id", row.id)
+  if (!isTest) {
+    await supabase
+      .from("offline_billing_slips")
+      .update({ [SENT_FIELD_BY_TYPE[type]]: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", row.id)
+  }
 
   return NextResponse.json({ ok: true, id: result.id })
 }
