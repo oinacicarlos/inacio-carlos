@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
+import { GoogleAdsPurchaseConversion } from "@/components/google-ads-purchase-conversion"
 import "./globals.css"
 
 const inter = Inter({
@@ -87,6 +88,9 @@ fbq('track', 'PageView');`,
         </noscript>
       </head>
       <body className={inter.variable}>
+        <Suspense fallback={null}>
+          <GoogleAdsPurchaseConversion />
+        </Suspense>
         <Suspense fallback={null}>{children}</Suspense>
       </body>
     </html>

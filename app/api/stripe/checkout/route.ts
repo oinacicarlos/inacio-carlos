@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin") || new URL(request.url).origin
   const body = new URLSearchParams({
     mode: "subscription",
-    success_url: `${origin}/?checkout=success`,
+    success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/#planos`,
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
