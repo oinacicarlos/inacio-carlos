@@ -1,22 +1,46 @@
 import { NextResponse } from "next/server"
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route"
 
-const priceIds = {
-  bronze: process.env.STRIPE_PRICE_BRONZE,
-  prata: process.env.STRIPE_PRICE_PRATA,
-  ouro: process.env.STRIPE_PRICE_OURO,
-  diamante: process.env.STRIPE_PRICE_DIAMANTE,
+const PLAN_PRICE_ENV_NAMES = {
+  bronze: "STRIPE_PRICE_BRONZE",
+  prata: "STRIPE_PRICE_PRATA",
+  ouro: "STRIPE_PRICE_OURO",
+  diamante: "STRIPE_PRICE_DIAMANTE",
 } as const
 
+type PlanKey = keyof typeof PLAN_PRICE_ENV_NAMES
+
+function isPlanKey(value: unknown): value is PlanKey {
+  return value === "bronze" || value === "prata" || value === "ouro" || value === "diamante"
+}
+
+function getStripePlanPriceIds() {
+  return {
+    bronze: process.env.STRIPE_PRICE_BRONZE,
+    prata: process.env.STRIPE_PRICE_PRATA,
+    ouro: process.env.STRIPE_PRICE_OURO,
+    diamante: process.env.STRIPE_PRICE_DIAMANTE,
+  } as const
+}
+
 export async function POST(request: Request) {
-  const { plan } = (await request.json()) as { plan?: keyof typeof priceIds }
-  const priceId = plan ? priceIds[plan] : null
+  const { plan } = (await request.json()) as { plan?: unknown }
+  const planKey = isPlanKey(plan) ? plan : null
+  const priceIds = getStripePlanPriceIds()
+  const priceId = planKey ? priceIds[planKey] : null
+  const envName = planKey ? PLAN_PRICE_ENV_NAMES[planKey] : null
+
+  console.info("[stripe.checkout] price lookup", {
+    planReceived: typeof plan === "string" ? plan : null,
+    envName,
+    found: Boolean(priceId),
+  })
 
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Stripe Secret Key não configurada." }, { status: 500 })
   }
 
-  if (!priceId || !plan) {
+  if (!priceId || !planKey) {
     return NextResponse.json({ error: "Price ID do plano não configurado." }, { status: 400 })
   }
 
@@ -42,10 +66,10 @@ export async function POST(request: Request) {
     client_reference_id: user.id,
     customer_email: user.email ?? "",
     "metadata[user_id]": user.id,
-    "metadata[plan]": plan,
+    "metadata[plan]": planKey,
     // também grava no metadata da assinatura resultante, não só na sessão
     "subscription_data[metadata][user_id]": user.id,
-    "subscription_data[metadata][plan]": plan,
+    "subscription_data[metadata][plan]": planKey,
   })
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
