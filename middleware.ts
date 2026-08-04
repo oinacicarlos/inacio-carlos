@@ -193,7 +193,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isLegacyAdminRoute) {
-      return redirectPreservingCookies(request, response, '/clientes')
+      return redirectPreservingCookies(request, response, '/clientes', contentSecurityPolicy)
     }
   }
 
