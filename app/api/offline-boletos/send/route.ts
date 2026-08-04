@@ -12,6 +12,7 @@ type OfflineBillingSlipRow = {
   due_date: string
   reference_month: string
   amount: number
+  file_name: string | null
   file_path: string | null
 }
 
@@ -46,6 +47,14 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+function getAttachmentFilename(fileName: string | null, filePath: string, referenceMonth: string) {
+  const pathName = filePath.split("/").pop() || ""
+  const fallbackName = `boleto-tropa-${referenceMonth.slice(0, 7)}.pdf`
+  const selectedName = fileName?.trim() || pathName || fallbackName
+
+  return selectedName.toLowerCase().endsWith(".pdf") ? selectedName : `${selectedName}.pdf`
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createRouteHandlerSupabaseClient()
   const {
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
 
   const { data: slip, error: loadError } = await supabase
     .from("offline_billing_slips")
-    .select("id, client_name, email, due_date, reference_month, amount, file_path")
+    .select("id, client_name, email, due_date, reference_month, amount, file_name, file_path")
     .eq("id", id)
     .maybeSingle()
 
@@ -102,20 +111,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não foi possível gerar o link do boleto." }, { status: 500 })
   }
 
+  const attachmentFilename = getAttachmentFilename(row.file_name, row.file_path, row.reference_month)
+  const { data: boletoFile, error: downloadError } = await supabase.storage.from(BUCKET).download(row.file_path)
+  const attachments: Array<{ filename: string; content?: string; path?: string }> = []
+
+  if (boletoFile) {
+    const fileBuffer = Buffer.from(await boletoFile.arrayBuffer())
+    attachments.push({
+      filename: attachmentFilename,
+      content: fileBuffer.toString("base64"),
+    })
+  } else if (downloadError) {
+    attachments.push({
+      filename: attachmentFilename,
+      path: signed.signedUrl,
+    })
+  } else {
+    attachments.push({
+      filename: attachmentFilename,
+      path: signed.signedUrl,
+    })
+  }
+
   const email = buildOfflineBillingEmail({
     clientName: row.client_name,
     referenceMonth: row.reference_month,
     dueDate: row.due_date,
     amount: formatAmount(Number(row.amount) || 0),
     boletoUrl: signed.signedUrl,
+    isTest,
+    originalRecipients: row.email,
   })
 
   const result = await sendEmail({
     to: recipients,
     subject: isTest ? `[TESTE] ${email.subject}` : email.subject,
-    text: isTest
-      ? `E-mail de teste para conferência interna.\n\nCliente real: ${row.client_name}\nDestinatário original: ${row.email}\n\n${email.text}`
-      : email.text,
+    text: email.text,
+    html: email.html,
+    attachments,
   })
 
   if (!result.ok) {
