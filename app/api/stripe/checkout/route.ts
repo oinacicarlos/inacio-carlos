@@ -46,31 +46,45 @@ export async function POST(request: Request) {
 
   // Quem está comprando precisa estar autenticado — obtido no servidor via
   // cookie de sessão, nunca a partir de algo que o navegador informa.
+  //
+  // TEMP-BRONZE-GUEST-CHECKOUT (2026-08-04): teste de conversão do Google
+  // Ads exige checkout sem login. Enquanto durar o teste, só o plano Bronze
+  // pode pular a exigência de usuário autenticado. Para reverter: apagar
+  // `isGuestCheckoutAllowed` e voltar a bloquear sempre que `!user`.
+  const isGuestCheckoutAllowed = planKey === "bronze"
+
   const supabase = await createRouteHandlerSupabaseClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (!user && !isGuestCheckoutAllowed) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
   const origin = request.headers.get("origin") || new URL(request.url).origin
-  const body = new URLSearchParams({
+  const params: Record<string, string> = {
     mode: "subscription",
     success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/#planos`,
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
-    // liga a sessão de checkout ao usuário interno do Supabase
-    client_reference_id: user.id,
-    customer_email: user.email ?? "",
-    "metadata[user_id]": user.id,
     "metadata[plan]": planKey,
     // também grava no metadata da assinatura resultante, não só na sessão
-    "subscription_data[metadata][user_id]": user.id,
     "subscription_data[metadata][plan]": planKey,
-  })
+  }
+
+  // Sem usuário (checkout Bronze de visitante) não há a quem ligar a sessão
+  // — client_reference_id/metadata[user_id] ficam de fora e o Stripe coleta
+  // o e-mail na própria página hospedada de checkout.
+  if (user) {
+    params.client_reference_id = user.id
+    params.customer_email = user.email ?? ""
+    params["metadata[user_id]"] = user.id
+    params["subscription_data[metadata][user_id]"] = user.id
+  }
+
+  const body = new URLSearchParams(params)
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

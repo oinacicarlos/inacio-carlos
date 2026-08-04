@@ -27,15 +27,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Sessão inválida." }, { status: 400 })
   }
 
-  const supabase = await createRouteHandlerSupabaseClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
-
   const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
     headers: {
       Authorization: `Bearer ${secretKey}`,
@@ -47,8 +38,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: session?.error?.message || "Não foi possível confirmar a compra." }, { status: 400 })
   }
 
-  if (session.client_reference_id !== user.id) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  // TEMP-BRONZE-GUEST-CHECKOUT (2026-08-04): uma sessão sem client_reference_id
+  // só existe quando o checkout foi aberto sem login (hoje, só o Bronze
+  // permite isso — ver app/api/stripe/checkout/route.ts). Sem usuário dono,
+  // não há contra quem validar, então libera a leitura do status pra essa
+  // sessão específica. Reverter junto com o ajuste do outro arquivo.
+  if (session.client_reference_id) {
+    const supabase = await createRouteHandlerSupabaseClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+    }
+
+    if (session.client_reference_id !== user.id) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 })
+    }
   }
 
   return NextResponse.json({
