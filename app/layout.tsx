@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import { GoogleAdsPurchaseConversion } from "@/components/google-ads-purchase-conversion"
@@ -46,16 +47,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined
+
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18367655896" />
+        <script nonce={nonce} async src="https://www.googletagmanager.com/gtag/js?id=AW-18367655896" />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -65,6 +69,7 @@ gtag('config', 'G-ECR1NWWTFG');`,
           }}
         />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
