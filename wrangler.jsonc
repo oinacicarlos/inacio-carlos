@@ -27,10 +27,7 @@
     "RESEND_FROM": "Tropa <contato@tropacontabilidade.com>",
     "STRIPE_PRICE_ABERTURA_EMPRESA": "price_1U0X7K7im61UN4ESP8HC4jO9",
     "STRIPE_PRICE_ALTERACAO_CNPJ": "price_1U0X6F7im61UN4ESn8KQz2Tl",
-    // TEMP-BRONZE-PRICE-TEST (2026-08-04): valor temporário para o teste de
-    // conversão do Google Ads. Restaurar para "price_1U0X3K7im61UN4ES3YTNMBEo"
-    // depois do teste.
-    "STRIPE_PRICE_BRONZE": "price_1U0jx47im61UN4ESHbGxDRT9",
+    "STRIPE_PRICE_BRONZE": "price_1U0X3K7im61UN4ES3YTNMBEo",
     "STRIPE_PRICE_CERTIFICADO_A1": "price_1U0X4g7im61UN4ESdyUvrGDM",
     "STRIPE_PRICE_CERTIFICADO_PF_A1": "price_1U0X4V7im61UN4ESztolOP2e",
     "STRIPE_PRICE_DIAMANTE": "price_1U0X437im61UN4ESF4CTrpIJ",

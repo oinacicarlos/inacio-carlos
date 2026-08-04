@@ -4,11 +4,7 @@ import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 
 const GOOGLE_ADS_PURCHASE_CONVERSION = "AW-18367655896/vaVjCOaqz9scENjfsLZE"
-// TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04): prefixo versionado para destravar
-// sessões de teste que possam ter sido marcadas como "sent" indevidamente
-// antes do disparo real do gtag. Reverter para o prefixo sem ":v2" depois do
-// teste (ou manter — chaves antigas simplesmente ficam órfãs no localStorage).
-const DEDUPE_KEY_PREFIX = "tropa:google-ads-purchase-conversion:v2:"
+const DEDUPE_KEY_PREFIX = "tropa:google-ads-purchase-conversion:"
 
 // Depois do redirect do Stripe, o script inline que define `window.gtag`
 // (app/layout.tsx) normalmente já rodou antes deste efeito. Mas para não
@@ -74,23 +70,9 @@ function markConversionAsTracked(key: string) {
 export function GoogleAdsPurchaseConversion() {
   const searchParams = useSearchParams()
 
-  // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04): confirma que o componente é
-  // montado em produção. Remover junto com os demais logs deste arquivo.
-  useEffect(() => {
-    console.info("[google-ads-conversion] mounted")
-  }, [])
-
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
     const sessionId = params.get("session_id")
-
-    // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-    console.info("[google-ads-conversion] params", {
-      checkout: params.get("checkout"),
-      compra: params.get("compra"),
-      hasSessionId: Boolean(sessionId),
-      sessionIdFirst8: sessionId ? sessionId.slice(0, 8) : null,
-    })
 
     if (!sessionId || !isCheckoutSuccess(params)) return
 
@@ -102,21 +84,10 @@ export function GoogleAdsPurchaseConversion() {
 
     async function confirmAndTrackPurchase() {
       try {
-        // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-        console.info("[google-ads-conversion] validating session")
-
         const response = await fetch(`/api/stripe/checkout-session?session_id=${encodeURIComponent(checkoutSessionId)}`, {
           method: "GET",
         })
         const data = (await response.json().catch(() => null)) as CheckoutSessionResponse | null
-
-        // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04): nunca inclui STRIPE_SECRET_KEY.
-        console.info("[google-ads-conversion] checkout-session response", {
-          httpStatus: response.status,
-          paymentStatus: data?.payment_status ?? null,
-          amountTotal: data?.amount_total ?? null,
-          currency: data?.currency ?? null,
-        })
 
         if (
           cancelled ||
@@ -133,24 +104,7 @@ export function GoogleAdsPurchaseConversion() {
         if (cancelled) return
 
         const gtag = window.gtag
-
-        if (!gtagReady || typeof gtag !== "function") {
-          // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-          console.info("[google-ads-conversion] gtag unavailable after wait", {
-            attempts: GTAG_WAIT_MAX_ATTEMPTS,
-            intervalMs: GTAG_WAIT_INTERVAL_MS,
-          })
-          return
-        }
-
-        // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-        console.info("[google-ads-conversion] before gtag", {
-          gtagType: typeof gtag,
-          sendTo: GOOGLE_ADS_PURCHASE_CONVERSION,
-          value: data.amount_total / 100,
-          currency: data.currency.toUpperCase(),
-          transactionIdLast8: data.session_id.slice(-8),
-        })
+        if (!gtagReady || typeof gtag !== "function") return
 
         gtag("event", "conversion", {
           send_to: GOOGLE_ADS_PURCHASE_CONVERSION,
@@ -159,14 +113,10 @@ export function GoogleAdsPurchaseConversion() {
           transaction_id: data.session_id,
         })
 
-        // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-        console.info("[google-ads-conversion] conversion dispatched")
-
         // Dedupe só é gravado depois do gtag ter sido chamado com sucesso.
         markConversionAsTracked(dedupeKey)
-      } catch (error) {
-        // TEMP-BRONZE-CONVERSION-DEBUG (2026-08-04)
-        console.info("[google-ads-conversion] error", error instanceof Error ? error.message : String(error))
+      } catch {
+        // Conversão é best-effort: nunca bloqueia o fluxo do cliente.
       }
     }
 
