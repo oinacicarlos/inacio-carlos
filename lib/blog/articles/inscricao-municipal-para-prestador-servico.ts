@@ -8,7 +8,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda o que é inscrição municipal, por que ela é necessária para emitir nota de serviço e como evitar bloqueios na prefeitura.",
   excerpt:
-    "Abrir empresa não resolve tudo sozinho. Para emitir nota de serviço, muitos prestadores precisam regularizar a inscrição municipal.",
+    "Ter uma empresa não resolve tudo sozinho: para emitir nota de serviço, muitos prestadores precisam regularizar a inscrição municipal.",
   pillar: "mei",
   coverImage: "/blog/covers/como-trocar-de-contador.jpg",
   coverImageAlt: "Pessoa conferindo cadastro empresarial em um notebook",
