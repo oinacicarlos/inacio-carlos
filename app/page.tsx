@@ -1,7 +1,5 @@
 import {
   ArrowRight,
-  BadgeCheck,
-  Building2,
   Calculator,
   ChartColumnIncreasing,
   FileSignature,
@@ -56,25 +54,15 @@ function buildToolsEntryHref(
 
 const accountingServices = [
   {
-    title: "Abertura de Empresas",
-    description: "Cuidamos de toda a abertura da sua empresa, com orientação em cada etapa até você estar pronto para operar.",
-    icon: Building2,
-  },
-  {
-    title: "Certificado Digital",
+    title: "Assessoria Contábil",
     description:
-      "Emitimos e renovamos certificados digitais com agilidade e suporte completo para pessoas físicas e empresas.",
-    icon: BadgeCheck,
+      "Suporte contábil de verdade — da abertura da sua empresa ao certificado digital, com acompanhamento próximo e orientação estratégica para o seu negócio.",
+    icon: Calculator,
   },
   {
     title: "Contratos",
     description: "Auxiliamos na elaboração, revisão e organização de contratos e documentos essenciais do negócio.",
     icon: FileSignature,
-  },
-  {
-    title: "Assessoria Contábil",
-    description: "Suporte contábil de verdade, com acompanhamento próximo e orientação estratégica para o seu negócio.",
-    icon: Calculator,
   },
   {
     title: "Planejamento Tributário",
@@ -146,7 +134,7 @@ const accountingFaqs = [
   {
     question: "E se eu precisar emitir um número maior de Notas Fiscais?",
     answer:
-      "Trabalhamos com taxas por emissão de nota fiscal de serviço. Em caso de nota fiscal de produto (DANFE), também oferecemos esse serviço. Consulte o nosso canal de atendimento.",
+      "Cobramos uma taxa pelo serviço de emissão acima do que já está incluso no seu plano — nossa equipe cuida da classificação e organização de cada nota. Para nota fiscal de produto (DANFE), também oferecemos esse serviço. Consulte o nosso canal de atendimento.",
   },
   {
     question: "A Tropa atende empresas do Lucro Presumido ou do Lucro Real?",
@@ -183,8 +171,8 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <a className="accounting-login" href="/login">
             Login
           </a>
-          <a className="accounting-header-cta" href="/abrir-empresa">
-            <span>Abrir Empresa</span>
+          <a className="accounting-header-cta" href={PLAN_SIMULATOR_ANCHOR}>
+            <span>Ver Planos</span>
             <span aria-hidden="true">›</span>
           </a>
         </div>
@@ -196,16 +184,16 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <span>Contabilidade para prestadores de serviço</span>
           </h1>
           <p className="accounting-hero-subtitle">
-            <span>Abra sua empresa, emita notas e organize seus impostos</span>
-            <span>com especialistas de verdade ao seu lado.</span>
+            <span>Notas fiscais em dia e impostos organizados</span>
+            <span>com um contador de verdade cuidando do seu negócio.</span>
           </p>
 
           <div className="accounting-hero-actions">
-            <a className="accounting-primary-button" href="/abrir-empresa">
-              Abrir Empresa
+            <a className="accounting-primary-button" href={PLAN_SIMULATOR_ANCHOR}>
+              Ver Planos
             </a>
-            <a className="accounting-secondary-button" href={PLAN_SIMULATOR_ANCHOR}>
-              Trocar Contador
+            <a className="accounting-secondary-button" href="/abrir-empresa">
+              Abrir Empresa
             </a>
           </div>
         </div>
@@ -357,7 +345,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
         <div className="accounting-footer-bottom">
           <span>© 2026 Tropa. Todos os direitos reservados.</span>
-          <a href="/abrir-empresa">Abrir Empresa</a>
+          <a href={PLAN_SIMULATOR_ANCHOR}>Ver Planos</a>
         </div>
       </footer>
     </main>

@@ -14,8 +14,8 @@ const defaultHeaderActions = (
     <a className="accounting-login" href="/login">
       Login
     </a>
-    <a className="accounting-header-cta" href="/abrir-empresa">
-      <span>Abrir Empresa</span>
+    <a className="accounting-header-cta" href="/#planos">
+      <span>Ver Planos</span>
       <span aria-hidden="true">›</span>
     </a>
   </>
@@ -52,7 +52,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
             <a className="accounting-logo" href="/" aria-label="Tropa">
               <BrandLogo variant="black" />
             </a>
-            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
+            <p>Assessoria empresarial para prestadores de serviço e empreendedores que querem crescer com organização.</p>
           </div>
 
           <nav className="accounting-footer-nav" aria-label="Links do rodapé">
@@ -85,7 +85,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
 
         <div className="accounting-footer-bottom">
           <span>© 2026 Tropa. Todos os direitos reservados.</span>
-          <a href="/abrir-empresa">Abrir Empresa</a>
+          <a href="/#planos">Ver Planos</a>
         </div>
       </footer>
     </main>
