@@ -12,6 +12,7 @@ function createNonce() {
 }
 
 function buildContentSecurityPolicy(nonce: string) {
+  const isDev = process.env.NODE_ENV !== 'production'
   const directives: Array<[string, string[]]> = [
     ['default-src', ["'self'"]],
     ['base-uri', ["'self'"]],
@@ -22,6 +23,7 @@ function buildContentSecurityPolicy(nonce: string) {
       [
         "'self'",
         `'nonce-${nonce}'`,
+        ...(isDev ? ["'unsafe-eval'"] : []),
         'https://www.googletagmanager.com',
         'https://www.googleadservices.com',
         'https://www.google.com',
@@ -74,6 +76,7 @@ function buildContentSecurityPolicy(nonce: string) {
         'https://googleads.g.doubleclick.net',
         'https://www.google.com',
         'https://google.com',
+        'https://www.google.com.br',
         'https://www.googleadservices.com',
         'https://pagead2.googlesyndication.com',
         'https://ssl.gstatic.com',

@@ -24,6 +24,10 @@ export default function ResetPasswordClient() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [requestEmail, setRequestEmail] = useState('')
+  const [requestError, setRequestError] = useState('')
+  const [requestSent, setRequestSent] = useState(false)
+  const [requestLoading, setRequestLoading] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -76,6 +80,30 @@ export default function ResetPasswordClient() {
     }
   }, [])
 
+  const handleRequestReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setRequestError('')
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestEmail.trim())) {
+      setRequestError('Informe um e-mail válido.')
+      return
+    }
+
+    setRequestLoading(true)
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(requestEmail.trim(), {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+    setRequestLoading(false)
+
+    // Nunca revela se o e-mail existe ou não na base, pra não expor quais contas existem.
+    if (resetError) {
+      setRequestError('Não foi possível enviar o link agora. Tente novamente em instantes.')
+      return
+    }
+
+    setRequestSent(true)
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
@@ -114,16 +142,44 @@ export default function ResetPasswordClient() {
         </a>
 
         <header className="password-reset-header">
-          <h1>Redefinir senha</h1>
-          <p>{isAdmin ? 'Crie uma nova senha para voltar ao hub administrativo.' : 'Crie uma nova senha para voltar ao seu hub.'}</p>
+          <h1>{!ready || hasRecoveryAccess ? 'Redefinir senha' : 'Esqueci minha senha'}</h1>
+          <p>
+            {!ready
+              ? ''
+              : hasRecoveryAccess
+                ? (isAdmin ? 'Crie uma nova senha para voltar ao hub administrativo.' : 'Crie uma nova senha para voltar ao seu hub.')
+                : 'Informe seu e-mail para receber o link de redefinição de senha.'}
+          </p>
         </header>
 
         {!ready ? (
           <p className="password-reset-note">Validando link...</p>
         ) : !hasRecoveryAccess ? (
-          <p className="password-reset-note">
-            Abra esta página pelo link enviado no e-mail de redefinição.
-          </p>
+          requestSent ? (
+            <p className="password-reset-success">Se esse e-mail existir na nossa base, enviamos um link de redefinição. Confira sua caixa de entrada.</p>
+          ) : (
+            <form className="admin-login-form" onSubmit={handleRequestReset} noValidate>
+              <label className="admin-login-field">
+                <span>E-mail</span>
+                <input
+                  type="email"
+                  placeholder="voce@email.com"
+                  autoComplete="email"
+                  value={requestEmail}
+                  onChange={event => {
+                    setRequestEmail(event.target.value)
+                    if (requestError) setRequestError('')
+                  }}
+                />
+              </label>
+
+              {requestError && <p className="admin-login-error">{requestError}</p>}
+
+              <button className="admin-primary-button" type="submit" disabled={requestLoading}>
+                {requestLoading ? 'Enviando...' : 'Enviar link de redefinição'}
+              </button>
+            </form>
+          )
         ) : (
           <form className="admin-login-form" onSubmit={handleSubmit}>
             <label className="admin-login-field">

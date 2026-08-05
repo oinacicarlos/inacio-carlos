@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { BrandLogo } from '@/components/brand-logo'
 import { supabase } from '@/lib/supabaseClient'
 import { safeRedirectPath, buildAuthCallbackUrl } from '@/lib/safe-redirect'
 
@@ -64,6 +63,7 @@ export default function LoginClient() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     supabase.auth
@@ -143,50 +143,59 @@ export default function LoginClient() {
 
   return (
     <main className="admin-login-page">
-      <section className="admin-login-panel" aria-label="Acesso ao hub admin">
-        <div className="admin-login-content">
-          <a className="admin-auth-logo" href="/" aria-label="Tropa">
-            <BrandLogo variant="black" />
-          </a>
-
-          <header className="admin-login-header">
+      <section className="admin-login-panel login-hub-panel" aria-label="Acesso ao hub admin">
+        <div className="admin-login-content login-hub-card">
+          <header className="admin-login-header login-hub-header">
             <h1>Acesse o hub</h1>
             <p>Entre para acompanhar clientes, rotinas e oportunidades em um só lugar.</p>
           </header>
 
-          <form className="admin-login-form" onSubmit={handleLogin} noValidate>
-            <label className="admin-login-field">
+          <form className="admin-login-form login-hub-form" onSubmit={handleLogin} noValidate>
+            <label className="admin-login-field login-hub-field">
               <span>E-mail</span>
-              <input
-                type="email"
-                placeholder="voce@email.com"
-                autoComplete="email"
-                value={email}
-                onChange={event => {
-                  setEmail(event.target.value)
-                  if (error) setError('')
-                }}
-              />
+              <div className="login-hub-input-wrap">
+                <MailIcon />
+                <input
+                  type="email"
+                  placeholder="voce@email.com"
+                  autoComplete="email"
+                  value={email}
+                  onChange={event => {
+                    setEmail(event.target.value)
+                    if (error) setError('')
+                  }}
+                />
+              </div>
             </label>
 
-            <label className="admin-login-field">
-              <span>
-                Senha
-                <span className="admin-info-dot" aria-hidden>
-                  i
-                </span>
-              </span>
-              <input
-                type="password"
-                placeholder="••••••••••••"
-                autoComplete="current-password"
-                value={password}
-                onChange={event => {
-                  setPassword(event.target.value)
-                  if (error) setError('')
-                }}
-              />
+            <label className="admin-login-field login-hub-field">
+              <span>Senha</span>
+              <div className="login-hub-input-wrap">
+                <LockIcon />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••••••"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={event => {
+                    setPassword(event.target.value)
+                    if (error) setError('')
+                  }}
+                />
+                <button
+                  type="button"
+                  className="login-hub-password-toggle"
+                  onClick={() => setShowPassword(current => !current)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
             </label>
+
+            <div className="login-hub-forgot-row">
+              <a className="login-hub-forgot-link" href="/redefinir-senha">Esqueci minha senha</a>
+            </div>
 
             {error && <p className="admin-login-error">{error}</p>}
 
@@ -194,6 +203,8 @@ export default function LoginClient() {
               <span>{loading ? 'Acessando...' : 'Acessar hub'}</span>
             </button>
           </form>
+
+          <div className="login-hub-divider"><span>ou</span></div>
 
           <div className="admin-social-auth" aria-label="Entrar com Google">
             <button type="button" onClick={handleGoogleLogin} disabled={loading}>
@@ -208,6 +219,43 @@ export default function LoginClient() {
         </div>
       </section>
     </main>
+  )
+}
+
+function MailIcon() {
+  return (
+    <svg className="login-hub-input-icon" aria-hidden viewBox="0 0 24 24" fill="none">
+      <path d="M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.6" />
+      <path d="m3.5 7 8.5 6.5L20.5 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg className="login-hub-input-icon" aria-hidden viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function EyeIcon({ open }: { open: boolean }) {
+  if (open) {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24" fill="none">
+        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c5 0 9 4 10 7-.4 1.1-1.2 2.4-2.3 3.6M6.5 6.6C4.4 8 2.9 10 2 12c1 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9.9 10a3 3 0 0 0 4.2 4.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none">
+      <path d="M2 12c1-3 5-7 10-7s9 4 10 7c-1 3-5 7-10 7s-9-4-10-7Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   )
 }
 

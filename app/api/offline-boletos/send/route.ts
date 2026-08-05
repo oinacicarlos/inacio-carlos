@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
     boletoUrl: signed.signedUrl,
     isTest,
     originalRecipients: row.email,
+    reminderKind: type === "reminder_5d" || type === "due_date" ? type : "initial",
   })
 
   const result = await sendEmail({

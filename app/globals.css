@@ -9424,6 +9424,175 @@ a:focus-visible {
 	text-align: center;
 }
 
+/* Card de login do hub — escopado com .login-hub-card pra não afetar
+   cadastro/auth-callback, que reaproveitam as mesmas classes base acima. */
+.login-hub-panel {
+	width: min(100%, 500px);
+}
+
+.admin-login-content.login-hub-card {
+	width: min(100%, 480px);
+	padding: 36px;
+	border-radius: 20px;
+	box-shadow: 0 10px 28px rgba(13, 27, 46, 0.06);
+}
+
+.login-hub-header {
+	margin-bottom: 26px;
+	text-align: center;
+}
+
+.login-hub-header h1 {
+	font-size: 30px;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	margin-bottom: 8px;
+}
+
+.login-hub-header p {
+	margin: 8px auto 0;
+	max-width: 360px;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.5;
+	letter-spacing: normal;
+}
+
+.login-hub-form {
+	gap: 15px;
+}
+
+.login-hub-field > span {
+	margin-bottom: 6px;
+	font-size: 11px;
+}
+
+.login-hub-input-wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.login-hub-input-wrap .login-hub-input-icon {
+	position: absolute;
+	left: 15px;
+	width: 18px;
+	height: 18px;
+	color: rgba(101, 117, 139, 0.75);
+	pointer-events: none;
+}
+
+.login-hub-input-wrap input {
+	height: 48px;
+	border-radius: 11px;
+	padding-left: 42px;
+	padding-right: 16px;
+	font-size: 14px;
+}
+
+.login-hub-input-wrap input[type="password"],
+.login-hub-input-wrap input[type="text"] {
+	padding-right: 42px;
+}
+
+.login-hub-password-toggle {
+	position: absolute;
+	right: 10px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: rgba(101, 117, 139, 0.75);
+	cursor: pointer;
+}
+
+.login-hub-password-toggle svg {
+	width: 18px;
+	height: 18px;
+}
+
+.login-hub-password-toggle:hover {
+	color: var(--accounting-blue);
+}
+
+.login-hub-password-toggle:focus-visible {
+	outline: 2px solid rgba(36, 107, 253, 0.4);
+	outline-offset: 2px;
+}
+
+.login-hub-forgot-row {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: -3px;
+}
+
+.login-hub-forgot-link {
+	color: var(--accounting-blue);
+	font-size: 12px;
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.login-hub-forgot-link:hover {
+	text-decoration: underline;
+}
+
+.login-hub-forgot-link:focus-visible {
+	outline: 2px solid rgba(36, 107, 253, 0.4);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+.login-hub-card .admin-primary-button {
+	height: 46px;
+	border-radius: 11px;
+	margin-top: 4px;
+	font-size: 14px;
+	box-shadow: none;
+}
+
+.login-hub-card .admin-primary-button:hover:not(:disabled) {
+	box-shadow: 0 10px 20px rgba(36, 107, 253, 0.16);
+}
+
+.login-hub-divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 18px 0;
+	color: var(--accounting-muted);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.login-hub-divider::before,
+.login-hub-divider::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--accounting-line);
+}
+
+.login-hub-card .admin-social-auth {
+	margin-top: 0;
+}
+
+.login-hub-card .admin-social-auth button {
+	height: 46px;
+	border-radius: 11px;
+	font-size: 14px;
+	box-shadow: none;
+}
+
+.login-hub-card .admin-login-terms {
+	margin-top: 22px;
+}
+
 .admin-login-media {
 	display: none;
 	align-items: flex-end;
@@ -9616,26 +9785,34 @@ a:focus-visible {
 }
 
 .admin-entry-shell {
-	width: min(980px, 100%);
+	width: min(560px, 100%);
 	display: grid;
-	gap: 34px;
+	justify-items: center;
+	padding: 38px;
+	border: 1px solid var(--admin-line);
+	border-radius: 20px;
+	background: #ffffff;
+	box-shadow: 0 12px 32px rgba(8, 22, 50, 0.06);
 }
 
-.admin-entry-brand,
-.admin-online-logo {
+.admin-entry-badge {
+	padding: 7px 13px;
+	border-radius: 999px;
+	background: #eef5ff;
 	color: var(--admin-blue);
-	font-size: 34px;
-	font-weight: 900;
-	letter-spacing: 0;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 }
 
 .admin-entry-header {
 	display: grid;
-	gap: 8px;
-	max-width: 720px;
+	justify-items: center;
+	margin-top: 18px;
+	text-align: center;
 }
 
-.admin-entry-header span,
 .admin-online-header span {
 	color: var(--admin-blue);
 	font-size: 12px;
@@ -9644,7 +9821,16 @@ a:focus-visible {
 	text-transform: uppercase;
 }
 
-.admin-entry-header h1,
+.admin-entry-header h1 {
+	margin: 0 0 13px;
+	max-width: 400px;
+	color: var(--admin-ink);
+	font-size: 30px;
+	font-weight: 800;
+	line-height: 1.15;
+	letter-spacing: -0.01em;
+}
+
 .admin-online-header h1 {
 	margin: 0;
 	color: var(--admin-ink);
@@ -9654,7 +9840,15 @@ a:focus-visible {
 	letter-spacing: 0;
 }
 
-.admin-entry-header p,
+.admin-entry-header p {
+	margin: 0 0 30px;
+	max-width: 380px;
+	color: var(--admin-muted);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.5;
+}
+
 .admin-online-header p {
 	margin: 0;
 	color: var(--admin-muted);
@@ -9663,74 +9857,90 @@ a:focus-visible {
 	line-height: 1.55;
 }
 
-.admin-entry-grid {
+.admin-entry-options {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 18px;
+	gap: 13px;
+	width: 100%;
 }
 
-.admin-entry-card {
-	min-height: 260px;
+.admin-entry-option {
 	display: flex;
-	flex-direction: column;
+	align-items: center;
 	gap: 14px;
-	padding: 28px;
+	min-height: 92px;
+	padding: 17px 21px;
 	border: 1px solid var(--admin-line);
-	border-radius: 24px;
-	background: rgba(255, 255, 255, 0.88);
+	border-radius: 14px;
+	background: #ffffff;
 	color: inherit;
 	text-decoration: none;
-	box-shadow: 0 18px 50px rgba(8, 22, 50, 0.08);
-	transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+	transition: background 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
 
-.admin-entry-card:hover,
-.admin-entry-card:focus-visible {
-	transform: translateY(-3px);
+.admin-entry-option:hover {
+	background: #f5f9ff;
 	border-color: #bdd2ff;
-	box-shadow: 0 24px 70px rgba(36, 107, 253, 0.12);
-	outline: none;
+	transform: translateY(-1px);
+	box-shadow: 0 6px 16px rgba(8, 22, 50, 0.06);
 }
 
-.admin-entry-card-kicker {
-	width: fit-content;
-	padding: 7px 11px;
-	border-radius: 999px;
+.admin-entry-option:active {
+	transform: translateY(0);
+	box-shadow: none;
+}
+
+.admin-entry-option:focus-visible {
+	outline: 2px solid var(--admin-blue);
+	outline-offset: 2px;
+}
+
+.admin-entry-option-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 46px;
+	height: 46px;
+	border-radius: 12px;
 	background: #eef5ff;
 	color: var(--admin-blue);
-	font-size: 12px;
-	font-weight: 850;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
 }
 
-.admin-entry-card strong {
-	margin-top: auto;
+.admin-entry-option-body {
+	display: grid;
+	gap: 3px;
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-entry-option-body strong {
 	color: var(--admin-ink);
-	font-size: 42px;
-	font-weight: 900;
-	line-height: 1;
+	font-size: 17px;
+	font-weight: 700;
+	line-height: 1.2;
 }
 
-.admin-entry-card p {
-	margin: 0;
-	max-width: 420px;
+.admin-entry-option-desc {
+	overflow: hidden;
 	color: var(--admin-muted);
-	font-size: 15px;
-	font-weight: 650;
-	line-height: 1.5;
+	font-size: 13.5px;
+	font-weight: 500;
+	line-height: 1.35;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.admin-entry-card em {
-	margin-top: 8px;
+.admin-entry-option-arrow {
+	flex: none;
 	color: var(--admin-blue);
-	font-size: 14px;
-	font-style: normal;
-	font-weight: 850;
 }
 
-.admin-entry-card.is-online {
-	background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+.admin-entry-footnote {
+	margin: 26px 0 0;
+	color: var(--admin-muted);
+	font-size: 12.5px;
+	font-weight: 500;
+	text-align: center;
 }
 
 .admin-online-page {
@@ -10400,7 +10610,6 @@ a:focus-visible {
 }
 
 @media (max-width: 820px) {
-	.admin-entry-grid,
 	.admin-online-page {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -10467,9 +10676,23 @@ a:focus-visible {
 		padding: 18px;
 	}
 
-	.admin-entry-card {
-		min-height: 220px;
-		padding: 22px;
+	.admin-entry-shell {
+		padding: 24px 22px;
+		border-radius: 16px;
+	}
+
+	.admin-entry-header h1 {
+		font-size: 25px;
+	}
+
+	.admin-entry-option {
+		min-height: auto;
+		padding: 14px 16px;
+	}
+
+	.admin-entry-option-desc {
+		overflow: visible;
+		white-space: normal;
 	}
 
 	.admin-online-metrics {
@@ -16375,6 +16598,24 @@ a:focus-visible {
 	font-weight: 820;
 }
 
+.routine-department-header-meta {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.routine-department-send {
+	height: 26px;
+	border: 1px solid rgba(47, 113, 255, 0.28);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.6);
+	color: #2f71ff;
+	font-size: 10px;
+	font-weight: 780;
+	padding: 0 10px;
+	white-space: nowrap;
+}
+
 .routine-department-items {
 	display: grid;
 	gap: 8px;
@@ -16486,6 +16727,18 @@ a:focus-visible {
 .routine-message-modal textarea {
 	min-height: 280px;
 	white-space: pre-wrap;
+}
+
+.routine-file-control.has-error {
+	border-color: rgba(239, 68, 68, 0.5);
+	color: #ef4444;
+}
+
+.routine-email-attachments-note {
+	margin: 0;
+	color: rgba(13, 27, 46, 0.5);
+	font-size: 11px;
+	font-weight: 650;
 }
 
 .routine-email-meta {
@@ -16764,6 +17017,16 @@ a:focus-visible {
 	.admin-login-content {
 		width: 100%;
 	}
+
+	.login-hub-panel {
+		width: 100%;
+	}
+
+	.admin-login-content.login-hub-card {
+		width: 100%;
+		max-width: 480px;
+		margin: 0 auto;
+	}
 }
 
 @media (max-width: 760px) {
@@ -16963,6 +17226,23 @@ a:focus-visible {
 	.admin-login-terms {
 		margin-top: 24px;
 		font-size: 11px;
+	}
+
+	.admin-login-content.login-hub-card {
+		padding: 24px 22px;
+		border-radius: 16px;
+	}
+
+	.login-hub-header h1 {
+		font-size: 27px;
+	}
+
+	.login-hub-header p {
+		font-size: 14px;
+	}
+
+	.login-hub-card .admin-login-terms {
+		margin-top: 20px;
 	}
 
 	.admin-dashboard-page,
@@ -23615,9 +23895,7 @@ a:focus-visible {
 /* Brand assets */
 .accounting-logo,
 .client-hub-logo,
-.admin-auth-logo,
-.admin-entry-brand,
-.admin-online-logo {
+.admin-auth-logo {
 	display: inline-flex;
 	align-items: center;
 	width: fit-content;
@@ -23640,11 +23918,6 @@ a:focus-visible {
 
 .admin-auth-logo .tropa-brand-logo {
 	width: 106px;
-}
-
-.admin-entry-brand .tropa-brand-logo,
-.admin-online-logo .tropa-brand-logo {
-	width: 118px;
 }
 
 @media (max-width: 640px) {

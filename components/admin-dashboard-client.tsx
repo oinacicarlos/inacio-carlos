@@ -255,6 +255,7 @@ type RoutineItem = {
   status: RoutineItemStatus
   fileName: string
   fileUrl: string
+  fileStoragePath: string
   notes: string
   requiresFile: boolean
   isCustom: boolean
@@ -343,6 +344,7 @@ type RoutineItemRow = {
   status: string
   file_name: string
   file_url: string
+  file_storage_path?: string
   notes: string
   requires_file?: boolean
   is_custom?: boolean
@@ -678,6 +680,7 @@ function mapRoutineItem(row: RoutineItemRow): RoutineItem {
     status,
     fileName: row.file_name ?? '',
     fileUrl: row.file_url ?? '',
+    fileStoragePath: row.file_storage_path ?? '',
     notes: row.notes ?? '',
     requiresFile: row.requires_file ?? fallbackDefinition?.requiresFile ?? true,
     isCustom: row.is_custom === true,
@@ -821,13 +824,14 @@ function formatRoutineSentDate(value: string) {
   return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function buildRoutineMessage(client: RoutineClient, competence: RoutineCompetence, items: RoutineItem[]) {
+function buildRoutineMessage(client: RoutineClient, competence: RoutineCompetence, items: RoutineItem[], scopeDepartment: RoutineDepartment | null) {
   const applicableItems = items.filter(item => isRoutineItemApplicableToClient(client, item))
   const attached = applicableItems.filter(item => item.status === 'Anexado' || item.status === 'Enviado').map(item => item.routineName)
   const pending = applicableItems.filter(item => item.status === 'Pendente').map(item => item.routineName)
   const skipped = applicableItems.filter(item => item.status === 'Não precisa').map(item => item.routineName)
+  const scopeLabel = scopeDepartment ? ` do setor ${scopeDepartment}` : ''
   const lines = [
-    `Olá, seguem as rotinas da competência ${formatRoutineCompetence(competence.competenceMonth)} da empresa ${client.name}.`,
+    `Olá, seguem as rotinas${scopeLabel} da competência ${formatRoutineCompetence(competence.competenceMonth)} da empresa ${client.name}.`,
     '',
     'Anexados:',
     ...(attached.length ? attached.map(name => `• ${name}`) : ['• Nenhum item anexado até o momento.']),
@@ -850,8 +854,9 @@ function getRoutineCompetenceStatus(client: RoutineClient | null | undefined, it
   return applicableItems.every(item => item.status === 'Enviado' || item.status === 'Não precisa') ? 'Enviado' : 'Inacabado'
 }
 
-function buildRoutineEmailSubject(client: RoutineClient, competence: RoutineCompetence) {
-  return `Rotinas contábeis - ${client.name} - ${formatRoutineCompetence(competence.competenceMonth)}`
+function buildRoutineEmailSubject(client: RoutineClient, competence: RoutineCompetence, scopeDepartment: RoutineDepartment | null) {
+  const scopeLabel = scopeDepartment ? ` - ${scopeDepartment}` : ''
+  return `Rotinas contábeis - ${client.name} - ${formatRoutineCompetence(competence.competenceMonth)}${scopeLabel}`
 }
 
 function getPfxValidityStatus(validityDate: string): PfxValidityStatus {
@@ -1594,9 +1599,12 @@ function RoutineControlModule() {
   const [attachmentsClient, setAttachmentsClient] = useState<RoutineClient | null>(null)
   const [competenceModalOpen, setCompetenceModalOpen] = useState(false)
   const [quickCompetenceModalOpen, setQuickCompetenceModalOpen] = useState(false)
-  const [messageModalOpen, setMessageModalOpen] = useState(false)
+  const [emailModalScope, setEmailModalScope] = useState<RoutineDepartment | 'Geral' | null>(null)
+  const [routineEmailText, setRoutineEmailText] = useState('')
   const [routineEmailSending, setRoutineEmailSending] = useState(false)
   const [routineEmailFeedback, setRoutineEmailFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [routineFileUploading, setRoutineFileUploading] = useState<Record<string, boolean>>({})
+  const [routineFileErrors, setRoutineFileErrors] = useState<Record<string, string>>({})
 
   const loadRoutineData = async () => {
     setLoading(true)
@@ -2011,6 +2019,7 @@ function RoutineControlModule() {
     if (updates.status !== undefined) dbUpdates.status = updates.status
     if (updates.fileName !== undefined) dbUpdates.file_name = updates.fileName
     if (updates.fileUrl !== undefined) dbUpdates.file_url = updates.fileUrl
+    if (updates.fileStoragePath !== undefined) dbUpdates.file_storage_path = updates.fileStoragePath
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes
     dbUpdates.sent_at = sentAt || null
 
@@ -2043,11 +2052,51 @@ function RoutineControlModule() {
     setActiveArea('Competências')
   }
 
-  const handleRoutineFile = async (item: RoutineItem, event: ChangeEvent<HTMLInputElement>) => {
+  const handleRoutineFile = async (client: RoutineClient, item: RoutineItem, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
-    await handleUpdateItem(item.id, { fileName: file.name, fileUrl: '', status: 'Anexado' })
     event.target.value = ''
+    if (!file) return
+
+    if (file.size > ROUTINE_ATTACHMENT_LIMIT_BYTES) {
+      setRoutineFileErrors(current => ({ ...current, [item.id]: 'O arquivo passou de 10MB.' }))
+      return
+    }
+
+    setRoutineFileErrors(current => {
+      const { [item.id]: _removed, ...rest } = current
+      return rest
+    })
+    setRoutineFileUploading(current => ({ ...current, [item.id]: true }))
+
+    try {
+      const safeName = sanitizeRoutineAttachmentFileName(file.name)
+      const storagePath = `${client.id}/routine-items/${item.id}/${Date.now()}-${genId()}-${safeName}`
+      const previousPath = item.fileStoragePath
+
+      const { error: uploadError } = await supabase.storage
+        .from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET)
+        .upload(storagePath, file)
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Não consegui enviar o arquivo.')
+      }
+
+      await handleUpdateItem(item.id, { fileName: file.name, fileStoragePath: storagePath, status: 'Anexado' })
+
+      if (previousPath) {
+        await supabase.storage.from(ROUTINE_CLIENT_ATTACHMENTS_BUCKET).remove([previousPath])
+      }
+    } catch (uploadError) {
+      setRoutineFileErrors(current => ({
+        ...current,
+        [item.id]: uploadError instanceof Error ? uploadError.message : 'Não consegui anexar o arquivo.',
+      }))
+    } finally {
+      setRoutineFileUploading(current => {
+        const { [item.id]: _removed, ...rest } = current
+        return rest
+      })
+    }
   }
 
   const handleExportRoutineClients = async () => {
@@ -2083,18 +2132,29 @@ function RoutineControlModule() {
     URL.revokeObjectURL(url)
   }
 
-  const messageText = selectedClient && selectedCompetence
-    ? buildRoutineMessage(selectedClient, selectedCompetence, selectedItems)
-    : ''
-  const routineEmailSubject = selectedClient && selectedCompetence
-    ? buildRoutineEmailSubject(selectedClient, selectedCompetence)
+  const getEmailScopeItems = (scope: RoutineDepartment | 'Geral') => scope === 'Geral'
+    ? selectedVisibleItems
+    : selectedVisibleItems.filter(item => getRoutineItemDepartment(item, selectedClient) === scope)
+
+  const emailScopeItems = emailModalScope ? getEmailScopeItems(emailModalScope) : []
+  const emailScopeAttachmentCount = emailScopeItems.filter(item => item.fileStoragePath).length
+  const routineEmailSubject = selectedClient && selectedCompetence && emailModalScope
+    ? buildRoutineEmailSubject(selectedClient, selectedCompetence, emailModalScope === 'Geral' ? null : emailModalScope)
     : ''
   const selectedCompetenceStatus = selectedClient && selectedCompetence
     ? getRoutineCompetenceStatus(selectedClient, selectedItems)
     : 'Inacabado'
 
-  const handleSendRoutineEmail = async () => {
+  const openRoutineEmailModal = (scope: RoutineDepartment | 'Geral') => {
     if (!selectedClient || !selectedCompetence) return
+    const scopedItems = getEmailScopeItems(scope)
+    setRoutineEmailFeedback(null)
+    setRoutineEmailText(buildRoutineMessage(selectedClient, selectedCompetence, scopedItems, scope === 'Geral' ? null : scope))
+    setEmailModalScope(scope)
+  }
+
+  const handleSendRoutineEmail = async () => {
+    if (!selectedClient || !selectedCompetence || !emailModalScope) return
 
     if (!selectedClient.email.trim()) {
       setRoutineEmailFeedback({ type: 'error', text: 'Este cliente não tem e-mail cadastrado.' })
@@ -2105,13 +2165,18 @@ function RoutineControlModule() {
     setRoutineEmailFeedback(null)
 
     try {
+      const sentItemIds = emailScopeItems
+        .filter(item => isRoutineItemApplicableToClient(selectedClient, item) && item.status !== 'Não precisa')
+        .map(item => item.id)
+
       const response = await fetch('/api/contabilidade/enviar-rotinas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: selectedClient.email.trim(),
           subject: routineEmailSubject,
-          text: messageText,
+          text: routineEmailText,
+          itemIds: sentItemIds,
         }),
       })
 
@@ -2121,9 +2186,6 @@ function RoutineControlModule() {
       }
 
       const now = new Date().toISOString()
-      const sentItemIds = selectedVisibleItems
-        .filter(item => isRoutineItemApplicableToClient(selectedClient, item) && item.status !== 'Não precisa')
-        .map(item => item.id)
 
       if (sentItemIds.length) {
         const { error: updateError } = await supabase
@@ -2291,18 +2353,23 @@ function RoutineControlModule() {
                 {selectedCompetenceStatus}
               </span>
               <button type="button" onClick={() => setClientModal(selectedClient)}>Obrigação específica</button>
-              <button type="button" onClick={() => { setRoutineEmailFeedback(null); setMessageModalOpen(true) }}>Enviar por e-mail</button>
+              <button type="button" onClick={() => openRoutineEmailModal('Geral')}>Enviar tudo</button>
             </div>
             <div className="routine-checklist-list">
               {selectedItemsByDepartment.map(group => (
                 <section key={group.department} className="routine-department-group">
                   <div className="routine-department-header">
                     <strong>{group.department}</strong>
-                    <span>{group.items.length} {group.items.length === 1 ? 'obrigação' : 'obrigações'}</span>
+                    <div className="routine-department-header-meta">
+                      <span>{group.items.length} {group.items.length === 1 ? 'obrigação' : 'obrigações'}</span>
+                      <button type="button" className="routine-department-send" onClick={() => openRoutineEmailModal(group.department)}>Enviar setor</button>
+                    </div>
                   </div>
                   <div className="routine-department-items">
                     {group.items.map(item => {
                 const applicable = isRoutineItemApplicableToClient(selectedClient, item)
+                const fileError = routineFileErrors[item.id]
+                const isUploading = Boolean(routineFileUploading[item.id])
                 return (
                   <div key={item.id} className={`routine-checklist-item${!applicable ? ' routine-not-applicable' : ''}`}>
                     <div className="routine-checklist-title">
@@ -2316,9 +2383,9 @@ function RoutineControlModule() {
                     <select value={item.status} onChange={event => void handleUpdateItem(item.id, { status: event.target.value as RoutineItemStatus })}>
                       {ROUTINE_ITEM_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
                     </select>
-                    <label className="routine-file-control">
-                      <input type="file" onChange={event => void handleRoutineFile(item, event)} />
-                      {item.fileName || 'Anexar arquivo'}
+                    <label className={`routine-file-control${fileError ? ' has-error' : ''}`} title={fileError || item.fileName || undefined}>
+                      <input type="file" disabled={isUploading} onChange={event => void handleRoutineFile(selectedClient, item, event)} />
+                      {isUploading ? 'Enviando...' : fileError ? 'Falha ao anexar' : (item.fileName || 'Anexar arquivo')}
                     </label>
                     <input value={item.notes} onChange={event => setItems(current => current.map(currentItem => currentItem.id === item.id ? { ...currentItem, notes: event.target.value } : currentItem))} onBlur={event => void handleUpdateItem(item.id, { notes: event.target.value })} placeholder="Observação" />
                     <span>{formatRoutineSentDate(item.sentAt)}</span>
@@ -2465,12 +2532,12 @@ function RoutineControlModule() {
         />
       )}
 
-      {messageModalOpen && selectedClient && selectedCompetence && (
-        <div className="crm-modal-backdrop" onClick={() => setMessageModalOpen(false)}>
+      {emailModalScope && selectedClient && selectedCompetence && (
+        <div className="crm-modal-backdrop" onClick={() => setEmailModalScope(null)}>
           <div className="crm-modal routine-message-modal" onClick={event => event.stopPropagation()}>
             <div className="crm-modal-header">
-              <h3>Enviar rotinas por e-mail</h3>
-              <button type="button" className="crm-modal-close" onClick={() => setMessageModalOpen(false)}><CloseIcon /></button>
+              <h3>{emailModalScope === 'Geral' ? 'Enviar tudo por e-mail' : `Enviar setor ${emailModalScope}`}</h3>
+              <button type="button" className="crm-modal-close" onClick={() => setEmailModalScope(null)}><CloseIcon /></button>
             </div>
             <div className="crm-modal-form">
               <div className="routine-email-meta">
@@ -2481,11 +2548,16 @@ function RoutineControlModule() {
                 <span>Assunto</span>
                 <strong>{routineEmailSubject}</strong>
               </div>
-              <textarea value={messageText} readOnly />
+              <textarea value={routineEmailText} onChange={event => setRoutineEmailText(event.target.value)} />
+              <p className="routine-email-attachments-note">
+                {emailScopeAttachmentCount
+                  ? `${emailScopeAttachmentCount} arquivo${emailScopeAttachmentCount === 1 ? '' : 's'} anexado${emailScopeAttachmentCount === 1 ? '' : 's'} será${emailScopeAttachmentCount === 1 ? '' : 'ão'} enviado${emailScopeAttachmentCount === 1 ? '' : 's'} junto.`
+                  : 'Nenhum arquivo anexado nesse escopo até o momento.'}
+              </p>
               {routineEmailFeedback && <p className={`routine-email-feedback ${routineEmailFeedback.type}`}>{routineEmailFeedback.text}</p>}
             </div>
             <div className="crm-modal-footer">
-              <button type="button" className="crm-modal-cancel" onClick={() => setMessageModalOpen(false)}>Cancelar</button>
+              <button type="button" className="crm-modal-cancel" onClick={() => setEmailModalScope(null)}>Cancelar</button>
               <button
                 type="button"
                 className="crm-modal-submit"
@@ -3137,7 +3209,27 @@ function OfflineBillingModule() {
     }
 
     setClients(((clientsResult.data ?? []) as OfflineBillingClientRow[]).map(mapOfflineBillingClient))
-    setSlips(((slipsResult.data ?? []) as OfflineBillingSlipRow[]).map(mapOfflineBillingSlip))
+
+    const mappedSlips = ((slipsResult.data ?? []) as OfflineBillingSlipRow[]).map(mapOfflineBillingSlip)
+    const today = new Date().toISOString().slice(0, 10)
+    const overdueIds = mappedSlips
+      .filter(slip => slip.status === 'pendente' && slip.dueDate && slip.dueDate.slice(0, 10) < today)
+      .map(slip => slip.id)
+
+    if (overdueIds.length) {
+      const { error: overdueError } = await supabase
+        .from(OFFLINE_BILLING_TABLE)
+        .update({ status: 'vencido', updated_at: new Date().toISOString() })
+        .in('id', overdueIds)
+
+      if (!overdueError) {
+        setSlips(mappedSlips.map(slip => overdueIds.includes(slip.id) ? { ...slip, status: 'vencido' as const } : slip))
+        setLoading(false)
+        return
+      }
+    }
+
+    setSlips(mappedSlips)
     setLoading(false)
   }
 
@@ -3698,6 +3790,12 @@ function OfflineBillingModule() {
                         </button>
                         <button type="button" onClick={() => void sendBillingEmail(slip.id, 'initial')} disabled={sendingId === slip.id || !slip.filePath}>
                           {sendingId === slip.id ? 'Enviando...' : slip.initialSentAt ? 'Reenviar boleto' : 'Enviar boleto'}
+                        </button>
+                        <button type="button" onClick={() => void sendBillingEmail(slip.id, 'reminder_5d')} disabled={sendingId === slip.id || !slip.filePath}>
+                          {slip.reminder5dSentAt ? 'Reenviar 5 dias' : 'Enviar 5 dias'}
+                        </button>
+                        <button type="button" onClick={() => void sendBillingEmail(slip.id, 'due_date')} disabled={sendingId === slip.id || !slip.filePath}>
+                          {slip.dueDateSentAt ? 'Reenviar vencimento' : 'Enviar vencimento'}
                         </button>
                         <button type="button" onClick={() => void sendBillingTestEmail(slip)} disabled={sendingId === slip.id || !slip.filePath}>
                           Teste

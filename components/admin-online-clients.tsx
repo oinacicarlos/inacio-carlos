@@ -1,6 +1,6 @@
 import Link from 'next/link'
+import { unstable_cache } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { BrandLogo } from '@/components/brand-logo'
 import AdminOnlineOnboardingActions from '@/components/admin-online-onboarding-actions'
 import AdminOnlineRequestActions from '@/components/admin-online-request-actions'
 import {
@@ -269,6 +269,100 @@ function clientLabel(profile: ClientHubProfileRow | undefined, email: string | u
   return profile?.name || profile?.company_name || email || 'Cliente sem nome'
 }
 
+type AdminOnlineDashboardData = {
+  profiles: ClientHubProfileRow[]
+  requests: ClientRequestRow[]
+  purchases: ProductPurchaseRow[]
+  onboardings: OnboardingRow[]
+  toolUsage: ToolUsageRow[]
+  emailEntries: Array<[string, string]>
+  loadError: string
+}
+
+// Esses dados são os mesmos pra qualquer módulo (Clientes, Solicitações,
+// Processos...) — a tabela de resumo no topo e as referências cruzadas entre
+// seções (ex.: pedidos de um cliente aparecendo na aba Compras) usam tudo
+// junto. Sem cache, cada clique no menu lateral disparava essas 6 consultas
+// de novo — incluindo auth.admin.listUsers, a mais lenta de todas.
+async function loadAdminOnlineDashboardData(): Promise<AdminOnlineDashboardData> {
+  let profiles: ClientHubProfileRow[] = []
+  let requests: ClientRequestRow[] = []
+  let purchases: ProductPurchaseRow[] = []
+  let onboardings: OnboardingRow[] = []
+  let toolUsage: ToolUsageRow[] = []
+  let emailByUserId = new Map<string, string>()
+  let loadError = ''
+
+  try {
+    const serviceClient = createServiceRoleSupabaseClient()
+    const [profilesResult, requestsResult, purchasesResult, onboardingResult, toolUsageResult, usersResult] = await Promise.all([
+      serviceClient
+        .from('client_hub_profiles')
+        .select('id, name, phone, document, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end, created_at, updated_at')
+        .order('updated_at', { ascending: false }),
+      serviceClient
+        .from('client_requests')
+        .select('id, user_id, category, title, description, priority, status, attachment_path, created_at, updated_at')
+        .order('created_at', { ascending: false }),
+      serviceClient
+        .from('product_purchases')
+        .select('user_id, product, amount_total, stripe_checkout_session_id, created_at')
+        .order('created_at', { ascending: false }),
+      serviceClient
+        .from('onboarding_intakes')
+        .select('id, user_id, wants_certificado, wants_abertura_empresa, wants_abertura_mei, wants_alteracao_cnpj, certificado_status, abertura_status, mei_status, alteracao_status, created_at, updated_at')
+        .order('updated_at', { ascending: false }),
+      serviceClient.from('tool_usage').select('user_id, tool, used_at').eq('reference_month', monthReference()),
+      serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    ])
+
+    if (profilesResult.error) {
+      loadError = 'Não foi possível carregar os clientes online.'
+    }
+
+    profiles = (profilesResult.data as ClientHubProfileRow[] | null) ?? []
+    requests = (requestsResult.data as ClientRequestRow[] | null) ?? []
+    purchases = (purchasesResult.data as ProductPurchaseRow[] | null) ?? []
+    onboardings = (onboardingResult.data as OnboardingRow[] | null) ?? []
+    toolUsage = (toolUsageResult.data as ToolUsageRow[] | null) ?? []
+
+    if (requests.length > 0) {
+      const { data: notesData } = await serviceClient
+        .from('client_requests')
+        .select('id, internal_note')
+        .in('id', requests.map((requestRow) => requestRow.id))
+
+      const notesByRequest = new Map((notesData as { id: string; internal_note: string | null }[] | null ?? []).map((requestRow) => [requestRow.id, requestRow.internal_note]))
+      requests = requests.map((requestRow) => ({
+        ...requestRow,
+        internal_note: notesByRequest.get(requestRow.id) ?? null,
+      }))
+    }
+
+    if (!usersResult.error) {
+      emailByUserId = new Map(usersResult.data.users.map((onlineUser) => [onlineUser.id, onlineUser.email ?? '']))
+    }
+  } catch {
+    loadError = 'Configuração administrativa do Supabase indisponível para ler os clientes online.'
+  }
+
+  return {
+    profiles,
+    requests,
+    purchases,
+    onboardings,
+    toolUsage,
+    emailEntries: Array.from(emailByUserId.entries()),
+    loadError,
+  }
+}
+
+const getCachedAdminOnlineDashboardData = unstable_cache(
+  loadAdminOnlineDashboardData,
+  ['admin-online-dashboard-data'],
+  { revalidate: 20 },
+)
+
 function processLabels(onboarding: OnboardingRow | undefined) {
   if (!onboarding) return []
 
@@ -379,66 +473,8 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
     redirect('/hub')
   }
 
-  let profiles: ClientHubProfileRow[] = []
-  let requests: ClientRequestRow[] = []
-  let purchases: ProductPurchaseRow[] = []
-  let onboardings: OnboardingRow[] = []
-  let toolUsage: ToolUsageRow[] = []
-  let emailByUserId = new Map<string, string>()
-  let loadError = ''
-
-  try {
-    const serviceClient = createServiceRoleSupabaseClient()
-    const [profilesResult, requestsResult, purchasesResult, onboardingResult, toolUsageResult, usersResult] = await Promise.all([
-      serviceClient
-        .from('client_hub_profiles')
-        .select('id, name, phone, document, company_name, current_plan, subscription_status, stripe_customer_id, current_period_end, created_at, updated_at')
-        .order('updated_at', { ascending: false }),
-      serviceClient
-        .from('client_requests')
-        .select('id, user_id, category, title, description, priority, status, attachment_path, created_at, updated_at')
-        .order('created_at', { ascending: false }),
-      serviceClient
-        .from('product_purchases')
-        .select('user_id, product, amount_total, stripe_checkout_session_id, created_at')
-        .order('created_at', { ascending: false }),
-      serviceClient
-        .from('onboarding_intakes')
-        .select('id, user_id, wants_certificado, wants_abertura_empresa, wants_abertura_mei, wants_alteracao_cnpj, certificado_status, abertura_status, mei_status, alteracao_status, created_at, updated_at')
-        .order('updated_at', { ascending: false }),
-      serviceClient.from('tool_usage').select('user_id, tool, used_at').eq('reference_month', monthReference()),
-      serviceClient.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    ])
-
-    if (profilesResult.error) {
-      loadError = 'Não foi possível carregar os clientes online.'
-    }
-
-    profiles = (profilesResult.data as ClientHubProfileRow[] | null) ?? []
-    requests = (requestsResult.data as ClientRequestRow[] | null) ?? []
-    purchases = (purchasesResult.data as ProductPurchaseRow[] | null) ?? []
-    onboardings = (onboardingResult.data as OnboardingRow[] | null) ?? []
-    toolUsage = (toolUsageResult.data as ToolUsageRow[] | null) ?? []
-
-    if (requests.length > 0) {
-      const { data: notesData } = await serviceClient
-        .from('client_requests')
-        .select('id, internal_note')
-        .in('id', requests.map((requestRow) => requestRow.id))
-
-      const notesByRequest = new Map((notesData as { id: string; internal_note: string | null }[] | null ?? []).map((requestRow) => [requestRow.id, requestRow.internal_note]))
-      requests = requests.map((requestRow) => ({
-        ...requestRow,
-        internal_note: notesByRequest.get(requestRow.id) ?? null,
-      }))
-    }
-
-    if (!usersResult.error) {
-      emailByUserId = new Map(usersResult.data.users.map((onlineUser) => [onlineUser.id, onlineUser.email ?? '']))
-    }
-  } catch {
-    loadError = 'Configuração administrativa do Supabase indisponível para ler os clientes online.'
-  }
+  const { profiles, requests, purchases, onboardings, toolUsage, emailEntries, loadError } = await getCachedAdminOnlineDashboardData()
+  const emailByUserId = new Map(emailEntries)
 
   const profilesByUser = new Map(profiles.map((profile) => [profile.id, profile]))
   const requestsByUser = new Map<string, ClientRequestRow[]>()
@@ -539,9 +575,6 @@ export default async function AdminOnlineClients({ activeModule: rawActiveModule
           <ArrowLeft size={16} strokeWidth={2.2} aria-hidden="true" />
           Módulos
         </Link>
-        <div className="admin-online-logo">
-          <BrandLogo variant="black" />
-        </div>
         <nav className="admin-online-nav" aria-label="Navegação do Online">
           {ADMIN_ONLINE_NAV.map((item) => {
             const Icon = item.icon

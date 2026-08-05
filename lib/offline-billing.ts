@@ -68,6 +68,34 @@ export function formatBillingDueDate(dueDate: string) {
   })
 }
 
+export type OfflineBillingReminderKind = "initial" | "reminder_5d" | "due_date"
+
+const REMINDER_COPY: Record<OfflineBillingReminderKind, {
+  eyebrow: string
+  subject: (referenceLabel: string) => string
+  introHtml: (referenceLabel: string) => string
+  introText: (referenceLabel: string) => string
+}> = {
+  initial: {
+    eyebrow: "Boleto disponível",
+    subject: referenceLabel => `Boleto de ${referenceLabel} disponível`,
+    introHtml: referenceLabel => `O boleto de <strong style="color:#1a1d23;font-weight:600">${referenceLabel}</strong> já está disponível para pagamento.`,
+    introText: referenceLabel => `O boleto de ${referenceLabel} já está disponível.`,
+  },
+  reminder_5d: {
+    eyebrow: "Lembrete de vencimento",
+    subject: referenceLabel => `Lembrete: boleto de ${referenceLabel} vence em breve`,
+    introHtml: referenceLabel => `O boleto de <strong style="color:#1a1d23;font-weight:600">${referenceLabel}</strong> vence em breve. Regularize com antecedência para evitar juros e multa.`,
+    introText: referenceLabel => `O boleto de ${referenceLabel} vence em breve. Regularize com antecedência para evitar juros e multa.`,
+  },
+  due_date: {
+    eyebrow: "Vence hoje",
+    subject: referenceLabel => `Seu boleto vence hoje - ${referenceLabel}`,
+    introHtml: referenceLabel => `O boleto de <strong style="color:#1a1d23;font-weight:600">${referenceLabel}</strong> vence hoje. Regularize o pagamento para evitar juros e multa.`,
+    introText: referenceLabel => `O boleto de ${referenceLabel} vence hoje. Regularize o pagamento para evitar juros e multa.`,
+  },
+}
+
 export function buildOfflineBillingEmail({
   clientName,
   referenceMonth,
@@ -76,6 +104,7 @@ export function buildOfflineBillingEmail({
   boletoUrl,
   isTest = false,
   originalRecipients = "",
+  reminderKind = "initial",
 }: {
   clientName: string
   referenceMonth: string
@@ -84,7 +113,9 @@ export function buildOfflineBillingEmail({
   boletoUrl: string
   isTest?: boolean
   originalRecipients?: string
+  reminderKind?: OfflineBillingReminderKind
 }) {
+  const copy = REMINDER_COPY[reminderKind]
   const referenceLabel = formatBillingReference(referenceMonth)
   const dueDateLabel = formatBillingDueDate(dueDate)
   const escapedClientName = escapeEmailHtml(clientName)
@@ -97,12 +128,12 @@ export function buildOfflineBillingEmail({
     ? `\n\nCliente real: ${clientName}\nDestinatário original: ${originalRecipients}`
     : ""
   const testContextHtml = isTest && originalRecipients
-    ? `<div style="font:600 12px Arial,sans-serif;color:#3b4b6b;margin-top:8px;text-transform:none;letter-spacing:0">Cliente real: ${escapedClientName}<br>Destinatário original: ${escapedOriginalRecipients}</div>`
+    ? `<div style="font:600 12px Arial,sans-serif;color:#92400e;margin-top:8px;text-transform:none;letter-spacing:0">Cliente real: ${escapedClientName}<br>Destinatário original: ${escapedOriginalRecipients}</div>`
     : ""
   const previewNotice = isTest
     ? `<tr>
         <td style="padding:0 0 18px 0">
-          <div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:12px 14px;color:#1e3a8a;font:700 12px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase">
+          <div style="border:1px solid #fde68a;background:#fffbeb;border-radius:10px;padding:12px 14px;color:#92400e;font:700 12px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase">
             E-mail de teste para conferência interna
             ${testContextHtml}
           </div>
@@ -111,10 +142,10 @@ export function buildOfflineBillingEmail({
     : ""
 
   return {
-    subject: `Boleto de ${referenceLabel} disponível`,
+    subject: copy.subject(referenceLabel),
     text: `${isTest ? `E-mail de teste para conferência interna.${testContextText}\n\n` : ""}Olá, ${clientName}.
 
-O boleto de ${referenceLabel} já está disponível.
+${copy.introText(referenceLabel)}
 
 Vencimento: ${dueDateLabel}
 Valor: ${amount}
@@ -133,67 +164,67 @@ Tropa`,
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Boleto disponível</title>
   </head>
-  <body style="margin:0;padding:0;background:#f6f9ff;font-family:Arial,Helvetica,sans-serif;color:#071233">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f6f9ff;padding:28px 14px">
+  <body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#1a1d23">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f4f5f7;padding:40px 14px">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:620px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:560px">
             ${previewNotice}
             <tr>
-              <td style="padding:0 0 14px 0">
-                <div style="font-size:30px;line-height:1;font-weight:800;color:#0b5cff;letter-spacing:-.01em">Tropa</div>
+              <td style="padding:0 4px 24px 4px">
+                <div style="font-size:19px;line-height:1;font-weight:700;color:#1a1d23;letter-spacing:.01em">Tropa</div>
               </td>
             </tr>
             <tr>
-              <td style="background:#ffffff;border:1px solid #d9e4f5;border-radius:22px;box-shadow:0 18px 45px rgba(15,35,75,.08);overflow:hidden">
+              <td style="background:#ffffff;border:1px solid #e6e7eb;border-radius:12px;overflow:hidden">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                   <tr>
-                    <td style="padding:30px 30px 22px 30px;background:#ffffff">
-                      <div style="font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b5cff;margin:0 0 12px 0">Boleto disponível</div>
-                      <h1 style="font-size:28px;line-height:1.12;color:#071233;margin:0 0 12px 0;font-weight:800">Olá, ${escapedClientName}.</h1>
-                      <p style="font-size:16px;line-height:1.55;color:#53617d;margin:0">O boleto de <strong style="color:#071233">${escapedReferenceLabel}</strong> já está disponível para pagamento.</p>
+                    <td style="padding:36px 36px 20px 36px;background:#ffffff">
+                      <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a8f9a;margin:0 0 14px 0">${copy.eyebrow}</div>
+                      <h1 style="font-size:22px;line-height:1.3;color:#1a1d23;margin:0 0 10px 0;font-weight:700">Olá, ${escapedClientName}.</h1>
+                      <p style="font-size:15px;line-height:1.6;color:#5b5f6a;margin:0">${copy.introHtml(escapedReferenceLabel)}</p>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:0 30px 6px 30px">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7faff;border:1px solid #e2eaf8;border-radius:18px">
+                    <td style="padding:4px 36px 8px 36px">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fafafb;border:1px solid #ececef;border-radius:10px">
                         <tr>
-                          <td style="padding:18px 18px 16px 18px;border-bottom:1px solid #e2eaf8">
-                            <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#657394;margin-bottom:6px">Competência</div>
-                            <div style="font-size:18px;font-weight:800;color:#071233">${escapedReferenceLabel}</div>
+                          <td style="padding:16px 20px;border-bottom:1px solid #ececef">
+                            <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8a8f9a;margin-bottom:5px">Competência</div>
+                            <div style="font-size:15px;font-weight:600;color:#1a1d23">${escapedReferenceLabel}</div>
                           </td>
                         </tr>
                         <tr>
-                          <td style="padding:16px 18px;border-bottom:1px solid #e2eaf8">
-                            <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#657394;margin-bottom:6px">Vencimento</div>
-                            <div style="font-size:18px;font-weight:800;color:#071233">${escapedDueDateLabel}</div>
+                          <td style="padding:16px 20px;border-bottom:1px solid #ececef">
+                            <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8a8f9a;margin-bottom:5px">Vencimento</div>
+                            <div style="font-size:15px;font-weight:600;color:#1a1d23">${escapedDueDateLabel}</div>
                           </td>
                         </tr>
                         <tr>
-                          <td style="padding:16px 18px">
-                            <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#657394;margin-bottom:6px">Valor</div>
-                            <div style="font-size:24px;font-weight:800;color:#071233">${escapedAmount}</div>
+                          <td style="padding:16px 20px">
+                            <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8a8f9a;margin-bottom:5px">Valor</div>
+                            <div style="font-size:19px;font-weight:700;color:#1a1d23">${escapedAmount}</div>
                           </td>
                         </tr>
                       </table>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:20px 30px 4px 30px">
-                      <a href="${escapedBoletoUrl}" style="display:block;background:#0b5cff;border-radius:14px;color:#ffffff;text-decoration:none;text-align:center;font-size:15px;font-weight:800;padding:14px 18px">Abrir boleto</a>
+                    <td style="padding:24px 36px 8px 36px">
+                      <a href="${escapedBoletoUrl}" style="display:block;background:#1a1d23;border-radius:8px;color:#ffffff;text-decoration:none;text-align:center;font-size:14px;font-weight:600;padding:13px 18px">Abrir boleto</a>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:14px 30px 28px 30px">
-                      <p style="font-size:13px;line-height:1.55;color:#657394;margin:0">Também anexamos o PDF do boleto neste e-mail. Se o pagamento já tiver sido realizado, desconsidere esta mensagem.</p>
+                    <td style="padding:16px 36px 32px 36px">
+                      <p style="font-size:12.5px;line-height:1.6;color:#8a8f9a;margin:0">Também anexamos o PDF do boleto neste e-mail. Se o pagamento já tiver sido realizado, desconsidere esta mensagem.</p>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 4px 0 4px">
-                <p style="font-size:12px;line-height:1.5;color:#7b88a4;margin:0">Atenciosamente,<br><strong style="color:#071233">Tropa</strong></p>
+              <td style="padding:24px 4px 0 4px">
+                <p style="font-size:12px;line-height:1.6;color:#a0a4ad;margin:0">Atenciosamente,<br><strong style="color:#5b5f6a;font-weight:600">Tropa</strong></p>
               </td>
             </tr>
           </table>
