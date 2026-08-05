@@ -101,8 +101,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir CNPJ",
-    href: "/abrir-cnpj",
+    title: "Abrir Empresa",
+    href: "/abrir-empresa",
     description: "Veja qual enquadramento combina com o seu momento e comece pelo caminho certo.",
   },
   relatedSlugs: ["como-emitir-nota-fiscal-mei", "como-abrir-mei-passo-a-passo", "mei-ou-me-quando-migrar"],

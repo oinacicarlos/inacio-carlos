@@ -295,6 +295,7 @@ export default function HubContent({
   nextBillingDateLabel,
 }: HubContentProps) {
   const [activeSection, setActiveSection] = useState<Section>("visao-geral")
+  const [visitedSections, setVisitedSections] = useState<Set<Section>>(() => new Set(["visao-geral"]))
   const [requestIntent, setRequestIntent] = useState<RequestIntent | null>(null)
   const [activeTool, setActiveTool] = useState<ToolSlug | null>(null)
   const [serviceProcess, setServiceProcess] = useState<ServiceProcess | null>(null)
@@ -306,6 +307,14 @@ export default function HubContent({
   const router = useRouter()
   const searchParams = useSearchParams()
   const firstName = firstNameFrom(profile.name)
+
+  // Painéis ficam montados depois da primeira visita (só escondidos por
+  // CSS) em vez de desmontar ao trocar de seção — sem isso, cada troca de
+  // aba desmontava o painel anterior e remontava o novo do zero, refazendo
+  // as buscas no Supabase de novo mesmo revisitando uma aba já carregada.
+  useEffect(() => {
+    setVisitedSections((current) => (current.has(activeSection) ? current : new Set(current).add(activeSection)))
+  }, [activeSection])
 
   useEffect(() => {
     const tab = searchParams.get("tab")
@@ -453,8 +462,8 @@ export default function HubContent({
         }
         aria-labelledby="client-hub-title"
       >
-        {activeSection === "visao-geral" && (
-          <>
+        {visitedSections.has("visao-geral") && (
+          <div style={{ display: activeSection === "visao-geral" ? "grid" : "none", gap: 24 }}>
             <header className="client-hub-header">
               <div>
                 <span>Visão Geral</span>
@@ -532,11 +541,15 @@ export default function HubContent({
                 />
               </div>
             </section>
-          </>
+          </div>
         )}
 
-        {activeSection === "ferramentas" && (
-          <section className="client-hub-section" aria-labelledby="client-hub-tools-title">
+        {visitedSections.has("ferramentas") && (
+          <section
+            className="client-hub-section"
+            aria-labelledby="client-hub-tools-title"
+            style={{ display: activeSection === "ferramentas" ? undefined : "none" }}
+          >
             {activeTool ? (
               <HubEmbeddedTool
                 tool={activeTool}
@@ -597,41 +610,51 @@ export default function HubContent({
           </section>
         )}
 
-        {activeSection === "rotinas" && <RoutinesPanel />}
-
-        {activeSection === "solicitacoes" && (
-          <RequestsPanel
-            initialIntent={requestIntent}
-            canCreateRequests={canCreateRequests}
-            onUpgrade={() => openSection("assinatura")}
-            onFlowAction={handleRequestFlowAction}
-          />
+        {visitedSections.has("rotinas") && (
+          <div style={{ display: activeSection === "rotinas" ? undefined : "none" }}>
+            <RoutinesPanel />
+          </div>
         )}
 
-        {activeSection === "assinatura" && (
-          <SubscriptionPanel
-            planSlug={planSlug}
-            planLabel={planLabel}
-            subscriptionStatusLabel={subscriptionStatusLabel}
-            hasStripeCustomer={hasStripeCustomer}
-            nextBillingDateLabel={nextBillingDateLabel}
-            onRequestBillingDateChange={() => openRequest("billing_due_date")}
-          />
+        {visitedSections.has("solicitacoes") && (
+          <div style={{ display: activeSection === "solicitacoes" ? undefined : "none" }}>
+            <RequestsPanel
+              initialIntent={requestIntent}
+              canCreateRequests={canCreateRequests}
+              onUpgrade={() => openSection("assinatura")}
+              onFlowAction={handleRequestFlowAction}
+            />
+          </div>
         )}
 
-        {activeSection === "conta" && (
-          <AccountPanel
-            clientName={profile.name}
-            userEmail={userEmail}
-            userPhone={profile.phone}
-            onProfileUpdated={(updatedProfile) =>
-              setProfile((currentProfile) => ({
-                ...currentProfile,
-                name: updatedProfile.name,
-                phone: updatedProfile.phone,
-              }))
-            }
-          />
+        {visitedSections.has("assinatura") && (
+          <div style={{ display: activeSection === "assinatura" ? undefined : "none" }}>
+            <SubscriptionPanel
+              planSlug={planSlug}
+              planLabel={planLabel}
+              subscriptionStatusLabel={subscriptionStatusLabel}
+              hasStripeCustomer={hasStripeCustomer}
+              nextBillingDateLabel={nextBillingDateLabel}
+              onRequestBillingDateChange={() => openRequest("billing_due_date")}
+            />
+          </div>
+        )}
+
+        {visitedSections.has("conta") && (
+          <div style={{ display: activeSection === "conta" ? undefined : "none" }}>
+            <AccountPanel
+              clientName={profile.name}
+              userEmail={userEmail}
+              userPhone={profile.phone}
+              onProfileUpdated={(updatedProfile) =>
+                setProfile((currentProfile) => ({
+                  ...currentProfile,
+                  name: updatedProfile.name,
+                  phone: updatedProfile.phone,
+                }))
+              }
+            />
+          </div>
         )}
       </section>
     </main>

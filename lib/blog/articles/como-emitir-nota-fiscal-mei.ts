@@ -155,8 +155,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir meu MEI",
-    href: "/abrir-cnpj",
+    title: "Abrir minha empresa (MEI)",
+    href: "/abrir-empresa",
     description: "Tire dúvidas sobre emissão de notas fiscais ou terceirize essa rotina para o seu MEI.",
   },
   relatedSlugs: ["simples-nacional-precisa-destacar-ibs-cbs-2026", "mei-pode-receber-pix-na-conta-pessoal", "o-que-e-das-mei-como-pagar"],

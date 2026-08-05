@@ -70,12 +70,12 @@ type ServiceProduct = {
 
 const SERVICE_PRODUCTS: ServiceProduct[] = [
   {
-    title: "Abertura de MEI",
+    title: "Abertura de empresa (MEI)",
     description: "Cadastro de MEI sem custo.",
     price: "Grátis",
     sortPrice: 0,
     icon: Sparkles,
-    buttonLabel: "Abrir meu MEI",
+    buttonLabel: "Abrir minha empresa (MEI)",
   },
   {
     title: "Certificado Digital PJ A1",
@@ -242,7 +242,7 @@ export function ServicesProductsSection({
       const { loadedIntake } = await reload()
       const product = params.get("product")
 
-      // Suporte ao link "MEI grátis" de /abrir-cnpj: quem ainda não tinha
+      // Suporte ao link "MEI grátis" de /abrir-empresa: quem ainda não tinha
       // conta é mandado pro cadastro com ?start=mei no redirect; ao voltar
       // pro hub já logado, essa flag inicia a triagem automaticamente, sem
       // precisar clicar em nada de novo.
@@ -634,7 +634,7 @@ function IntakeForm({
       <div className="onboarding-status-row">
         {wantsMei && (
           <div className="onboarding-status-pill">
-            <span>Abertura de MEI</span>
+            <span>Abertura de empresa (MEI)</span>
             <strong>{MEI_STATUS_LABELS[intake?.mei_status ?? "nao_iniciado"]}</strong>
           </div>
         )}
@@ -698,7 +698,7 @@ function IntakeForm({
               <em className="onboarding-field-note">Armazenada de forma criptografada — só a equipe autorizada acessa quando necessário.</em>
               <em className="onboarding-field-note">
                 Antes de enviar, desative a verificação em duas etapas da sua conta gov.br — isso é necessário para
-                conseguirmos dar entrada de forma automática. Você pode reativar assim que o processo terminar.
+                conseguirmos dar entrada no seu pedido junto ao Portal do Empreendedor. Você pode reativar assim que o processo terminar.
               </em>
             </label>
           )}

@@ -339,8 +339,8 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
       },
     ],
     relatedTool: {
-      title: "Abrir CNPJ",
-      href: "/abrir-cnpj",
+      title: "Abrir Empresa",
+      href: "/abrir-empresa",
       description: "Organize seu MEI para emitir nota e separar melhor as finanças.",
     },
     relatedSlugs: ["como-emitir-nota-fiscal-mei", "o-que-e-das-mei-como-pagar", "quanto-custa-um-contador-para-mei"],

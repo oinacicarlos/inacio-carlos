@@ -1375,8 +1375,12 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
                 const moduleRoute = MODULE_ROUTES[module.name]
                 setActiveModule(module.name)
 
-                if (moduleRoute) {
-                  router.push(moduleRoute)
+                // Só atualiza a URL na barra do navegador (pra refresh/link direto
+                // continuar caindo no módulo certo) sem passar pelo router do
+                // Next.js — router.push aqui desmontava a página inteira e refazia
+                // todas as buscas de novo, mesmo sendo o mesmo componente.
+                if (moduleRoute && window.location.pathname !== moduleRoute) {
+                  window.history.replaceState(null, '', moduleRoute)
                 }
               }}
               type="button"
@@ -5471,7 +5475,7 @@ function OnboardingAdminModule() {
   )
 }
 
-// ── Leads de Lucro Presumido/Real (formulário público de /abrir-cnpj) ──────
+// ── Leads de Lucro Presumido/Real (formulário público de /abrir-empresa) ──
 // Sem processo automatizado: só lista quem pediu contato e deixa marcar o
 // status manual (novo / em contato / concluído). Lê e grava via RPCs
 // SECURITY DEFINER gated por is_admin() — ver supabase/create-abrir-cnpj-flow.sql.
@@ -5583,7 +5587,7 @@ function PresumidoRealLeadsModule() {
             {leads.length === 0 && (
               <div className="pfx-empty-state">
                 <strong>Nenhum lead de Presumido/Real ainda.</strong>
-                <span>Aparecem aqui quando alguém preenche o formulário em /abrir-cnpj.</span>
+                <span>Aparecem aqui quando alguém preenche o formulário em /abrir-empresa.</span>
               </div>
             )}
           </div>

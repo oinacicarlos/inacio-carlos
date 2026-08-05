@@ -7,7 +7,7 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda o que é inscrição municipal, por que ela é necessária para emitir nota de serviço e como evitar bloqueios na prefeitura.",
   excerpt:
-    "Abrir CNPJ não resolve tudo sozinho. Para emitir nota de serviço, muitos prestadores precisam regularizar a inscrição municipal.",
+    "Abrir empresa não resolve tudo sozinho. Para emitir nota de serviço, muitos prestadores precisam regularizar a inscrição municipal.",
   pillar: "mei",
   coverImage: "/blog/covers/como-trocar-de-contador.jpg",
   coverImageAlt: "Pessoa conferindo cadastro empresarial em um notebook",
@@ -98,8 +98,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir CNPJ",
-    href: "/abrir-cnpj",
+    title: "Abrir Empresa",
+    href: "/abrir-empresa",
     description: "Comece com o enquadramento certo para não travar na hora de emitir nota.",
   },
   relatedSlugs: ["como-abrir-mei-passo-a-passo", "como-emitir-nota-fiscal-mei", "simples-nacional-prestador-servico"],

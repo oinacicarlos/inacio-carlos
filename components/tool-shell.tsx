@@ -14,8 +14,8 @@ const defaultHeaderActions = (
     <a className="accounting-login" href="/login">
       Login
     </a>
-    <a className="accounting-header-cta" href="/abrir-cnpj">
-      <span>Abrir CNPJ</span>
+    <a className="accounting-header-cta" href="/abrir-empresa">
+      <span>Abrir Empresa</span>
       <span aria-hidden="true">›</span>
     </a>
   </>
@@ -85,7 +85,7 @@ export function ToolShell({ children, headerActions = defaultHeaderActions, main
 
         <div className="accounting-footer-bottom">
           <span>© 2026 Tropa. Todos os direitos reservados.</span>
-          <a href="/abrir-cnpj">Abrir CNPJ</a>
+          <a href="/abrir-empresa">Abrir Empresa</a>
         </div>
       </footer>
     </main>

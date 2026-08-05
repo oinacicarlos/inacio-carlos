@@ -218,14 +218,14 @@ export default function PlanCalculator() {
             {showGatewayResult && (
               <>
                 <p className="plan-calc-result-title">
-                  Primeiro passo <strong>Abrir CNPJ</strong>
+                  Primeiro passo <strong>Abrir Empresa</strong>
                 </p>
                 <p className="plan-calc-result-sub">
                   Você ainda opera como pessoa física. Nossa equipe te ajuda a escolher entre MEI, Simples Nacional ou
                   outro enquadramento.
                 </p>
-                <a className="accounting-plan-button is-primary" href="/abrir-cnpj">
-                  Abrir meu CNPJ
+                <a className="accounting-plan-button is-primary" href="/abrir-empresa">
+                  Abrir minha empresa
                   <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
                 </a>
               </>
@@ -239,7 +239,7 @@ export default function PlanCalculator() {
                 <p className="plan-calc-result-sub">
                   Lucro Presumido e Lucro Real pedem uma proposta sob medida para porte, operação e rotina fiscal.
                 </p>
-                <a className="accounting-plan-button is-primary" href="/abrir-cnpj">
+                <a className="accounting-plan-button is-primary" href="/abrir-empresa">
                   Falar com a equipe
                   <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
                 </a>

@@ -56,8 +56,8 @@ function buildToolsEntryHref(
 
 const accountingServices = [
   {
-    title: "Abertura e Legalização",
-    description: "Cuidamos da abertura de empresas, regularizações e processos para manter o negócio em conformidade.",
+    title: "Abertura de Empresas",
+    description: "Cuidamos de toda a abertura da sua empresa, com orientação em cada etapa até você estar pronto para operar.",
     icon: Building2,
   },
   {
@@ -73,7 +73,7 @@ const accountingServices = [
   },
   {
     title: "Assessoria Contábil",
-    description: "Oferecemos suporte contábil consultivo com acompanhamento próximo e orientação estratégica.",
+    description: "Suporte contábil de verdade, com acompanhamento próximo e orientação estratégica para o seu negócio.",
     icon: Calculator,
   },
   {
@@ -129,9 +129,9 @@ const accountingTools = [
 
 const accountingFaqs = [
   {
-    question: "A abertura do CNPJ é gratuita?",
+    question: "A abertura da empresa é gratuita?",
     answer:
-      "Sim, a abertura é 100% gratuita, mas apenas se for para MEI. Para abrir uma empresa que não seja MEI, consulte o nosso canal de atendimento.",
+      "Sim, a abertura é 100% gratuita para MEI. Para outros enquadramentos, consulte o nosso canal de atendimento.",
   },
   {
     question: "Posso trocar de contador mesmo com a empresa ativa?",
@@ -183,8 +183,8 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <a className="accounting-login" href="/login">
             Login
           </a>
-          <a className="accounting-header-cta" href="/abrir-cnpj">
-            <span>Abrir CNPJ</span>
+          <a className="accounting-header-cta" href="/abrir-empresa">
+            <span>Abrir Empresa</span>
             <span aria-hidden="true">›</span>
           </a>
         </div>
@@ -196,13 +196,13 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <span>Contabilidade para prestadores de serviço</span>
           </h1>
           <p className="accounting-hero-subtitle">
-            <span>Abra seu CNPJ, emita notas fiscais e organize seus impostos com uma plataforma fácil de usar</span>
-            <span>e especialistas de verdade acompanhando você.</span>
+            <span>Abra sua empresa, emita notas e organize seus impostos</span>
+            <span>com especialistas de verdade ao seu lado.</span>
           </p>
 
           <div className="accounting-hero-actions">
-            <a className="accounting-primary-button" href="/abrir-cnpj">
-              Abrir CNPJ
+            <a className="accounting-primary-button" href="/abrir-empresa">
+              Abrir Empresa
             </a>
             <a className="accounting-secondary-button" href={PLAN_SIMULATOR_ANCHOR}>
               Trocar Contador
@@ -249,7 +249,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <span>Ferramentas úteis para empreendedores</span>
           </h2>
           <p className="accounting-tools-subtitle">
-            <span>Atalhos práticos para MEIs e empresas do Simples Nacional</span>
+            <span>Atalhos práticos para empreendedores</span>
             <span>tomarem decisões com mais segurança.</span>
           </p>
 
@@ -323,7 +323,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <a className="accounting-logo" href="/" aria-label="Tropa">
               <BrandLogo variant="black" />
             </a>
-            <p>Assessoria empresarial para prestadores de serviço, MEIs e empresas que querem crescer com organização.</p>
+            <p>Assessoria empresarial para prestadores de serviço e empreendedores que querem crescer com organização.</p>
           </div>
 
           <nav className="accounting-footer-nav" aria-label="Links do rodapé">
@@ -357,7 +357,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
         <div className="accounting-footer-bottom">
           <span>© 2026 Tropa. Todos os direitos reservados.</span>
-          <a href="/abrir-cnpj">Abrir CNPJ</a>
+          <a href="/abrir-empresa">Abrir Empresa</a>
         </div>
       </footer>
     </main>

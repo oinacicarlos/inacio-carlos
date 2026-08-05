@@ -16,7 +16,7 @@ function cleanString(value: unknown): string {
 }
 
 // Formulário público (sem login) do card "Lucro Presumido ou Real" em
-// /abrir-cnpj — esses regimes não têm processo automatizado, então essa
+// /abrir-empresa — esses regimes não têm processo automatizado, então essa
 // rota só registra o lead pro time (via service_role, já que não há sessão
 // de usuário) e dispara uma notificação por e-mail. O cliente não recebe
 // e-mail nenhum aqui, só a equipe.
