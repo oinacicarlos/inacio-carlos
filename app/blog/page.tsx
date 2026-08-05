@@ -19,7 +19,7 @@ export default function BlogPage() {
           <BookOpen size={18} strokeWidth={2.2} aria-hidden="true" />
           Blog Tropa
         </span>
-        <h1 id="blog-hero-title">Guias práticos para quem presta serviço e tem CNPJ</h1>
+        <h1 id="blog-hero-title">Guias práticos para quem presta serviço</h1>
         <p>Precificação, contratos, rescisão, contratação e tudo sobre manter o MEI em dia, sem juridiquês.</p>
       </section>
 

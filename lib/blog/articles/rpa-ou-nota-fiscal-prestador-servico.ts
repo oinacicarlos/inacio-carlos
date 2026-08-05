@@ -1,4 +1,5 @@
 import type { BlogArticle } from "@/lib/blog/types"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 export const article: BlogArticle = {
   slug: "rpa-ou-nota-fiscal-prestador-servico",
@@ -101,8 +102,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir Empresa",
-    href: "/abrir-empresa",
+    title: "Fale com a gente",
+    href: TROPA_WHATSAPP_LINK,
     description: "Veja qual enquadramento combina com o seu momento e comece pelo caminho certo.",
   },
   relatedSlugs: ["como-emitir-nota-fiscal-mei", "como-abrir-mei-passo-a-passo", "mei-ou-me-quando-migrar"],

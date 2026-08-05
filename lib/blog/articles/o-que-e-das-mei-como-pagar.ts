@@ -1,4 +1,5 @@
 import type { BlogArticle } from "@/lib/blog/types"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 export const article: BlogArticle = {
   slug: "o-que-e-das-mei-como-pagar",
@@ -129,8 +130,8 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir minha empresa (MEI)",
-    href: "/abrir-empresa",
+    title: "Fale com a gente",
+    href: TROPA_WHATSAPP_LINK,
     description: "Tire dúvidas sobre o seu MEI ou sobre trocar de contador com quem entende do assunto.",
   },
   relatedSlugs: ["como-abrir-mei-passo-a-passo", "como-emitir-nota-fiscal-mei", "mei-pode-ter-funcionario"],

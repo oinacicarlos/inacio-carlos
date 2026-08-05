@@ -170,8 +170,12 @@ export function ArticleView({ article }: { article: BlogArticle }) {
             <div className="blog-promo-card">
               <strong>{article.relatedTool.title}</strong>
               <p>{article.relatedTool.description}</p>
-              <a className="blog-promo-card-cta" href={article.relatedTool.href}>
-                Abrir ferramenta
+              <a
+                className="blog-promo-card-cta"
+                href={article.relatedTool.href}
+                {...(article.relatedTool.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+              >
+                {article.relatedTool.href.startsWith("http") ? "Falar no WhatsApp" : "Abrir ferramenta"}
                 <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
               </a>
             </div>

@@ -5,7 +5,6 @@ import { article as diferencaDemissaoSemJustaCausaPedidoAcordo } from "./diferen
 import { article as quantoCustaFuncionarioClt } from "./quanto-custa-funcionario-clt"
 import { article as oQueNaoPodeFaltarContratoPrestacaoServico } from "./o-que-nao-pode-faltar-contrato-prestacao-servico"
 import { article as oQueFazerQuandoClienteNaoPaga } from "./o-que-fazer-quando-cliente-nao-paga"
-import { article as comoAbrirMeiPassoAPasso } from "./como-abrir-mei-passo-a-passo"
 import { article as comoEmitirNotaFiscalMei } from "./como-emitir-nota-fiscal-mei"
 import { article as cobrarPorHoraOuPorProjeto } from "./cobrar-por-hora-ou-por-projeto"
 import { article as oQueEAvisoPrevioComoFunciona } from "./o-que-e-aviso-previo-como-funciona"
@@ -18,20 +17,22 @@ import { article as feriasCltComoFuncionaOCalculo } from "./ferias-clt-como-func
 import { article as contratoVerbalTemValidade } from "./contrato-verbal-tem-validade"
 import { article as rpaOuNotaFiscalPrestadorServico } from "./rpa-ou-nota-fiscal-prestador-servico"
 import { article as simplesNacionalPrestadorServico } from "./simples-nacional-prestador-servico"
-import { article as certificadoDigitalA1ParaEmpresa } from "./certificado-digital-a1-para-empresa"
 import { article as inscricaoMunicipalParaPrestadorServico } from "./inscricao-municipal-para-prestador-servico"
 import { article as reformaTributariaPrestadorServico2026 } from "./reforma-tributaria-prestador-servico-2026"
 import { prioridadeSimples2026Articles } from "./prioridade-simples-2026"
 import { regularizacaoConversaoArticles } from "./regularizacao-conversao"
 import { prestadoresServicoSeoArticles } from "./prestadores-servico-seo"
 
+// como-abrir-mei-passo-a-passo e certificado-digital-a1-para-empresa ficam
+// temporariamente fora do índice (não removidos do repo) — são exatamente
+// os temas que a política de Documentos e Serviços Governamentais do Google
+// Ads restringe. Religar assim que a certificação/exclusão for resolvida.
 const ALL_ARTICLES: BlogArticle[] = [
   ...prioridadeSimples2026Articles,
   ...regularizacaoConversaoArticles,
   ...prestadoresServicoSeoArticles,
   rpaOuNotaFiscalPrestadorServico,
   simplesNacionalPrestadorServico,
-  certificadoDigitalA1ParaEmpresa,
   inscricaoMunicipalParaPrestadorServico,
   reformaTributariaPrestadorServico2026,
   comoCalcularPrecoDeServico,
@@ -40,7 +41,6 @@ const ALL_ARTICLES: BlogArticle[] = [
   quantoCustaFuncionarioClt,
   oQueNaoPodeFaltarContratoPrestacaoServico,
   oQueFazerQuandoClienteNaoPaga,
-  comoAbrirMeiPassoAPasso,
   comoEmitirNotaFiscalMei,
   cobrarPorHoraOuPorProjeto,
   oQueEAvisoPrevioComoFunciona,

@@ -56,7 +56,7 @@ const accountingServices = [
   {
     title: "Assessoria Contábil",
     description:
-      "Suporte contábil de verdade — da abertura da sua empresa ao certificado digital, com acompanhamento próximo e orientação estratégica para o seu negócio.",
+      "Suporte contábil de verdade, com acompanhamento próximo e orientação estratégica em cada etapa do seu negócio.",
     icon: Calculator,
   },
   {
@@ -117,9 +117,9 @@ const accountingTools = [
 
 const accountingFaqs = [
   {
-    question: "A abertura da empresa é gratuita?",
+    question: "Tem fidelidade ou posso cancelar quando quiser?",
     answer:
-      "Sim, a abertura é 100% gratuita para MEI. Para outros enquadramentos, consulte o nosso canal de atendimento.",
+      "Sem fidelidade. Você pode cancelar quando quiser, direto pelo hub ou falando com a nossa equipe de atendimento.",
   },
   {
     question: "Posso trocar de contador mesmo com a empresa ativa?",
@@ -192,8 +192,8 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <a className="accounting-primary-button" href={PLAN_SIMULATOR_ANCHOR}>
               Ver Planos
             </a>
-            <a className="accounting-secondary-button" href="/abrir-empresa">
-              Abrir Empresa
+            <a className="accounting-secondary-button" href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+              Falar no WhatsApp
             </a>
           </div>
         </div>

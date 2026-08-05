@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { ArrowRight, Check, HelpCircle, Minus, Plus, X } from "lucide-react"
 import { StripePlanButton } from "@/components/stripe-plan-button"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 import { PLAN_DETAILS, type CheckoutPlanSlug } from "@/lib/plans"
 
 type Regime = "" | "pessoa_fisica" | "mei" | "simples" | "presumido" | "real"
@@ -218,14 +219,14 @@ export default function PlanCalculator() {
             {showGatewayResult && (
               <>
                 <p className="plan-calc-result-title">
-                  Primeiro passo <strong>Abrir Empresa</strong>
+                  Primeiro passo <strong>Fale com a gente</strong>
                 </p>
                 <p className="plan-calc-result-sub">
                   Você ainda opera como pessoa física. Nossa equipe te ajuda a escolher entre MEI, Simples Nacional ou
                   outro enquadramento.
                 </p>
-                <a className="accounting-plan-button is-primary" href="/abrir-empresa">
-                  Abrir minha empresa
+                <a className="accounting-plan-button is-primary" href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+                  Falar no WhatsApp
                   <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
                 </a>
               </>
@@ -239,7 +240,7 @@ export default function PlanCalculator() {
                 <p className="plan-calc-result-sub">
                   Lucro Presumido e Lucro Real pedem uma proposta sob medida para porte, operação e rotina fiscal.
                 </p>
-                <a className="accounting-plan-button is-primary" href="/abrir-empresa">
+                <a className="accounting-plan-button is-primary" href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
                   Falar com a equipe
                   <ArrowRight size={18} strokeWidth={2.2} aria-hidden="true" />
                 </a>

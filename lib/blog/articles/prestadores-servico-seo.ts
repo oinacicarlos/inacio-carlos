@@ -1,4 +1,5 @@
 import type { BlogArticle } from "@/lib/blog/types"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 function impostoPjArticle(faturamento: 5 | 10 | 15 | 20 | 30): BlogArticle {
   const valor = `R$ ${faturamento} mil`
@@ -339,8 +340,8 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
       },
     ],
     relatedTool: {
-      title: "Abrir Empresa",
-      href: "/abrir-empresa",
+      title: "Fale com a gente",
+      href: TROPA_WHATSAPP_LINK,
       description: "Organize seu MEI para emitir nota e separar melhor as finanças.",
     },
     relatedSlugs: ["como-emitir-nota-fiscal-mei", "o-que-e-das-mei-como-pagar", "quanto-custa-um-contador-para-mei"],

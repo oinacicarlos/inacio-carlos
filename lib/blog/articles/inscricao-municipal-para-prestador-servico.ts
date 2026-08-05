@@ -1,4 +1,5 @@
 import type { BlogArticle } from "@/lib/blog/types"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 export const article: BlogArticle = {
   slug: "inscricao-municipal-para-prestador-servico",
@@ -98,9 +99,9 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir Empresa",
-    href: "/abrir-empresa",
-    description: "Comece com o enquadramento certo para não travar na hora de emitir nota.",
+    title: "Fale com a gente",
+    href: TROPA_WHATSAPP_LINK,
+    description: "Tire dúvidas sobre inscrição municipal e enquadramento com a nossa equipe.",
   },
   relatedSlugs: ["como-abrir-mei-passo-a-passo", "como-emitir-nota-fiscal-mei", "simples-nacional-prestador-servico"],
 }

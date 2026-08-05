@@ -1,4 +1,5 @@
 import type { BlogArticle } from "@/lib/blog/types"
+import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 export const article: BlogArticle = {
   slug: "como-emitir-nota-fiscal-mei",
@@ -155,9 +156,9 @@ export const article: BlogArticle = {
     },
   ],
   relatedTool: {
-    title: "Abrir minha empresa (MEI)",
-    href: "/abrir-empresa",
-    description: "Tire dúvidas sobre emissão de notas fiscais ou terceirize essa rotina para o seu MEI.",
+    title: "Fale com a gente",
+    href: TROPA_WHATSAPP_LINK,
+    description: "Tire dúvidas sobre emissão de notas fiscais ou terceirize essa rotina com a nossa equipe.",
   },
   relatedSlugs: ["simples-nacional-precisa-destacar-ibs-cbs-2026", "mei-pode-receber-pix-na-conta-pessoal", "o-que-e-das-mei-como-pagar"],
 }
