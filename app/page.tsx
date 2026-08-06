@@ -1,14 +1,16 @@
+import { headers } from "next/headers"
 import {
   ArrowRight,
   Calculator,
   ChartColumnIncreasing,
+  Check,
   FileSignature,
-  Megaphone,
+  Medal,
   PieChart,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react"
-import PlanCalculator from "@/components/plan-calculator"
 import { BrandLogo } from "@/components/brand-logo"
 import { BlogCard } from "@/components/blog/blog-card"
 import { getRecentArticles } from "@/lib/blog/articles"
@@ -19,6 +21,13 @@ import type { ToolSlug } from "@/lib/tool-usage/tools"
 const HUB_TOOLS_PATH = "/hub?tab=ferramentas"
 const PLAN_SIMULATOR_ANCHOR = "#simulador-planos"
 const MARKETING_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const
+const SITE_URL = "https://tropacontabilidade.com"
+const CRC_REGISTRATION = "CRC RJ-110749/O-8"
+
+function buildPlanWhatsAppLink(planName: string) {
+  const message = `Oi, estou precisando de uma contabilidade para a minha empresa e acho que o plano ${planName} é o ideal para mim, eu gostaria de ajuda para definir isso`
+  return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
+}
 
 type HomeSearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -70,10 +79,10 @@ const accountingServices = [
     icon: PieChart,
   },
   {
-    title: "Marketing e Vendas",
+    title: "Ferramentas Exclusivas",
     description:
-      "Criamos estratégias de tráfego pago, social media e campanhas para atrair clientes e gerar crescimento.",
-    icon: Megaphone,
+      "Calculadoras e geradores de documentos para simular rescisão, contratação, precificação e montar contratos em minutos.",
+    icon: Wrench,
   },
   {
     title: "Recursos Humanos",
@@ -85,6 +94,54 @@ const accountingServices = [
     description:
       "Organizamos o financeiro da empresa com controle de contas, fluxo de caixa e apoio à tomada de decisão.",
     icon: ChartColumnIncreasing,
+  },
+]
+
+// Cards de exibição da seção "Nossos Planos" — vitrine comercial da home,
+// independente dos planos/preços de app/api/stripe/checkout e lib/plans.ts
+// (esses seguem sendo a fonte de verdade pro checkout e pro hub de clientes
+// já assinantes). Por isso o CTA aqui leva pro WhatsApp em vez de Stripe.
+const pricingPlans = [
+  {
+    tier: "bronze" as const,
+    name: "Bronze",
+    price: "R$ 405,25",
+    description: "Contabilidade essencial para quem está começando e precisa manter a empresa organizada.",
+    featured: false,
+    features: [
+      "Até 3 notas fiscais por mês",
+      "Folha de pagamento de 1 funcionário",
+      "Cálculo mensal dos impostos",
+      "Atendimento por WhatsApp",
+    ],
+  },
+  {
+    tier: "prata" as const,
+    name: "Prata",
+    price: "R$ 810,50",
+    description: "Assessoria completa para empresas que estão crescendo e precisam de mais acompanhamento.",
+    featured: true,
+    features: [
+      "Tudo do plano Bronze",
+      "Até 5 notas fiscais por mês",
+      "Folha de pagamento de até 3 funcionários",
+      "Gestão de admissões e desligamentos",
+      "Atendimento prioritário por WhatsApp",
+    ],
+  },
+  {
+    tier: "ouro" as const,
+    name: "Ouro",
+    price: "R$ 1.621,00",
+    description: "Gestão contábil estratégica para empresas que precisam de acompanhamento próximo e decisões mais seguras.",
+    featured: false,
+    features: [
+      "Tudo do plano Prata",
+      "Até 10 notas fiscais por mês",
+      "Folha de pagamento de até 10 funcionários",
+      "Planejamento tributário periódico",
+      "Atendimento direto e prioritário",
+    ],
   },
 ]
 
@@ -151,50 +208,124 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
     data: { user },
   } = await supabase.auth.getUser()
   const isAuthenticated = Boolean(user)
+  const nonce = (await headers()).get("x-nonce") ?? undefined
+
+  // Schema.org pra deixar explícito pra crawlers/IA (inclusive o revisor de
+  // anúncios do Google) que a Tropa é uma contabilidade privada — não um
+  // órgão público. Ver aviso equivalente no rodapé, em texto visível.
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AccountingService",
+    name: "Tropa",
+    url: SITE_URL,
+    description:
+      "A Tropa é um escritório de contabilidade e assessoria empresarial privado, sem qualquer vínculo oficial com órgãos públicos ou governamentais. Presta serviços de contabilidade, abertura e regularização de empresas para o setor privado.",
+    areaServed: "BR",
+    identifier: CRC_REGISTRATION,
+  }
 
   return (
-    <main className="accounting-landing">
-      <header className="accounting-header" aria-label="Cabeçalho Tropa">
-        <a className="accounting-logo" href="/" aria-label="Tropa">
-          <BrandLogo variant="black" />
-        </a>
-
-        <nav className="accounting-nav" aria-label="Navegação principal">
-          <a href="#servicos" className="is-active">Serviços</a>
-          <a href="#planos">Planos</a>
-          <a href="#ferramentas">Ferramentas</a>
-          <a href="/blog">Blog</a>
-          <a href="#duvidas">Dúvidas</a>
-        </nav>
-
-        <div className="accounting-header-actions">
-          <a className="accounting-login" href="/login">
-            Login
+    <main className="accounting-landing accounting-landing--home">
+      <script
+        type="application/ld+json"
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <header className="accounting-header accounting-header--home" aria-label="Cabeçalho Tropa">
+        <div className="accounting-header-inner">
+          <a className="accounting-logo" href="/" aria-label="Tropa">
+            <BrandLogo variant="white" />
           </a>
-          <a className="accounting-header-cta" href={PLAN_SIMULATOR_ANCHOR}>
-            <span>Ver Planos</span>
-            <span aria-hidden="true">›</span>
-          </a>
+
+          <nav className="accounting-nav" aria-label="Navegação principal">
+            <a href="#servicos">Serviços</a>
+            <a href="#planos">Planos</a>
+            <a href="#ferramentas">Ferramentas</a>
+            <a href="#duvidas">Dúvidas</a>
+            <a href="/blog">Blog</a>
+          </nav>
+
+          <div className="accounting-header-actions">
+            <a className="accounting-login" href="/login">
+              Entrar
+            </a>
+            <a className="accounting-header-cta" href={PLAN_SIMULATOR_ANCHOR}>
+              Abrir Empresa
+            </a>
+          </div>
         </div>
       </header>
 
       <section className="accounting-hero" aria-labelledby="accounting-hero-title">
         <div className="accounting-hero-copy">
+          <div className="accounting-hero-proof">
+            <div className="accounting-hero-avatars" aria-hidden="true">
+              <span className="accounting-hero-avatar">C</span>
+              <span className="accounting-hero-avatar">M</span>
+              <span className="accounting-hero-avatar">R</span>
+            </div>
+            <span>+ de 2000 clientes atendidos</span>
+          </div>
+
           <h1 id="accounting-hero-title">
-            <span>Contabilidade para prestadores de serviço</span>
+            <span>Contabilidade Online</span>
+            <span>para prestadores de serviço</span>
           </h1>
           <p className="accounting-hero-subtitle">
-            <span>Notas fiscais em dia e impostos organizados</span>
-            <span>com um contador de verdade cuidando do seu negócio.</span>
+            Assessoria contábil focada em resultado, você fatura e cuida da sua empresa enquanto a gente cuida do
+            leão para você.
           </p>
 
           <div className="accounting-hero-actions">
             <a className="accounting-primary-button" href={PLAN_SIMULATOR_ANCHOR}>
-              Ver Planos
+              Começar
             </a>
-            <a className="accounting-secondary-button" href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
-              Falar no WhatsApp
-            </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="accounting-plans" id="planos" aria-labelledby="accounting-plans-title">
+        <div className="accounting-plans-inner">
+          <h2 id="accounting-plans-title">Nossos Planos</h2>
+          <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
+
+          <div className="accounting-pricing-grid" id="simulador-planos">
+            {pricingPlans.map(({ tier, name, price, description, featured, features }) => (
+              <article className={`accounting-pricing-card${featured ? " is-featured" : ""}`} key={tier}>
+                {featured && <span className="accounting-pricing-badge">Mais escolhido</span>}
+
+                <div className={`accounting-pricing-icon accounting-pricing-icon--${tier}`} aria-hidden="true">
+                  <Medal size={24} strokeWidth={2} />
+                </div>
+
+                <h3>{name}</h3>
+
+                <div className="accounting-pricing-price">
+                  <span>{price}</span>
+                  <em>/mês</em>
+                </div>
+
+                <p className="accounting-pricing-desc">{description}</p>
+
+                <ul className="accounting-pricing-benefits">
+                  {features.map((feature) => (
+                    <li key={feature}>
+                      <Check size={16} strokeWidth={2.6} aria-hidden="true" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  className={`accounting-plan-button${featured ? " is-primary" : ""}`}
+                  href={buildPlanWhatsAppLink(name)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Contratar agora
+                </a>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -216,17 +347,6 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
                 <p>{description}</p>
               </article>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="accounting-plans" id="planos" aria-labelledby="accounting-plans-title">
-        <div className="accounting-plans-inner">
-          <h2 id="accounting-plans-title">Nossos Planos</h2>
-          <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
-
-          <div id="simulador-planos">
-            <PlanCalculator />
           </div>
         </div>
       </section>
@@ -341,6 +461,16 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
               </a>
             </div>
           </nav>
+        </div>
+
+        <div className="accounting-footer-disclaimer">
+          <p>
+            A Tropa é uma empresa privada de contabilidade e assessoria empresarial, sem qualquer vínculo oficial
+            com órgãos públicos ou governamentais. Não somos um órgão do governo e não emitimos, vendemos ou
+            intermediamos documentos públicos — todo o suporte para abertura, alteração ou regularização de
+            empresas é prestado como serviço de assessoria contábil privada.
+          </p>
+          <p>Responsável técnico: {CRC_REGISTRATION}.</p>
         </div>
 
         <div className="accounting-footer-bottom">
