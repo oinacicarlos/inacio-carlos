@@ -111,9 +111,10 @@ const pricingPlans = [
     featured: false,
     features: [
       "Até 3 notas fiscais por mês",
-      "Folha de pagamento de 1 funcionário",
-      "Cálculo mensal dos impostos",
-      "Atendimento por WhatsApp",
+      "Até 1 funcionário",
+      "Envio mensal de impostos",
+      "Suporte 100% humanizado",
+      "Atendimento por e-mail e WhatsApp",
     ],
   },
   {
@@ -123,11 +124,12 @@ const pricingPlans = [
     description: "Assessoria completa para empresas que estão crescendo e precisam de mais acompanhamento.",
     featured: true,
     features: [
-      "Tudo do plano Bronze",
       "Até 5 notas fiscais por mês",
-      "Folha de pagamento de até 3 funcionários",
-      "Gestão de admissões e desligamentos",
-      "Atendimento prioritário por WhatsApp",
+      "Até 3 funcionários",
+      "Envio mensal de impostos",
+      "Estratégia tributária no Simples Nacional",
+      "Suporte 100% humanizado",
+      "Atendimento por e-mail e WhatsApp",
     ],
   },
   {
@@ -137,11 +139,13 @@ const pricingPlans = [
     description: "Gestão contábil estratégica para empresas que precisam de acompanhamento próximo e decisões mais seguras.",
     featured: false,
     features: [
-      "Tudo do plano Prata",
       "Até 10 notas fiscais por mês",
-      "Folha de pagamento de até 10 funcionários",
-      "Planejamento tributário periódico",
-      "Atendimento direto e prioritário",
+      "Até 10 funcionários",
+      "Envio mensal de impostos",
+      "Estratégia tributária no Simples Nacional ou Híbrido",
+      "Suporte 100% humanizado",
+      "Atendimento por e-mail e WhatsApp",
+      "1 consulta Serasa mensal",
     ],
   },
 ]
@@ -269,12 +273,12 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           </div>
 
           <h1 id="accounting-hero-title">
-            <span>Contabilidade Online</span>
-            <span>para prestadores de serviço</span>
+            <span>Contabilidade Online para</span>
+            <span>prestadores de serviço</span>
           </h1>
           <p className="accounting-hero-subtitle">
-            Assessoria contábil focada em resultado, você fatura e cuida da sua empresa enquanto a gente cuida do
-            leão para você.
+            Contabilidade focada em atendimento humanizado e visando resultado, você fatura e cuida da sua empresa
+            enquanto a gente cuida do leão para você.
           </p>
 
           <div className="accounting-hero-actions">
