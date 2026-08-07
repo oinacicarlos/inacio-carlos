@@ -61,6 +61,7 @@ function buildContentSecurityPolicy(nonce: string) {
         'https://pagead2.googlesyndication.com',
         'https://www.google.com',
         'https://google.com',
+        'https://www.google.com.br',
         'https://www.facebook.com',
       ],
     ],

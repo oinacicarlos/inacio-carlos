@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
+import { PlanWhatsAppButton } from "@/components/plan-whatsapp-button"
 import { BlogCard } from "@/components/blog/blog-card"
 import { getRecentArticles } from "@/lib/blog/articles"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
@@ -316,14 +317,12 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
                   ))}
                 </ul>
 
-                <a
+                <PlanWhatsAppButton
                   className={`accounting-plan-button${featured ? " is-primary" : ""}`}
                   href={buildPlanWhatsAppLink(name)}
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   Contratar agora
-                </a>
+                </PlanWhatsAppButton>
               </article>
             ))}
           </div>

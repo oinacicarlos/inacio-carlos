@@ -41,7 +41,7 @@ declare global {
         send_to: string
         value: number
         currency: string
-        transaction_id: string
+        transaction_id?: string
       },
     ) => void
   }
