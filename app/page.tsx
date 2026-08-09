@@ -1,14 +1,20 @@
 import { headers } from "next/headers"
 import {
-  ArrowRight,
+  Building2,
   Calculator,
   ChartColumnIncreasing,
   Check,
+  Compass,
   FileSignature,
+  Headset,
+  HeartHandshake,
+  Mail,
   Medal,
-  PieChart,
+  MessageCircle,
+  Percent,
+  ShieldCheck,
+  TrendingUp,
   Users,
-  Wrench,
   type LucideIcon,
 } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
@@ -29,6 +35,114 @@ function buildPlanWhatsAppLink(planName: string) {
   const message = `Oi, estou precisando de uma contabilidade para a minha empresa e acho que o plano ${planName} é o ideal para mim, eu gostaria de ajuda para definir isso`
   return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
 }
+
+function buildOfferingWhatsAppLink(title: string) {
+  const message = `Oi, quero saber mais sobre ${title} para a minha empresa`
+  return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
+}
+
+function buildWhatsAppLink(message: string) {
+  return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
+}
+
+const TEAM_WHATSAPP_LINK = buildWhatsAppLink("Oi, quero falar com a equipe da Tropa")
+
+const businessOfferings = [
+  {
+    title: "Análise Tributária",
+    description: "Buscamos oportunidades legais para reduzir impostos e melhorar a eficiência tributária da sua empresa.",
+    icon: Percent,
+    image: "/images/offerings/analise-tributaria.jpg",
+    imageAlt: "Profissional preenchendo documentos financeiros com calculadora sobre a mesa",
+  },
+  {
+    title: "Atendimento Rápido",
+    description: "Um time próximo para resolver suas demandas com rapidez e sem burocracia.",
+    icon: Headset,
+    image: "/images/offerings/atendimento-rapido.jpg",
+    imageAlt: "Profissional de atendimento ao cliente usando headset em frente ao computador",
+  },
+  {
+    title: "Segurança Legal",
+    description: "Cuidamos das obrigações fiscais e trabalhistas para sua empresa operar com segurança.",
+    icon: ShieldCheck,
+    image: "/images/offerings/seguranca-legal.jpg",
+    imageAlt: "Profissional assinando um documento contratual em mesa de escritório",
+  },
+  {
+    title: "Soluções Gerais",
+    description: "Quando surgir um problema, ajudamos você a encontrar o melhor caminho para resolver.",
+    icon: HeartHandshake,
+    image: "/images/offerings/solucoes-gerais.jpg",
+    imageAlt: "Dois empreendedores sorrindo em frente a um notebook",
+  },
+]
+
+const supportChannels = [
+  {
+    key: "whatsapp" as const,
+    title: "Atendimento no WhatsApp",
+    description: "Você terá acesso a um assessor exclusivo para te atender no WhatsApp, de forma ágil, simples e sem complicação.",
+    icon: MessageCircle,
+    image: "/images/support/whatsapp.jpg",
+    imageAlt: "Pessoa usando o celular para conversar em um aplicativo de mensagens em uma mesa de escritório",
+  },
+  {
+    key: "email" as const,
+    title: "Atendimento no E-mail",
+    description: "Envie suas solicitações e rotinas e nosso time responde em até 2 horas úteis, com atenção e agilidade.",
+    icon: Mail,
+    image: "/images/support/email.jpg",
+    imageAlt: "Notebook aberto sobre uma mesa em um ambiente de trabalho iluminado",
+  },
+]
+
+const businessSolutions = [
+  {
+    title: "Legalização Completa",
+    tag: "Abrir e regularizar",
+    description: "Abertura, alteração contratual e análise de processo com mais agilidade.",
+    icon: Building2,
+  },
+  {
+    title: "Departamento Pessoal",
+    tag: "Equipe e rotina",
+    description: "Admissão, férias, faltas e rotinas trabalhistas com apoio próximo.",
+    icon: Users,
+  },
+  {
+    title: "Suporte Fiscal",
+    tag: "Impostos e notas",
+    description: "Emissão de notas e soluções para reduzir a carga tributária da empresa.",
+    icon: Percent,
+  },
+  {
+    title: "Suporte Contábil",
+    tag: "Controle e organização",
+    description: "Balanço, lançamentos e acompanhamento para manter sua operação organizada.",
+    icon: Calculator,
+  },
+  {
+    title: "Consultoria Empresarial",
+    tag: "Decisão e estratégia",
+    description: "Acompanhamento para apoiar escolhas e desafios do seu negócio.",
+    icon: Compass,
+  },
+  {
+    title: "Plano de Negócio",
+    tag: "Crescimento",
+    description: "Direcionamento para estruturar metas e alcançar o próximo passo da empresa.",
+    icon: TrendingUp,
+  },
+]
+
+const HERO_OPEN_COMPANY_WHATSAPP_LINK = `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(
+  "Oi, quero abrir uma empresa e gostaria de saber mais sobre a contabilidade da Tropa",
+)}`
+
+const HERO_SWITCH_ACCOUNTANT_WHATSAPP_LINK = `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(
+  "Oi, quero trocar de contador e gostaria de saber mais sobre a contabilidade da Tropa",
+)}`
 
 type HomeSearchParams = Promise<Record<string, string | string[] | undefined>>
 
@@ -62,42 +176,6 @@ function buildToolsEntryHref(
   return `/cadastro?${params.toString()}`
 }
 
-const accountingServices = [
-  {
-    title: "Assessoria Contábil",
-    description:
-      "Suporte contábil de verdade, com acompanhamento próximo e orientação estratégica em cada etapa do seu negócio.",
-    icon: Calculator,
-  },
-  {
-    title: "Contratos",
-    description: "Auxiliamos na elaboração, revisão e organização de contratos e documentos essenciais do negócio.",
-    icon: FileSignature,
-  },
-  {
-    title: "Planejamento Tributário",
-    description: "Analisamos enquadramentos e oportunidades para reduzir riscos e otimizar a carga tributária.",
-    icon: PieChart,
-  },
-  {
-    title: "Ferramentas Exclusivas",
-    description:
-      "Calculadoras e geradores de documentos para simular rescisão, contratação, precificação e montar contratos em minutos.",
-    icon: Wrench,
-  },
-  {
-    title: "Recursos Humanos",
-    description: "Apoiamos rotinas de RH, admissões, folha, organização interna e suporte à gestão de pessoas.",
-    icon: Users,
-  },
-  {
-    title: "BPO Financeiro",
-    description:
-      "Organizamos o financeiro da empresa com controle de contas, fluxo de caixa e apoio à tomada de decisão.",
-    icon: ChartColumnIncreasing,
-  },
-]
-
 // Cards de exibição da seção "Nossos Planos" — vitrine comercial da home,
 // independente dos planos/preços de app/api/stripe/checkout e lib/plans.ts
 // (esses seguem sendo a fonte de verdade pro checkout e pro hub de clientes
@@ -110,11 +188,18 @@ const pricingPlans = [
     description: "Contabilidade essencial para quem está começando e precisa manter a empresa organizada.",
     featured: false,
     features: [
-      "Até 3 notas fiscais por mês",
-      "Até 1 funcionário",
-      "Envio mensal de impostos",
-      "Suporte 100% humanizado",
-      "Atendimento por e-mail e WhatsApp",
+      "Contabilidade completa",
+      "Apuração dos impostos",
+      "Obrigações mensais e anuais",
+      "Pró-labore de 1 sócio",
+      "Folha de até 1 funcionário",
+      "Acompanhamento para MEI",
+      "Análise tributária inicial",
+      "Suporte pelo WhatsApp",
+      "Suporte pelo E-mail",
+      "Assessor Exclusivo",
+      "Migração do contador anterior sem burocracia",
+      "Sem fidelidade",
     ],
   },
   {
@@ -124,12 +209,18 @@ const pricingPlans = [
     description: "Assessoria completa para empresas que estão crescendo e precisam de mais acompanhamento.",
     featured: true,
     features: [
-      "Até 5 notas fiscais por mês",
-      "Até 3 funcionários",
-      "Envio mensal de impostos",
-      "Estratégia tributária no Simples Nacional",
-      "Suporte 100% humanizado",
-      "Atendimento por e-mail e WhatsApp",
+      "Contabilidade completa",
+      "Apuração dos impostos",
+      "Obrigações mensais e anuais",
+      "Pró-labore de até 3 sócios",
+      "Folha de até 5 funcionários",
+      "Acompanhamento para Simples Nacional",
+      "Análise tributária inicial",
+      "Suporte pelo WhatsApp",
+      "Suporte pelo E-mail",
+      "Assessor Exclusivo",
+      "Migração do contador anterior sem burocracia",
+      "Sem fidelidade",
     ],
   },
   {
@@ -139,13 +230,18 @@ const pricingPlans = [
     description: "Gestão contábil estratégica para empresas que precisam de acompanhamento próximo e decisões mais seguras.",
     featured: false,
     features: [
-      "Até 10 notas fiscais por mês",
-      "Até 10 funcionários",
-      "Envio mensal de impostos",
-      "Estratégia tributária no Simples Nacional ou Híbrido",
-      "Suporte 100% humanizado",
-      "Atendimento por e-mail e WhatsApp",
-      "1 consulta Serasa mensal",
+      "Contabilidade completa",
+      "Apuração dos impostos",
+      "Obrigações mensais e anuais",
+      "Pró-labore de até 5 sócios",
+      "Folha de até 10 funcionários",
+      "Acompanhamento para Simples Nacional",
+      "Análise tributária inicial",
+      "Suporte pelo WhatsApp",
+      "Suporte pelo E-mail",
+      "Assessor Exclusivo",
+      "Migração do contador anterior sem burocracia",
+      "Sem fidelidade",
     ],
   },
 ]
@@ -243,9 +339,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           </a>
 
           <nav className="accounting-nav" aria-label="Navegação principal">
-            <a href="#servicos">Serviços</a>
             <a href="#planos">Planos</a>
-            <a href="#ferramentas">Ferramentas</a>
             <a href="#duvidas">Dúvidas</a>
             <a href="/blog">Blog</a>
           </nav>
@@ -273,25 +367,143 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           </div>
 
           <h1 id="accounting-hero-title">
-            <span>Contabilidade Online para</span>
-            <span>prestadores de serviço</span>
+            <span>Contabilidade que gera lucro</span>
+            <span>e não te deixa na mão!</span>
           </h1>
           <p className="accounting-hero-subtitle">
-            Contabilidade focada em atendimento humanizado e visando resultado, você fatura e cuida da sua empresa
-            enquanto a gente cuida do leão para você.
+            Contabilidade focada em atendimento rápido, humanizado e que busca gerar lucro para a sua empresa
           </p>
 
           <div className="accounting-hero-actions">
-            <a className="accounting-primary-button" href={PLAN_SIMULATOR_ANCHOR}>
-              Começar
+            <a className="accounting-primary-button" href={HERO_OPEN_COMPANY_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+              Abrir Empresa
+            </a>
+            <a className="accounting-secondary-button" href={HERO_SWITCH_ACCOUNTANT_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+              Trocar de Contador
             </a>
           </div>
         </div>
       </section>
 
+      <section className="accounting-offerings" aria-labelledby="accounting-offerings-title">
+        <div className="accounting-offerings-inner">
+          <h2 id="accounting-offerings-title">O que oferecemos para o seu negócio?</h2>
+          <p className="accounting-offerings-subtitle">
+            Tudo isso com um time que acompanha de perto o seu negócio, sem burocracia e sem enrolação.
+          </p>
+
+          <div className="accounting-offerings-grid">
+            {businessOfferings.map(({ title, description, icon: Icon, image, imageAlt }) => (
+              <article className="accounting-offering-card" key={title}>
+                <div className="accounting-offering-photo">
+                  <img src={image} alt={imageAlt} loading="lazy" />
+                </div>
+                <div className="accounting-offering-content">
+                  <div className="accounting-offering-heading">
+                    <span className="accounting-offering-icon" aria-hidden="true">
+                      <Icon size={19} strokeWidth={2} />
+                    </span>
+                    <h3>{title}</h3>
+                  </div>
+                  <p>{description}</p>
+                  <a
+                    className="accounting-offering-cta"
+                    href={buildOfferingWhatsAppLink(title)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Saber Mais
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="accounting-support" aria-labelledby="accounting-support-title">
+        <div className="accounting-support-inner">
+          <span className="accounting-support-badge">
+            <Headset size={17} strokeWidth={2.2} aria-hidden="true" />
+            Atendimento humano e rápido
+          </span>
+
+          <h2 id="accounting-support-title">Como funciona nosso atendimento?</h2>
+          <p className="accounting-support-subtitle">
+            Escolha o canal que preferir e receba um atendimento rápido, sem burocracia e com pessoas prontas para te
+            ajudar.
+          </p>
+
+          <div className="accounting-support-grid">
+            {supportChannels.map(({ key, title, description, icon: Icon, image, imageAlt }) => (
+              <article className="accounting-support-card" key={key}>
+                <div className="accounting-support-photo">
+                  <img src={image} alt={imageAlt} loading="lazy" />
+                </div>
+                <div className="accounting-support-content">
+                  <div className="accounting-support-heading">
+                    <span className={`accounting-support-icon accounting-support-icon--${key}`} aria-hidden="true">
+                      <Icon size={20} strokeWidth={2} />
+                    </span>
+                    <h3>{title}</h3>
+                  </div>
+                  <p>{description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <a className="accounting-support-main-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            <Users size={18} strokeWidth={2.2} aria-hidden="true" />
+            Falar com a equipe
+          </a>
+
+          <p className="accounting-support-trust">
+            <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
+            Atendimento humano, seguro e sem burocracia.
+          </p>
+        </div>
+      </section>
+
+      <section className="accounting-solutions" aria-labelledby="accounting-solutions-title">
+        <div className="accounting-solutions-inner">
+          <span className="accounting-solutions-badge">
+            <span className="accounting-solutions-badge-dot" aria-hidden="true" />
+            Soluções organizadas por área
+          </span>
+
+          <h2 id="accounting-solutions-title">Quais as soluções que oferecemos?</h2>
+          <p className="accounting-solutions-subtitle">
+            Organizamos nossos serviços por área para você entender rapidamente como ajudamos sua empresa a abrir,
+            operar e crescer com segurança.
+          </p>
+
+          <div className="accounting-solutions-grid">
+            {businessSolutions.map(({ title, tag, description, icon: Icon }) => (
+              <article className="accounting-solutions-card" key={title}>
+                <div className="accounting-solutions-heading">
+                  <span className="accounting-solutions-icon" aria-hidden="true">
+                    <Icon size={21} strokeWidth={2} />
+                  </span>
+                  <div className="accounting-solutions-heading-text">
+                    <h3>{title}</h3>
+                    <span className="accounting-solutions-tag">{tag}</span>
+                  </div>
+                </div>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+
+          <a className="accounting-solutions-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            Falar com a equipe
+          </a>
+        </div>
+      </section>
+
       <section className="accounting-plans" id="planos" aria-labelledby="accounting-plans-title">
         <div className="accounting-plans-inner">
-          <h2 id="accounting-plans-title">Nossos Planos</h2>
+          <h2 id="accounting-plans-title">Conheça os nossos planos completos</h2>
           <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
 
           <div className="accounting-pricing-grid" id="simulador-planos">
@@ -327,58 +539,6 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
                 >
                   Contratar agora
                 </PlanWhatsAppButton>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="accounting-services" id="servicos" aria-labelledby="accounting-services-title">
-        <div className="accounting-services-inner">
-          <h2 id="accounting-services-title">Quais Serviços Oferecemos?</h2>
-          <p className="accounting-services-subtitle">
-            Esses são os principais serviços que você pode contratar com a gente!
-          </p>
-
-          <div className="accounting-services-grid">
-            {accountingServices.map(({ title, description, icon: Icon }) => (
-              <article className="accounting-service-card" key={title}>
-                <div className="accounting-service-icon" aria-hidden="true">
-                  <Icon size={34} strokeWidth={1.8} />
-                </div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="accounting-tools" id="ferramentas" aria-labelledby="accounting-tools-title">
-        <div className="accounting-tools-inner">
-          <h2 id="accounting-tools-title">
-            <span>Ferramentas úteis para empreendedores</span>
-          </h2>
-          <p className="accounting-tools-subtitle">
-            <span>Atalhos práticos para empreendedores</span>
-            <span>tomarem decisões com mais segurança.</span>
-          </p>
-
-          <div className="accounting-tools-grid">
-            {accountingTools.map(({ title, description, icon: Icon, slug }) => (
-              <article className="accounting-tool-card" key={title}>
-                <div className="accounting-tool-icon" aria-hidden="true">
-                  <Icon size={54} strokeWidth={1.65} />
-                </div>
-
-                <div className="accounting-tool-content">
-                  <h3>{title}</h3>
-                  <p>{description}</p>
-                  <a className="accounting-tool-link" href={buildToolsEntryHref(isAuthenticated, resolvedSearchParams, slug)}>
-                    Abrir ferramenta
-                    <ArrowRight size={22} strokeWidth={2} aria-hidden="true" />
-                  </a>
-                </div>
               </article>
             ))}
           </div>
@@ -440,9 +600,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <nav className="accounting-footer-nav" aria-label="Links do rodapé">
             <div>
               <h2>Menu</h2>
-              <a href="#servicos">Serviços</a>
               <a href="#planos">Planos</a>
-              <a href="#ferramentas">Ferramentas</a>
               <a href="/blog">Blog</a>
               <a href="#duvidas">Dúvidas</a>
               <a href="/login">Login</a>
