@@ -22246,6 +22246,10 @@ a:focus-visible {
     width: min(calc(100% - 40px), 760px);
   }
 
+	.accounting-header.accounting-header--home {
+		width: 100%;
+	}
+
 	.accounting-nav {
 		display: none;
 	}
@@ -22376,9 +22380,9 @@ a:focus-visible {
 	}
 
 	.accounting-hero {
-		min-height: calc(100svh - 56px);
+		min-height: auto;
 		padding-top: 40px;
-		padding-bottom: 40px;
+		padding-bottom: 44px;
 	}
 
 	.accounting-hero-proof {
