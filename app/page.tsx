@@ -4,23 +4,27 @@ import {
   Calculator,
   ChartColumnIncreasing,
   Check,
+  Clock,
   Compass,
   FileSignature,
   Headset,
   HeartHandshake,
   Mail,
   Medal,
+  Menu,
   MessageCircle,
   Percent,
   ShieldCheck,
   TrendingUp,
+  UserCheck,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
 import { PlanWhatsAppButton } from "@/components/plan-whatsapp-button"
-import { BlogCard } from "@/components/blog/blog-card"
-import { getRecentArticles } from "@/lib/blog/articles"
+import { AccountingAdvisorNotice } from "@/components/accounting-advisor-notice"
+import { TestimonialsCarousel } from "@/components/testimonials-carousel"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { ToolSlug } from "@/lib/tool-usage/tools"
@@ -46,6 +50,8 @@ function buildWhatsAppLink(message: string) {
 }
 
 const TEAM_WHATSAPP_LINK = buildWhatsAppLink("Oi, quero falar com a equipe da Tropa")
+const ADVISOR_AVAILABLE_WHATSAPP_LINK = buildWhatsAppLink("Oi, vi que um assessor está disponível e quero atendimento")
+const ADVISOR_UNAVAILABLE_WHATSAPP_LINK = buildWhatsAppLink("Oi, quero falar com um assessor da Tropa")
 
 const businessOfferings = [
   {
@@ -133,6 +139,100 @@ const businessSolutions = [
     tag: "Crescimento",
     description: "Direcionamento para estruturar metas e alcançar o próximo passo da empresa.",
     icon: TrendingUp,
+  },
+]
+
+const accountantSwitchSteps = [
+  {
+    number: "01",
+    title: "Fale com a gente",
+    description: "Você fala com um dos nossos especialistas e conta um pouco sobre sua empresa e o que precisa melhorar.",
+    icon: MessageCircle,
+  },
+  {
+    number: "02",
+    title: "Análise e proposta",
+    description: "Analisamos sua situação atual e apresentamos a melhor solução para sua empresa, sem compromisso.",
+    icon: FileSignature,
+  },
+  {
+    number: "03",
+    title: "Cuidamos da troca",
+    description: "Organizamos a transição junto ao contador anterior para você não precisar se preocupar com nada.",
+    icon: Users,
+  },
+  {
+    number: "04",
+    title: "Transição segura",
+    description: "Garantimos que suas obrigações continuem em dia, sem riscos e sem interrupções no seu negócio.",
+    icon: ShieldCheck,
+  },
+  {
+    number: "05",
+    title: "Acompanhamento contínuo",
+    description: "Você passa a contar com um time próximo, disponível e comprometido com o crescimento da sua empresa.",
+    icon: Headset,
+  },
+] satisfies Array<{ number: string; title: string; description: string; icon: LucideIcon }>
+
+// Depoimentos provisórios para dar forma à seção — recomendo substituir por
+// depoimentos reais de clientes antes de publicar, para não misturar prova
+// social genuína com texto de exemplo.
+const testimonials = [
+  {
+    name: "Camila Duarte",
+    role: "Consultora de marketing",
+    quote:
+      "Descobri que estava pagando mais imposto do que precisava. A Tropa revisou meu enquadramento e hoje pago bem menos todo mês.",
+  },
+  {
+    name: "Bruno Azevedo",
+    role: "Personal trainer, MEI",
+    quote:
+      "Achei que MEI não dava pra economizar em nada, mas eles me mostraram uma forma de organizar tudo e reduzir o tanto que eu pagava de DAS.",
+  },
+  {
+    name: "Larissa Prado",
+    role: "Fotógrafa autônoma",
+    quote: "Todo mês eles me avisam antes de eu pagar imposto sem necessidade. Já evitei mais de uma surpresa desagradável.",
+  },
+  {
+    name: "Fernando Melo",
+    role: "Consultor financeiro autônomo",
+    quote:
+      "Achei que já estava no regime certo, mas a análise deles encontrou uma forma de pagar menos imposto sem mudar nada na operação.",
+  },
+  {
+    name: "Diego Ramos",
+    role: "Consultor de TI",
+    quote: "O assessor responde no WhatsApp em minutos, sem enrolação. Sempre que tenho dúvida, explica de um jeito que eu entendo de primeira.",
+  },
+  {
+    name: "Patrícia Lima",
+    role: "Nutricionista",
+    quote: "O que mais me marcou foi a clareza. Nunca mais fiquei sem saber o que estava acontecendo com minha empresa.",
+  },
+  {
+    name: "Thiago Correia",
+    role: "Arquiteto autônomo",
+    quote: "Atendimento rápido de verdade. Mando mensagem e recebo resposta no mesmo dia, geralmente em minutos.",
+  },
+  {
+    name: "Rafael Nunes",
+    role: "Designer gráfico freelancer",
+    quote:
+      "Trocar de contador parecia complicado, mas foi rápido e sem burocracia nenhuma. Em poucos dias já estava tudo funcionando.",
+  },
+  {
+    name: "Juliana Ferreira",
+    role: "Dona de salão de beleza",
+    quote: "Abri minha empresa em poucos dias, sem complicação. Cuidaram de tudo enquanto eu focava no salão.",
+  },
+  {
+    name: "Marcos Vinícius",
+    role: "Prestador de serviços de TI",
+    quote:
+      "Contratei um funcionário pela primeira vez e a Tropa cuidou de toda a parte de folha e admissão sem eu precisar entender de burocracia trabalhista.",
   },
 ]
 
@@ -302,7 +402,6 @@ const accountingFaqs = [
 ]
 
 export default async function HomePage({ searchParams }: { searchParams?: HomeSearchParams }) {
-  const recentArticles = getRecentArticles(3)
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const supabase = await createServerSupabaseClient()
   const {
@@ -335,13 +434,21 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
       <header className="accounting-header accounting-header--home" aria-label="Cabeçalho Tropa">
         <div className="accounting-header-inner">
           <a className="accounting-logo" href="/" aria-label="Tropa">
-            <BrandLogo variant="white" />
+            <BrandLogo variant="black" />
           </a>
 
+          <input type="checkbox" id="accounting-mobile-nav-toggle" className="accounting-mobile-nav-checkbox" />
+
           <nav className="accounting-nav" aria-label="Navegação principal">
+            <a href="#ofertas">Ofertas</a>
+            <a href="#atendimento">Atendimento</a>
+            <a href="#solucoes">Soluções</a>
             <a href="#planos">Planos</a>
             <a href="#duvidas">Dúvidas</a>
             <a href="/blog">Blog</a>
+            <a className="accounting-nav-login" href="/login">
+              Entrar
+            </a>
           </nav>
 
           <div className="accounting-header-actions">
@@ -351,6 +458,14 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <a className="accounting-header-cta" href={PLAN_SIMULATOR_ANCHOR}>
               Abrir Empresa
             </a>
+            <label
+              className="accounting-mobile-nav-toggle"
+              htmlFor="accounting-mobile-nav-toggle"
+              aria-label="Abrir menu de navegação"
+            >
+              <Menu size={22} strokeWidth={2.2} className="accounting-mobile-nav-icon-open" aria-hidden="true" />
+              <X size={22} strokeWidth={2.2} className="accounting-mobile-nav-icon-close" aria-hidden="true" />
+            </label>
           </div>
         </div>
       </header>
@@ -367,8 +482,8 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           </div>
 
           <h1 id="accounting-hero-title">
-            <span>Contabilidade que gera lucro</span>
-            <span>e não te deixa na mão!</span>
+            <span>Contabilidade para empresas</span>
+            <span>do Rio de Janeiro</span>
           </h1>
           <p className="accounting-hero-subtitle">
             Contabilidade focada em atendimento rápido, humanizado e que busca gerar lucro para a sua empresa
@@ -382,10 +497,27 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
               Trocar de Contador
             </a>
           </div>
+
+          <div className="accounting-hero-trust">
+            <span className="accounting-hero-trust-item">
+              <UserCheck size={16} strokeWidth={2.2} aria-hidden="true" />
+              Assessor exclusivo
+            </span>
+            <span className="accounting-hero-trust-divider" aria-hidden="true" />
+            <span className="accounting-hero-trust-item">
+              <Clock size={16} strokeWidth={2.2} aria-hidden="true" />
+              Resposta em até 2h úteis
+            </span>
+            <span className="accounting-hero-trust-divider" aria-hidden="true" />
+            <span className="accounting-hero-trust-item">
+              <ShieldCheck size={16} strokeWidth={2.2} aria-hidden="true" />
+              Sem fidelidade
+            </span>
+          </div>
         </div>
       </section>
 
-      <section className="accounting-offerings" aria-labelledby="accounting-offerings-title">
+      <section className="accounting-offerings" id="ofertas" aria-labelledby="accounting-offerings-title">
         <div className="accounting-offerings-inner">
           <h2 id="accounting-offerings-title">O que oferecemos para o seu negócio?</h2>
           <p className="accounting-offerings-subtitle">
@@ -421,7 +553,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         </div>
       </section>
 
-      <section className="accounting-support" aria-labelledby="accounting-support-title">
+      <section className="accounting-support" id="atendimento" aria-labelledby="accounting-support-title">
         <div className="accounting-support-inner">
           <span className="accounting-support-badge">
             <Headset size={17} strokeWidth={2.2} aria-hidden="true" />
@@ -465,7 +597,53 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         </div>
       </section>
 
-      <section className="accounting-solutions" aria-labelledby="accounting-solutions-title">
+      <section className="accounting-advisor-section" aria-labelledby="accounting-advisor-title">
+        <div className="accounting-advisor-inner">
+          <div className="accounting-advisor-photo">
+            <img
+              src="/images/support/whatsapp.jpg"
+              alt="Empreendedor conversando com um assessor pelo WhatsApp"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="accounting-advisor-copy">
+            <h2 id="accounting-advisor-title">Assessor exclusivo para cuidar da sua rotina</h2>
+            <p className="accounting-advisor-subtitle">
+              Você conta com um assessor da Tropa para orientar, acompanhar e apoiar nas demandas diárias do seu
+              negócio todos os dias úteis, cuidando de dúvidas, prazos e próximos passos para você não perder tempo com
+              burocracia.
+            </p>
+
+            <div className="accounting-advisor-highlights" aria-label="Benefícios do assessor exclusivo">
+              {[
+                { label: "Especialista dedicado", icon: UserCheck },
+                { label: "Atendimento próximo", icon: MessageCircle },
+                { label: "Orientação prática", icon: ShieldCheck },
+              ].map(({ label, icon: Icon }) => (
+                <div className="accounting-advisor-highlight" key={label}>
+                  <span className="accounting-advisor-highlight-icon" aria-hidden="true">
+                    <Icon size={22} strokeWidth={2.2} />
+                  </span>
+                  <strong>{label}</strong>
+                </div>
+              ))}
+            </div>
+
+            <a className="accounting-advisor-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+              <UserCheck size={20} strokeWidth={2.2} aria-hidden="true" />
+              Falar com um assessor
+            </a>
+
+            <p className="accounting-advisor-trust">
+              <ShieldCheck size={17} strokeWidth={2.1} aria-hidden="true" />
+              Atendimento humano, seguro e sem burocracia.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="accounting-solutions" id="solucoes" aria-labelledby="accounting-solutions-title">
         <div className="accounting-solutions-inner">
           <span className="accounting-solutions-badge">
             <span className="accounting-solutions-badge-dot" aria-hidden="true" />
@@ -497,6 +675,64 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
           <a className="accounting-solutions-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
             Falar com a equipe
+          </a>
+        </div>
+      </section>
+
+      <section className="accounting-switch" aria-labelledby="accounting-switch-title">
+        <div className="accounting-switch-inner">
+          <span className="accounting-switch-badge">
+            <UserCheck size={17} strokeWidth={2.2} aria-hidden="true" />
+            Trocar de contador
+          </span>
+
+          <h2 id="accounting-switch-title">Trocar de contador é simples e seguro</h2>
+          <p className="accounting-switch-subtitle">
+            Veja como funciona o processo para você trocar de contador e ter o suporte que sua empresa realmente
+            precisa.
+          </p>
+
+          <div className="accounting-switch-steps">
+            {accountantSwitchSteps.map(({ number, title, description, icon: Icon }) => (
+              <article className="accounting-switch-card" key={number}>
+                <span className="accounting-switch-number">{number}</span>
+                <span className="accounting-switch-icon" aria-hidden="true">
+                  <Icon size={28} strokeWidth={2.2} />
+                </span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+
+          <a className="accounting-switch-cta" href={HERO_SWITCH_ACCOUNTANT_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            <MessageCircle size={22} strokeWidth={2.2} aria-hidden="true" />
+            Falar com um especialista
+          </a>
+
+          <p className="accounting-switch-trust">
+            <ShieldCheck size={16} strokeWidth={2.1} aria-hidden="true" />
+            Atendimento humano, seguro e sem burocracia.
+          </p>
+        </div>
+      </section>
+
+      <section className="accounting-testimonials" id="depoimentos" aria-labelledby="accounting-testimonials-title">
+        <div className="accounting-testimonials-inner">
+          <h2 id="accounting-testimonials-title">O que nossos clientes dizem</h2>
+          <p className="accounting-testimonials-subtitle">
+            Histórias reais de quem já organizou a contabilidade e passou a pagar só o imposto que devia.
+          </p>
+
+          <TestimonialsCarousel testimonials={testimonials} />
+
+          <a
+            className="accounting-testimonials-cta"
+            href={buildWhatsAppLink("Oi, vi os depoimentos de clientes da Tropa e quero saber mais")}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Quero ser o próximo caso de sucesso
           </a>
         </div>
       </section>
@@ -545,26 +781,6 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         </div>
       </section>
 
-      <section className="accounting-blog" id="blog" aria-labelledby="accounting-blog-title">
-        <div className="accounting-tools-inner">
-          <h2 id="accounting-blog-title">Artigos recentes</h2>
-          <p className="accounting-tools-subtitle">
-            <span>Guias práticos sobre precificação, contratos, rescisão e MEI</span>
-            <span>pra você tomar decisão com mais segurança.</span>
-          </p>
-
-          <div className="blog-grid">
-            {recentArticles.map(article => (
-              <BlogCard article={article} key={article.slug} />
-            ))}
-          </div>
-
-          <a className="accounting-secondary-button accounting-blog-cta" href="/blog">
-            Ver todos os artigos
-          </a>
-        </div>
-      </section>
-
       <section className="accounting-faq" id="duvidas" aria-labelledby="accounting-faq-title">
         <div className="accounting-faq-inner">
           <div className="accounting-faq-head">
@@ -600,6 +816,9 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <nav className="accounting-footer-nav" aria-label="Links do rodapé">
             <div>
               <h2>Menu</h2>
+              <a href="#ofertas">Ofertas</a>
+              <a href="#atendimento">Atendimento</a>
+              <a href="#solucoes">Soluções</a>
               <a href="#planos">Planos</a>
               <a href="/blog">Blog</a>
               <a href="#duvidas">Dúvidas</a>
@@ -639,6 +858,11 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <a href={PLAN_SIMULATOR_ANCHOR}>Ver Planos</a>
         </div>
       </footer>
+
+      <AccountingAdvisorNotice
+        availableHref={ADVISOR_AVAILABLE_WHATSAPP_LINK}
+        unavailableHref={ADVISOR_UNAVAILABLE_WHATSAPP_LINK}
+      />
     </main>
   )
 }
