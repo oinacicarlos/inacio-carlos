@@ -22441,27 +22441,6 @@ a:focus-visible {
 	letter-spacing: -0.03em;
 }
 
-.accounting-pricing-price {
-	display: flex;
-	align-items: baseline;
-	gap: 5px;
-	margin: 5px 0 0;
-}
-
-.accounting-pricing-price span {
-	color: var(--accounting-ink);
-	font-size: 26px;
-	font-weight: 800;
-	letter-spacing: -0.03em;
-}
-
-.accounting-pricing-price em {
-	color: var(--accounting-muted);
-	font-size: 15px;
-	font-weight: 600;
-	font-style: normal;
-}
-
 .accounting-pricing-desc {
 	margin: 10px 0 0;
 	padding-bottom: 17px;

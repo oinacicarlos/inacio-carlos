@@ -36,7 +36,7 @@ const SITE_URL = "https://tropacontabilidade.com"
 const CRC_REGISTRATION = "CRC RJ-110749/O-8"
 
 function buildPlanWhatsAppLink(planName: string) {
-  const message = `Oi, estou precisando de uma contabilidade para a minha empresa e acho que o plano ${planName} é o ideal para mim, eu gostaria de ajuda para definir isso`
+  const message = `Olá, gostaria de saber mais sobre como funciona para virar cliente da Tropa. Tenho interesse no plano ${planName}.`
   return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
 }
 
@@ -284,7 +284,6 @@ const pricingPlans = [
   {
     tier: "bronze" as const,
     name: "Bronze",
-    price: "R$ 405,25",
     description: "Contabilidade essencial para quem está começando e precisa manter a empresa organizada.",
     featured: false,
     features: [
@@ -305,7 +304,6 @@ const pricingPlans = [
   {
     tier: "prata" as const,
     name: "Prata",
-    price: "R$ 810,50",
     description: "Assessoria completa para empresas que estão crescendo e precisam de mais acompanhamento.",
     featured: true,
     features: [
@@ -326,7 +324,6 @@ const pricingPlans = [
   {
     tier: "ouro" as const,
     name: "Ouro",
-    price: "R$ 1.621,00",
     description: "Gestão contábil estratégica para empresas que precisam de acompanhamento próximo e decisões mais seguras.",
     featured: false,
     features: [
@@ -743,7 +740,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
 
           <div className="accounting-pricing-grid" id="simulador-planos">
-            {pricingPlans.map(({ tier, name, price, description, featured, features }) => (
+            {pricingPlans.map(({ tier, name, description, featured, features }) => (
               <article className={`accounting-pricing-card${featured ? " is-featured" : ""}`} key={tier}>
                 {featured && <span className="accounting-pricing-badge">Mais escolhido</span>}
 
@@ -752,11 +749,6 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
                 </div>
 
                 <h3>{name}</h3>
-
-                <div className="accounting-pricing-price">
-                  <span>{price}</span>
-                  <em>/mês</em>
-                </div>
 
                 <p className="accounting-pricing-desc">{description}</p>
 
@@ -773,7 +765,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
                   className={`accounting-plan-button${featured ? " is-primary" : ""}`}
                   href={buildPlanWhatsAppLink(name)}
                 >
-                  Contratar agora
+                  Saber Mais
                 </PlanWhatsAppButton>
               </article>
             ))}
