@@ -26,6 +26,15 @@ import { PlanWhatsAppButton } from "@/components/plan-whatsapp-button"
 import { AccountingAdvisorNotice } from "@/components/accounting-advisor-notice"
 import { TestimonialsCarousel } from "@/components/testimonials-carousel"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
+import { pricingPlans, buildPlanWhatsAppLink } from "@/lib/pricing-plans"
+import {
+  COMPANY_ADDRESS_LINE,
+  COMPANY_ADDRESS_ZIP,
+  COMPANY_CNPJ,
+  COMPANY_EMAIL,
+  COMPANY_LEGAL_NAME,
+  CRC_REGISTRATION,
+} from "@/lib/company-info"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { ToolSlug } from "@/lib/tool-usage/tools"
 
@@ -33,12 +42,6 @@ const HUB_TOOLS_PATH = "/hub?tab=ferramentas"
 const PLAN_SIMULATOR_ANCHOR = "#simulador-planos"
 const MARKETING_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const
 const SITE_URL = "https://tropacontabilidade.com"
-const CRC_REGISTRATION = "CRC RJ-110749/O-8"
-
-function buildPlanWhatsAppLink(planName: string) {
-  const message = `Olá, gostaria de saber mais sobre como funciona para virar cliente da Tropa. Tenho interesse no plano ${planName}.`
-  return `${TROPA_WHATSAPP_LINK}?text=${encodeURIComponent(message)}`
-}
 
 function buildOfferingWhatsAppLink(title: string) {
   const message = `Oi, quero saber mais sobre ${title} para a minha empresa`
@@ -164,7 +167,7 @@ const accountantSwitchSteps = [
   {
     number: "04",
     title: "Transição segura",
-    description: "Garantimos que suas obrigações continuem em dia, sem riscos e sem interrupções no seu negócio.",
+    description: "Cuidamos para que suas obrigações continuem em dia, com o mínimo de risco e interrupção para o seu negócio.",
     icon: ShieldCheck,
   },
   {
@@ -276,72 +279,6 @@ function buildToolsEntryHref(
   return `/cadastro?${params.toString()}`
 }
 
-// Cards de exibição da seção "Nossos Planos" — vitrine comercial da home,
-// independente dos planos/preços de app/api/stripe/checkout e lib/plans.ts
-// (esses seguem sendo a fonte de verdade pro checkout e pro hub de clientes
-// já assinantes). Por isso o CTA aqui leva pro WhatsApp em vez de Stripe.
-const pricingPlans = [
-  {
-    tier: "bronze" as const,
-    name: "Bronze",
-    description: "Contabilidade essencial para quem está começando e precisa manter a empresa organizada.",
-    featured: false,
-    features: [
-      "Contabilidade completa",
-      "Apuração dos impostos",
-      "Obrigações mensais e anuais",
-      "Pró-labore de 1 sócio",
-      "Folha de até 1 funcionário",
-      "Acompanhamento para MEI",
-      "Análise tributária inicial",
-      "Suporte pelo WhatsApp",
-      "Suporte pelo E-mail",
-      "Assessor Exclusivo",
-      "Migração do contador anterior sem burocracia",
-      "Sem fidelidade",
-    ],
-  },
-  {
-    tier: "prata" as const,
-    name: "Prata",
-    description: "Assessoria completa para empresas que estão crescendo e precisam de mais acompanhamento.",
-    featured: true,
-    features: [
-      "Contabilidade completa",
-      "Apuração dos impostos",
-      "Obrigações mensais e anuais",
-      "Pró-labore de até 3 sócios",
-      "Folha de até 5 funcionários",
-      "Acompanhamento para Simples Nacional",
-      "Análise tributária inicial",
-      "Suporte pelo WhatsApp",
-      "Suporte pelo E-mail",
-      "Assessor Exclusivo",
-      "Migração do contador anterior sem burocracia",
-      "Sem fidelidade",
-    ],
-  },
-  {
-    tier: "ouro" as const,
-    name: "Ouro",
-    description: "Gestão contábil estratégica para empresas que precisam de acompanhamento próximo e decisões mais seguras.",
-    featured: false,
-    features: [
-      "Contabilidade completa",
-      "Apuração dos impostos",
-      "Obrigações mensais e anuais",
-      "Pró-labore de até 5 sócios",
-      "Folha de até 10 funcionários",
-      "Acompanhamento para Simples Nacional",
-      "Análise tributária inicial",
-      "Suporte pelo WhatsApp",
-      "Suporte pelo E-mail",
-      "Assessor Exclusivo",
-      "Migração do contador anterior sem burocracia",
-      "Sem fidelidade",
-    ],
-  },
-]
 
 const accountingTools = [
   {
@@ -384,7 +321,7 @@ const accountingFaqs = [
   {
     question: "Como é o atendimento e o suporte?",
     answer:
-      "Em qualquer caso, desde solicitações, atendimento, suporte e ajuda com a plataforma, o contato é feito sempre via e-mail ou WhatsApp. Em todo caso, o tempo de resposta é de 2 horas úteis em dias comerciais.",
+      "Em qualquer caso, desde solicitações, atendimento, suporte e ajuda com a plataforma, o contato é feito via e-mail ou WhatsApp. O tempo de resposta é de até 2 horas úteis em dias comerciais.",
   },
   {
     question: "E se eu precisar emitir um número maior de Notas Fiscais?",
@@ -437,7 +374,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <input type="checkbox" id="accounting-mobile-nav-toggle" className="accounting-mobile-nav-checkbox" />
 
           <nav className="accounting-nav" aria-label="Navegação principal">
-            <a href="#ofertas">Ofertas</a>
+            <a href="#ofertas">Serviços</a>
             <a href="#atendimento">Atendimento</a>
             <a href="#solucoes">Soluções</a>
             <a href="#planos">Planos</a>
@@ -763,7 +700,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
                 <PlanWhatsAppButton
                   className={`accounting-plan-button${featured ? " is-primary" : ""}`}
-                  href={buildPlanWhatsAppLink(name)}
+                  href={buildPlanWhatsAppLink(TROPA_WHATSAPP_LINK, name)}
                 >
                   Saber Mais
                 </PlanWhatsAppButton>
@@ -808,7 +745,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           <nav className="accounting-footer-nav" aria-label="Links do rodapé">
             <div>
               <h2>Menu</h2>
-              <a href="#ofertas">Ofertas</a>
+              <a href="#ofertas">Serviços</a>
               <a href="#atendimento">Atendimento</a>
               <a href="#solucoes">Soluções</a>
               <a href="#planos">Planos</a>
@@ -827,15 +764,29 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             </div>
 
             <div>
+              <h2>Institucional</h2>
+              <a href="/sobre">Sobre Nós</a>
+              <a href="/contato">Contato</a>
+              <a href="/politica-de-privacidade">Política de Privacidade</a>
+              <a href="/termos-de-uso">Termos de Uso</a>
+            </div>
+
+            <div>
               <h2>Contato</h2>
               <a href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
                 WhatsApp
               </a>
+              <a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a>
             </div>
           </nav>
         </div>
 
         <div className="accounting-footer-disclaimer">
+          <p>
+            {COMPANY_LEGAL_NAME} — CNPJ {COMPANY_CNPJ}
+            <br />
+            {COMPANY_ADDRESS_LINE} — {COMPANY_ADDRESS_ZIP}
+          </p>
           <p>
             A Tropa é uma empresa privada de contabilidade e assessoria empresarial, sem qualquer vínculo oficial
             com órgãos públicos ou governamentais. Não somos um órgão do governo e não emitimos, vendemos ou
@@ -846,8 +797,12 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         </div>
 
         <div className="accounting-footer-bottom">
-          <span>© 2026 Tropa. Todos os direitos reservados.</span>
-          <a href={PLAN_SIMULATOR_ANCHOR}>Ver Planos</a>
+          <span>© 2026 {COMPANY_LEGAL_NAME}. Todos os direitos reservados.</span>
+          <div className="accounting-footer-bottom-links">
+            <a href="/politica-de-privacidade">Política de Privacidade</a>
+            <a href="/termos-de-uso">Termos de Uso</a>
+            <a href={PLAN_SIMULATOR_ANCHOR}>Ver Planos</a>
+          </div>
         </div>
       </footer>
 

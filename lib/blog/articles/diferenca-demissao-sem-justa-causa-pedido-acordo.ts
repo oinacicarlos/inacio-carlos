@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "rescisao",
   coverImage: "/blog/covers/diferenca-demissao-sem-justa-causa-pedido-acordo.jpg",
   coverImageAlt: "Profissional organizando pertences em uma caixa no escritório",
-  publishedAt: "2026-01-18",
-  updatedAt: "2026-01-18",
+  publishedAt: "2026-03-20",
+  updatedAt: "2026-03-20",
   readingTimeMinutes: 6,
   sections: [
     {

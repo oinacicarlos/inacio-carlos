@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "mei",
   coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
   coverImageAlt: "Colegas discutindo gráficos de crescimento em um quadro branco",
-  publishedAt: "2026-02-11",
-  updatedAt: "2026-08-03",
+  publishedAt: "2026-07-06",
+  updatedAt: "2026-07-06",
   readingTimeMinutes: 7,
   sections: [
     {

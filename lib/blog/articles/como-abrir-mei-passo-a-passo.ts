@@ -112,7 +112,7 @@ export const article: BlogArticle = {
   ],
   relatedTool: {
     title: "Abrir minha empresa (MEI)",
-    href: "/abrir-empresa",
+    href: "/abrir-empresa/comecar",
     description: "Tire dúvidas sobre qual atividade escolher e o que organizar depois de abrir o MEI.",
   },
   relatedSlugs: ["o-que-e-das-mei-como-pagar", "como-emitir-nota-fiscal-mei", "quanto-custa-um-contador-para-mei"],

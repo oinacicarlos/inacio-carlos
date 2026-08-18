@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratacao",
   coverImage: "/blog/covers/ferias-clt-como-funciona-o-calculo.jpg",
   coverImageAlt: "Mulher relaxando com um café em uma cadeira na praia",
-  publishedAt: "2026-02-16",
-  updatedAt: "2026-02-16",
+  publishedAt: "2026-06-12",
+  updatedAt: "2026-06-12",
   readingTimeMinutes: 6,
   sections: [
     {

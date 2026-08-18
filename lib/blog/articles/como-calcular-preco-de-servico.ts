@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "precificacao",
   coverImage: "/blog/covers/como-calcular-preco-de-servico.jpg",
   coverImageAlt: "Mãos usando calculadora ao lado de uma nota fiscal",
-  publishedAt: "2026-01-12",
-  updatedAt: "2026-01-12",
+  publishedAt: "2026-02-24",
+  updatedAt: "2026-02-24",
   readingTimeMinutes: 7,
   sections: [
     {

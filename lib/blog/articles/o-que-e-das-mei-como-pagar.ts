@@ -12,8 +12,8 @@ export const article: BlogArticle = {
   pillar: "mei",
   coverImage: "/blog/covers/o-que-e-das-mei-como-pagar.jpg",
   coverImageAlt: "Mulher usando o celular para organizar as finanças em casa",
-  publishedAt: "2026-01-15",
-  updatedAt: "2026-01-15",
+  publishedAt: "2026-03-08",
+  updatedAt: "2026-03-08",
   readingTimeMinutes: 6,
   sections: [
     {

@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratacao",
   coverImage: "/blog/covers/quanto-custa-funcionario-clt.jpg",
   coverImageAlt: "Aperto de mão entre empresário e candidata em entrevista de emprego",
-  publishedAt: "2026-01-20",
-  updatedAt: "2026-01-20",
+  publishedAt: "2026-04-01",
+  updatedAt: "2026-04-01",
   readingTimeMinutes: 7,
   sections: [
     {

@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratos",
   coverImage: "/blog/covers/contrato-verbal-tem-validade.jpg",
   coverImageAlt: "Duas pessoas apertando as mãos em um escritório",
-  publishedAt: "2026-02-18",
-  updatedAt: "2026-02-18",
+  publishedAt: "2026-02-12",
+  updatedAt: "2026-02-12",
   readingTimeMinutes: 6,
   sections: [
     {

@@ -242,7 +242,7 @@ export function ServicesProductsSection({
       const { loadedIntake } = await reload()
       const product = params.get("product")
 
-      // Suporte ao link "MEI grátis" de /abrir-empresa: quem ainda não tinha
+      // Suporte ao link "MEI grátis" de /abrir-empresa/comecar: quem ainda não tinha
       // conta é mandado pro cadastro com ?start=mei no redirect; ao voltar
       // pro hub já logado, essa flag inicia a triagem automaticamente, sem
       // precisar clicar em nada de novo.

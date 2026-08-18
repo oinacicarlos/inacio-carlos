@@ -8,12 +8,12 @@ export const article: BlogArticle = {
   metaDescription:
     "Entenda quando usar RPA, quando abrir CNPJ e por que a nota fiscal costuma ser melhor para prestadores que atendem empresas.",
   excerpt:
-    "RPA resolve alguns trabalhos pontuais, mas pode sair caro e limitar contratos com empresas. Veja quando a nota fiscal faz mais sentido.",
+    "Antes de decidir entre virar PJ ou seguir com RPA, compare custo, limite de contratos e o que cada opção permite cobrar de empresas.",
   pillar: "mei",
-  coverImage: "/blog/covers/como-emitir-nota-fiscal-mei.jpg",
-  coverImageAlt: "Pessoa organizando documentos fiscais em uma mesa de trabalho",
-  publishedAt: "2026-08-03",
-  updatedAt: "2026-08-03",
+  coverImage: "/blog/covers/rpa-ou-nota-fiscal-prestador-servico.jpg",
+  coverImageAlt: "Consultor preenchendo documento ao lado do cliente, com tablet na mesa",
+  publishedAt: "2026-03-14",
+  updatedAt: "2026-03-14",
   readingTimeMinutes: 6,
   sections: [
     {

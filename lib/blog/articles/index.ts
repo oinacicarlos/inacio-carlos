@@ -22,6 +22,7 @@ import { article as reformaTributariaPrestadorServico2026 } from "./reforma-trib
 import { prioridadeSimples2026Articles } from "./prioridade-simples-2026"
 import { regularizacaoConversaoArticles } from "./regularizacao-conversao"
 import { prestadoresServicoSeoArticles } from "./prestadores-servico-seo"
+import { article as quantoPjPagaImpostoPorFaturamento } from "./quanto-pj-paga-imposto-por-faturamento"
 
 // como-abrir-mei-passo-a-passo e certificado-digital-a1-para-empresa ficam
 // temporariamente fora do índice (não removidos do repo) — são exatamente
@@ -31,6 +32,7 @@ const ALL_ARTICLES: BlogArticle[] = [
   ...prioridadeSimples2026Articles,
   ...regularizacaoConversaoArticles,
   ...prestadoresServicoSeoArticles,
+  quantoPjPagaImpostoPorFaturamento,
   rpaOuNotaFiscalPrestadorServico,
   simplesNacionalPrestadorServico,
   inscricaoMunicipalParaPrestadorServico,

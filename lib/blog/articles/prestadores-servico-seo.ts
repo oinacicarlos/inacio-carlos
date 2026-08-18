@@ -1,107 +1,6 @@
 import type { BlogArticle } from "@/lib/blog/types"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
-function impostoPjArticle(faturamento: 5 | 10 | 15 | 20 | 30): BlogArticle {
-  const valor = `R$ ${faturamento} mil`
-  const slugValor = `${faturamento}-mil`
-
-  return {
-    slug: `quanto-pj-fatura-${slugValor}-paga-imposto`,
-    title: `Quanto uma PJ que fatura ${valor} paga de imposto?`,
-    metaTitle: `Quanto uma PJ que fatura ${valor} paga de imposto`,
-    metaDescription:
-      `Veja quanto uma prestadora PJ que fatura ${valor} pode pagar de imposto, considerando Anexo III, Anexo V, fator R e pró-labore.`,
-    excerpt:
-      `O imposto de uma PJ prestadora não depende só do faturamento. Anexo, fator R, pró-labore e custos mudam o valor líquido.`,
-    pillar: "mei",
-    coverImage: "/blog/covers/como-calcular-preco-de-servico.jpg",
-    coverImageAlt: "Prestador de serviço analisando imposto e lucro líquido em planilha",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
-    readingTimeMinutes: 6,
-    sections: [
-      {
-        type: "paragraph",
-        text: `Uma PJ prestadora que fatura ${valor} por mês pode pagar valores bem diferentes de imposto dependendo da atividade, do anexo do Simples Nacional, do fator R, do pró-labore e do honorário contábil. Por isso, qualquer número sem simulação é apenas uma estimativa inicial.`,
-      },
-      {
-        type: "heading",
-        level: 2,
-        text: "O que entra na conta",
-        id: "o-que-entra",
-      },
-      {
-        type: "list",
-        items: [
-          "DAS do Simples Nacional.",
-          "INSS sobre pró-labore.",
-          "Honorário contábil.",
-          "Custos bancários, sistemas e ferramentas.",
-          "Reserva para impostos e caixa.",
-        ],
-      },
-      {
-        type: "heading",
-        level: 2,
-        text: "Anexo III ou Anexo V",
-        id: "anexo",
-      },
-      {
-        type: "paragraph",
-        text: "Muitos serviços podem cair no Anexo III ou no Anexo V conforme atividade e fator R. O Anexo III tende a ser mais barato. O Anexo V costuma pesar mais quando a empresa não tem folha suficiente para atingir o fator R.",
-      },
-      {
-        type: "heading",
-        level: 2,
-        text: "Pró-labore e INSS",
-        id: "pro-labore",
-      },
-      {
-        type: "paragraph",
-        text: "Sócio que trabalha na empresa normalmente deve retirar pró-labore, com contribuição ao INSS. O restante, quando há lucro apurado corretamente, pode ser distribuído como lucro, respeitando a contabilidade.",
-      },
-      {
-        type: "table",
-        headers: ["Cenário", "O que observar"],
-        rows: [
-          ["Anexo III", "DAS tende a ser menor, mas ainda há INSS e contabilidade"],
-          ["Anexo V", "Imposto pode subir bastante sem fator R"],
-          ["Com fator R", "Folha e pró-labore podem reduzir a alíquota efetiva em alguns serviços"],
-          ["Sem controle", "Misturar conta pessoal e empresarial prejudica a análise do lucro"],
-        ],
-      },
-      {
-        type: "callout",
-        title: "Estimativa não substitui enquadramento",
-        text: "Para saber o líquido real, é preciso conferir CNAE, anexo, município, pró-labore, despesas e tipo de cliente.",
-      },
-    ],
-    faq: [
-      {
-        question: `PJ que fatura ${valor} sempre paga o mesmo imposto?`,
-        answer:
-          "Não. O imposto depende da atividade, anexo, fator R, município e organização da retirada dos sócios.",
-      },
-      {
-        question: "Preciso pagar INSS como PJ?",
-        answer:
-          "Quando o sócio trabalha e retira pró-labore, há contribuição ao INSS sobre esse valor.",
-      },
-      {
-        question: "Honorário contábil entra no cálculo?",
-        answer:
-          "Sim. Para estimar líquido de verdade, considere imposto, pró-labore, INSS, contabilidade e demais custos fixos.",
-      },
-    ],
-    relatedTool: {
-      title: "Calculadora de Precificação",
-      href: "/ferramentas/calculadora-precificacao",
-      description: "Simule preço, custos e margem para entender quanto precisa cobrar.",
-    },
-    relatedSlugs: ["simples-nacional-prestador-servico", "cnae-errado-aumenta-imposto-exclui-simples", "ibs-cbs-dentro-ou-fora-do-simples-nacional"],
-  }
-}
-
 export const prestadoresServicoSeoArticles: BlogArticle[] = [
   {
     slug: "aposentado-socio-paga-inss-pro-labore",
@@ -112,10 +11,10 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
     excerpt:
       "Aposentadoria não elimina automaticamente o INSS quando o aposentado trabalha na própria empresa e recebe pró-labore.",
     pillar: "contratacao",
-    coverImage: "/blog/covers/quanto-custa-funcionario-clt.jpg",
-    coverImageAlt: "Sócio aposentado analisando documentos de pró-labore",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/aposentado-socio-paga-inss-pro-labore.jpg",
+    coverImageAlt: "Empresário sênior sorridente trabalhando no notebook",
+    publishedAt: "2026-04-19",
+    updatedAt: "2026-04-19",
     readingTimeMinutes: 6,
     sections: [
       {
@@ -180,7 +79,7 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
       href: "/ferramentas/simulador-contratacao",
       description: "Entenda custos trabalhistas, encargos e impacto de folha no negócio.",
     },
-    relatedSlugs: ["simples-nacional-prestador-servico", "quanto-pj-fatura-10-mil-paga-imposto", "quanto-custa-funcionario-clt"],
+    relatedSlugs: ["simples-nacional-prestador-servico", "quanto-pj-paga-de-imposto-por-faturamento", "quanto-custa-funcionario-clt"],
   },
   {
     slug: "pj-para-uma-unica-empresa-pode",
@@ -191,10 +90,10 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
     excerpt:
       "Trabalhar como PJ para um único cliente não é automaticamente ilegal, mas exclusividade, subordinação e horário fixo aumentam riscos.",
     pillar: "contratos",
-    coverImage: "/blog/covers/o-que-nao-pode-faltar-contrato-prestacao-servico.jpg",
-    coverImageAlt: "Prestador PJ revisando contrato de prestação de serviços",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/pj-para-uma-unica-empresa-pode.jpg",
+    coverImageAlt: "Homem pensativo lendo um documento com o notebook à frente",
+    publishedAt: "2026-04-07",
+    updatedAt: "2026-04-07",
     readingTimeMinutes: 7,
     sections: [
       {
@@ -265,7 +164,7 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
       href: "/ferramentas/gerador-contrato",
       description: "Monte um contrato de prestação de serviço com escopo, prazo e pagamento claros.",
     },
-    relatedSlugs: ["o-que-nao-pode-faltar-contrato-prestacao-servico", "quanto-pj-fatura-15-mil-paga-imposto", "rpa-ou-nota-fiscal-prestador-servico"],
+    relatedSlugs: ["o-que-nao-pode-faltar-contrato-prestacao-servico", "quanto-pj-paga-de-imposto-por-faturamento", "rpa-ou-nota-fiscal-prestador-servico"],
   },
   {
     slug: "mei-pode-receber-pix-na-conta-pessoal",
@@ -276,10 +175,10 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
     excerpt:
       "Pix é só meio de pagamento. O que define se entra no faturamento é a natureza do valor recebido.",
     pillar: "mei",
-    coverImage: "/blog/covers/o-que-e-das-mei-como-pagar.jpg",
-    coverImageAlt: "Celular com pagamento Pix e controle financeiro do MEI",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/mei-pode-receber-pix-na-conta-pessoal.jpg",
+    coverImageAlt: "Pessoa aproximando o celular de uma maquininha de cartão para pagamento",
+    publishedAt: "2026-03-26",
+    updatedAt: "2026-03-26",
     readingTimeMinutes: 6,
     sections: [
       {
@@ -355,10 +254,10 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
     excerpt:
       "CNAE errado não é detalhe de cadastro. Ele pode mudar anexo, travar nota, exigir licença ou impedir o Simples.",
     pillar: "mei",
-    coverImage: "/blog/covers/como-trocar-de-contador.jpg",
-    coverImageAlt: "Empreendedor revisando atividade econômica e CNAE da empresa",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/cnae-errado-aumenta-imposto-exclui-simples.jpg",
+    coverImageAlt: "Mãos conferindo um formulário com caneta vermelha ao lado do notebook",
+    publishedAt: "2026-05-13",
+    updatedAt: "2026-05-13",
     readingTimeMinutes: 7,
     sections: [
       {
@@ -425,9 +324,4 @@ export const prestadoresServicoSeoArticles: BlogArticle[] = [
     },
     relatedSlugs: ["simples-nacional-prestador-servico", "inscricao-municipal-para-prestador-servico", "cnpj-excluido-do-simples-pela-prefeitura"],
   },
-  impostoPjArticle(5),
-  impostoPjArticle(10),
-  impostoPjArticle(15),
-  impostoPjArticle(20),
-  impostoPjArticle(30),
 ]

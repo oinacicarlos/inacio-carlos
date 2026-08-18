@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratos",
   coverImage: "/blog/covers/o-que-fazer-quando-cliente-nao-paga.jpg",
   coverImageAlt: "Mulher preocupada organizando contas em frente ao notebook",
-  publishedAt: "2026-01-24",
-  updatedAt: "2026-01-24",
+  publishedAt: "2026-04-25",
+  updatedAt: "2026-04-25",
   readingTimeMinutes: 6,
   sections: [
     {

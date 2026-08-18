@@ -2,11 +2,13 @@ import type { MetadataRoute } from "next"
 import { SITE_URL } from "@/lib/site-url"
 import { getAllArticles } from "@/lib/blog/articles"
 
-// /abrir-empresa fica fora do sitemap de propósito — ver nota em
-// app/abrir-empresa/page.tsx.
+// /abrir-empresa/comecar (fluxo real, pede senha do gov.br) fica fora do
+// sitemap de propósito — ver nota em app/abrir-empresa/comecar/page.tsx.
 const STATIC_ROUTES = [
   "",
   "/blog",
+  "/trocar-de-contador",
+  "/abrir-empresa",
   "/ferramentas/gerador-contrato",
   "/ferramentas/simulador-rescisao",
   "/ferramentas/simulador-contratacao",

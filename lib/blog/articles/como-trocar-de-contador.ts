@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "mei",
   coverImage: "/blog/covers/como-trocar-de-contador.jpg",
   coverImageAlt: "Profissionais trocando documentos durante uma reunião",
-  publishedAt: "2026-02-09",
-  updatedAt: "2026-02-09",
+  publishedAt: "2026-07-18",
+  updatedAt: "2026-07-18",
   readingTimeMinutes: 6,
   sections: [
     {

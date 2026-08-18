@@ -9,10 +9,10 @@ export const article: BlogArticle = {
   excerpt:
     "Nem todo prestador paga o mesmo imposto no Simples. A atividade, o anexo e a folha de pagamento mudam bastante a conta.",
   pillar: "mei",
-  coverImage: "/blog/covers/quanto-custa-um-contador-para-mei.jpg",
-  coverImageAlt: "Empreendedor analisando documentos contábeis no computador",
-  publishedAt: "2026-08-03",
-  updatedAt: "2026-08-03",
+  coverImage: "/blog/covers/simples-nacional-prestador-servico.jpg",
+  coverImageAlt: "Mesa de trabalho de prestador de serviço com notebook, carteira e equipamento",
+  publishedAt: "2026-05-25",
+  updatedAt: "2026-05-25",
   readingTimeMinutes: 7,
   sections: [
     {

@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratos",
   coverImage: "/blog/covers/o-que-nao-pode-faltar-contrato-prestacao-servico.jpg",
   coverImageAlt: "Mão assinando um contrato com caneta sobre a mesa",
-  publishedAt: "2026-01-22",
-  updatedAt: "2026-01-22",
+  publishedAt: "2026-04-13",
+  updatedAt: "2026-04-13",
   readingTimeMinutes: 7,
   sections: [
     {

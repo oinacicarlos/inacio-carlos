@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratacao",
   coverImage: "/blog/covers/mei-pode-ter-funcionario.jpg",
   coverImageAlt: "Três pessoas colaborando em um projeto com notebook",
-  publishedAt: "2026-02-04",
-  updatedAt: "2026-02-04",
+  publishedAt: "2026-07-30",
+  updatedAt: "2026-07-30",
   readingTimeMinutes: 5,
   sections: [
     {

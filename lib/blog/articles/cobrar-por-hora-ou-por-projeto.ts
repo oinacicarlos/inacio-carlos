@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "precificacao",
   coverImage: "/blog/covers/cobrar-por-hora-ou-por-projeto.jpg",
   coverImageAlt: "Mesa de trabalho organizada com notebook e relógio analógico",
-  publishedAt: "2026-01-30",
-  updatedAt: "2026-01-30",
+  publishedAt: "2026-05-19",
+  updatedAt: "2026-05-19",
   readingTimeMinutes: 6,
   sections: [
     {

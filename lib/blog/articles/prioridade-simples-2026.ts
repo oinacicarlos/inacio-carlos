@@ -10,10 +10,10 @@ export const prioridadeSimples2026Articles: BlogArticle[] = [
     excerpt:
       "A opção pelo Simples para 2027 mudou de janeiro para setembro de 2026. Veja quem precisa solicitar, quem não precisa e onde o MEI entra nessa história.",
     pillar: "mei",
-    coverImage: "/blog/covers/quanto-custa-um-contador-para-mei.jpg",
+    coverImage: "/blog/covers/como-abrir-mei-passo-a-passo.jpg",
     coverImageAlt: "Pessoa conferindo calendário tributário e documentos da empresa",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    publishedAt: "2026-08-17",
+    updatedAt: "2026-08-17",
     readingTimeMinutes: 7,
     sections: [
       {
@@ -113,10 +113,10 @@ export const prioridadeSimples2026Articles: BlogArticle[] = [
     excerpt:
       "A empresa poderá continuar no Simples e, ainda assim, escolher como IBS e CBS serão apurados. Essa decisão pode mudar preço, crédito e competitividade.",
     pillar: "mei",
-    coverImage: "/blog/covers/quanto-custa-um-contador-para-mei.jpg",
-    coverImageAlt: "Empresário comparando cenários tributários em uma planilha",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/ibs-cbs-dentro-ou-fora-do-simples-nacional.jpg",
+    coverImageAlt: "Dois profissionais analisando gráfico de crescimento em um flipchart",
+    publishedAt: "2026-08-05",
+    updatedAt: "2026-08-05",
     readingTimeMinutes: 8,
     sections: [
       {
@@ -192,21 +192,21 @@ export const prioridadeSimples2026Articles: BlogArticle[] = [
       href: "/ferramentas/calculadora-precificacao",
       description: "Simule preço, custos e margem antes de decidir como competir.",
     },
-    relatedSlugs: ["simples-nacional-setembro-2026-quem-precisa-solicitar", "quanto-pj-fatura-10-mil-paga-imposto", "simples-nacional-prestador-servico"],
+    relatedSlugs: ["simples-nacional-setembro-2026-quem-precisa-solicitar", "quanto-pj-paga-de-imposto-por-faturamento", "simples-nacional-prestador-servico"],
   },
   {
     slug: "simples-nacional-precisa-destacar-ibs-cbs-2026",
-    title: "Empresa do Simples precisa destacar IBS e CBS na nota fiscal em 2026?",
-    metaTitle: "Simples Nacional precisa destacar IBS CBS 2026",
+    title: "Nota fiscal do Simples em 2026: quando precisa destacar IBS e CBS",
+    metaTitle: "Nota fiscal do Simples: destacar IBS e CBS em 2026?",
     metaDescription:
       "Entenda quando IBS e CBS aparecem na nota em 2026 e por que a resposta muda entre NF-e, NFS-e, Simples, MEI e regime normal.",
     excerpt:
-      "A resposta não é só sim ou não. NF-e, NFS-e, Simples Nacional, MEI e regime normal seguem cronogramas e regras operacionais diferentes.",
+      "Isso é sobre o que aparece na nota fiscal, não sobre a opção pelo Simples ou pelo tratamento de IBS/CBS. NF-e, NFS-e, MEI e regime normal seguem cronogramas diferentes.",
     pillar: "mei",
-    coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
-    coverImageAlt: "Tela de emissão de nota fiscal com campos tributários",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/nota-fiscal-simples-ibs-cbs-2026.jpg",
+    coverImageAlt: "Duas pessoas conferindo formulário fiscal com calculadora e notebook",
+    publishedAt: "2026-07-24",
+    updatedAt: "2026-07-24",
     readingTimeMinutes: 8,
     sections: [
       {
@@ -303,10 +303,10 @@ export const prioridadeSimples2026Articles: BlogArticle[] = [
     excerpt:
       "Abrir MEI no meio ou no fim do ano não libera o limite anual inteiro. O limite é proporcional aos meses de atividade.",
     pillar: "mei",
-    coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
-    coverImageAlt: "Empreendedor conferindo faturamento mensal em uma planilha",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/mei-ultrapassou-limite-proporcional-primeiro-ano.jpg",
+    coverImageAlt: "Mão apontando para o topo de um gráfico de crescimento em alta",
+    publishedAt: "2026-07-12",
+    updatedAt: "2026-07-12",
     readingTimeMinutes: 8,
     sections: [
       {
@@ -406,10 +406,10 @@ export const prioridadeSimples2026Articles: BlogArticle[] = [
     excerpt:
       "Descobrir o desenquadramento tarde assusta, mas dá para organizar a regularização. O primeiro passo é descobrir a data real da saída do SIMEI.",
     pillar: "mei",
-    coverImage: "/blog/covers/o-que-e-das-mei-como-pagar.jpg",
-    coverImageAlt: "Pessoa conferindo guias DAS e notas fiscais emitidas",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/fui-desenquadrado-do-mei-continuei-emitindo-notas.jpg",
+    coverImageAlt: "Mulher estressada com as mãos na cabeça diante de documentos e calculadora",
+    publishedAt: "2026-06-18",
+    updatedAt: "2026-06-18",
     readingTimeMinutes: 7,
     sections: [
       {

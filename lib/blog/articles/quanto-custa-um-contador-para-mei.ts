@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "mei",
   coverImage: "/blog/covers/quanto-custa-um-contador-para-mei.jpg",
   coverImageAlt: "Contador conversando com cliente sobre documentos financeiros",
-  publishedAt: "2026-02-06",
-  updatedAt: "2026-02-06",
+  publishedAt: "2026-08-11",
+  updatedAt: "2026-08-11",
   readingTimeMinutes: 6,
   sections: [
     {

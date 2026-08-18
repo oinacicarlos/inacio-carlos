@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "contratacao",
   coverImage: "/blog/covers/como-calcular-decimo-terceiro-salario.jpg",
   coverImageAlt: "Mulher sorrindo segurando dinheiro e um envelope",
-  publishedAt: "2026-02-13",
-  updatedAt: "2026-02-13",
+  publishedAt: "2026-06-24",
+  updatedAt: "2026-06-24",
   readingTimeMinutes: 6,
   sections: [
     {

@@ -5475,7 +5475,7 @@ function OnboardingAdminModule() {
   )
 }
 
-// ── Leads de Lucro Presumido/Real (formulário público de /abrir-empresa) ──
+// ── Leads de Lucro Presumido/Real (formulário público de /abrir-empresa/comecar) ──
 // Sem processo automatizado: só lista quem pediu contato e deixa marcar o
 // status manual (novo / em contato / concluído). Lê e grava via RPCs
 // SECURITY DEFINER gated por is_admin() — ver supabase/create-abrir-cnpj-flow.sql.
@@ -5587,7 +5587,7 @@ function PresumidoRealLeadsModule() {
             {leads.length === 0 && (
               <div className="pfx-empty-state">
                 <strong>Nenhum lead de Presumido/Real ainda.</strong>
-                <span>Aparecem aqui quando alguém preenche o formulário em /abrir-empresa.</span>
+                <span>Aparecem aqui quando alguém preenche o formulário em /abrir-empresa/comecar.</span>
               </div>
             )}
           </div>

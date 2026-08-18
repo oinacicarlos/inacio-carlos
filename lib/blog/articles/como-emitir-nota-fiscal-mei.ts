@@ -3,17 +3,17 @@ import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 
 export const article: BlogArticle = {
   slug: "como-emitir-nota-fiscal-mei",
-  title: "Como emitir nota fiscal sendo MEI",
-  metaTitle: "Como emitir nota fiscal MEI (passo a passo)",
+  title: "Nota fiscal do MEI: quando é obrigatória e como emitir",
+  metaTitle: "Nota fiscal do MEI: quando emitir (passo a passo)",
   metaDescription:
     "Entenda quando o MEI precisa emitir nota fiscal, como usar o Emissor Nacional, o que muda em 2027 e como tratar Pix.",
   excerpt:
-    "Nem todo MEI precisa emitir nota fiscal o tempo todo, mas saber quando é obrigatório evita problema com cliente e com a Receita. Veja como funciona.",
+    "Guia geral para qualquer MEI: veja quando a nota é obrigatória, como usar o Emissor Nacional e como declarar mesmo recebendo por Pix.",
   pillar: "mei",
   coverImage: "/blog/covers/como-emitir-nota-fiscal-mei.jpg",
   coverImageAlt: "Mãos operando uma impressora portátil de recibos",
-  publishedAt: "2026-01-28",
-  updatedAt: "2026-08-03",
+  publishedAt: "2026-05-07",
+  updatedAt: "2026-05-07",
   readingTimeMinutes: 8,
   sections: [
     {

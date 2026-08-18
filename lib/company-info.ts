@@ -1,0 +1,6 @@
+export const COMPANY_LEGAL_NAME = "Tropa Contabilidade LTDA"
+export const COMPANY_CNPJ = "64.246.170/0001-33"
+export const COMPANY_ADDRESS_LINE = "Rua Butiá, 25 — Jardim América, Belford Roxo/RJ"
+export const COMPANY_ADDRESS_ZIP = "CEP 26140-090"
+export const COMPANY_EMAIL = "contato@tropacontabilidade.com"
+export const CRC_REGISTRATION = "CRC RJ-110749/O-8"

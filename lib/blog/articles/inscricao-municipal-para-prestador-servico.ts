@@ -10,10 +10,10 @@ export const article: BlogArticle = {
   excerpt:
     "Ter uma empresa não resolve tudo sozinho: para emitir nota de serviço, muitos prestadores precisam regularizar a inscrição municipal.",
   pillar: "mei",
-  coverImage: "/blog/covers/como-trocar-de-contador.jpg",
-  coverImageAlt: "Pessoa conferindo cadastro empresarial em um notebook",
-  publishedAt: "2026-08-03",
-  updatedAt: "2026-08-03",
+  coverImage: "/blog/covers/inscricao-municipal-para-prestador-servico.jpg",
+  coverImageAlt: "Pessoa assinando um documento em mesa de reunião",
+  publishedAt: "2026-03-02",
+  updatedAt: "2026-03-02",
   readingTimeMinutes: 6,
   sections: [
     {

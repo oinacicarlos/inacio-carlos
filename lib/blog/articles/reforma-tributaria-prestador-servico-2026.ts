@@ -9,10 +9,10 @@ export const article: BlogArticle = {
   excerpt:
     "A rotina fiscal começa a mudar antes de o imposto pesar no caixa. Prestadores devem olhar nota fiscal, cadastro e organização de dados.",
   pillar: "mei",
-  coverImage: "/blog/covers/mei-ou-me-quando-migrar.jpg",
-  coverImageAlt: "Empreendedor analisando relatórios financeiros e fiscais",
-  publishedAt: "2026-08-03",
-  updatedAt: "2026-08-03",
+  coverImage: "/blog/covers/reforma-tributaria-prestador-servico-2026.jpg",
+  coverImageAlt: "Mulher lendo um documento em casa",
+  publishedAt: "2026-06-30",
+  updatedAt: "2026-06-30",
   readingTimeMinutes: 7,
   sections: [
     {

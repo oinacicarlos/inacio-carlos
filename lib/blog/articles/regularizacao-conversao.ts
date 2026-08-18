@@ -15,10 +15,10 @@ export const regularizacaoConversaoArticles: BlogArticle[] = [
     excerpt:
       "Empresa sem receita não significa empresa sem obrigação. Em muitos casos, declarações zeradas continuam sendo necessárias.",
     pillar: "mei",
-    coverImage: "/blog/covers/o-que-e-das-mei-como-pagar.jpg",
-    coverImageAlt: "Empresário conferindo declarações fiscais em uma mesa",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/empresa-sem-faturamento-obrigacoes-mensais.jpg",
+    coverImageAlt: "Mesas de escritório modernas com notebooks, sem ninguém por perto",
+    publishedAt: "2026-06-06",
+    updatedAt: "2026-06-06",
     readingTimeMinutes: 7,
     sections: [
       {
@@ -97,12 +97,12 @@ export const regularizacaoConversaoArticles: BlogArticle[] = [
     metaDescription:
       "Veja como emitir a primeira nota fiscal de serviço no RJ, incluindo Nota Carioca, MEI, Simples, inscrição municipal e erros comuns.",
     excerpt:
-      "Empresa recém-aberta no Rio pode estar no Simples e ainda não conseguir emitir nota. O problema costuma estar na inscrição municipal ou no emissor.",
+      "No Rio de Janeiro, empresa recém-aberta às vezes não consegue emitir nota mesmo estando regular no Simples. Veja onde costuma travar: inscrição municipal ou emissor.",
     pillar: "mei",
-    coverImage: "/blog/covers/como-emitir-nota-fiscal-mei.jpg",
-    coverImageAlt: "Empreendedor emitindo nota fiscal de serviço no computador",
-    publishedAt: "2026-08-03",
-    updatedAt: "2026-08-03",
+    coverImage: "/blog/covers/como-emitir-primeira-nota-fiscal-servico-rio-de-janeiro.jpg",
+    coverImageAlt: "Vista aérea do Rio de Janeiro com o Pão de Açúcar ao fundo",
+    publishedAt: "2026-02-18",
+    updatedAt: "2026-02-18",
     readingTimeMinutes: 7,
     sections: [
       {

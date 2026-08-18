@@ -11,8 +11,8 @@ export const article: BlogArticle = {
   pillar: "rescisao",
   coverImage: "/blog/covers/o-que-e-aviso-previo-como-funciona.jpg",
   coverImageAlt: "Mulher planejando a agenda em um calendário de mesa",
-  publishedAt: "2026-02-02",
-  updatedAt: "2026-02-02",
+  publishedAt: "2026-05-31",
+  updatedAt: "2026-05-31",
   readingTimeMinutes: 6,
   sections: [
     {
