@@ -4,5 +4,5 @@ import { resolve } from "node:path"
 const nextDir = resolve(process.cwd(), ".next")
 
 if (existsSync(nextDir)) {
-  rmSync(nextDir, { recursive: true, force: true })
+  rmSync(nextDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 120 })
 }

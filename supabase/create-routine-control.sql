@@ -10,6 +10,17 @@ create table if not exists public.routine_items (
   id uuid primary key default gen_random_uuid()
 );
 
+create table if not exists public.routine_email_drafts (
+  id uuid primary key default gen_random_uuid(),
+  competence_id uuid not null references public.routine_competences(id) on delete cascade,
+  scope text not null default 'Geral',
+  subject text not null default '',
+  body text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (competence_id, scope)
+);
+
 alter table public.routine_clients add column if not exists name text not null default '';
 alter table public.routine_clients add column if not exists cnpj text not null default '';
 alter table public.routine_clients add column if not exists partner_name text not null default '';
@@ -68,6 +79,7 @@ alter table public.routine_clients enable row level security;
 alter table public.routine_competences enable row level security;
 alter table public.routine_items enable row level security;
 alter table public.routine_client_custom_obligations enable row level security;
+alter table public.routine_email_drafts enable row level security;
 
 drop policy if exists "Authenticated users can manage routine clients" on public.routine_clients;
 create policy "Authenticated users can manage routine clients"
@@ -101,6 +113,14 @@ to authenticated
 using (true)
 with check (true);
 
+drop policy if exists "Authenticated users can manage routine email drafts" on public.routine_email_drafts;
+create policy "Authenticated users can manage routine email drafts"
+on public.routine_email_drafts
+for all
+to authenticated
+using (true)
+with check (true);
+
 create index if not exists routine_clients_name_idx on public.routine_clients(name);
 create index if not exists routine_clients_status_idx on public.routine_clients(status);
 create index if not exists routine_clients_has_payroll_idx on public.routine_clients(has_payroll);
@@ -108,3 +128,4 @@ create index if not exists routine_competences_client_month_idx on public.routin
 create index if not exists routine_items_competence_status_idx on public.routine_items(competence_id, status);
 create index if not exists routine_items_competence_department_idx on public.routine_items(competence_id, department, sort_order);
 create index if not exists routine_client_custom_obligations_client_idx on public.routine_client_custom_obligations(client_id, active, sort_order);
+create index if not exists routine_email_drafts_competence_idx on public.routine_email_drafts(competence_id, scope);

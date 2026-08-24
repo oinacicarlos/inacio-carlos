@@ -361,6 +361,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
   return (
     <main className="accounting-landing accounting-landing--home">
       <script
+        suppressHydrationWarning
         type="application/ld+json"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { Suspense } from "react"
 import { Inter } from "next/font/google"
 import { GoogleAdsPurchaseConversion } from "@/components/google-ads-purchase-conversion"
+import { WhatsAppConversionTracker } from "@/components/whatsapp-conversion-tracker"
 import "./globals.css"
 
 const inter = Inter({
@@ -57,8 +58,9 @@ export default async function RootLayout({
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
       <head>
-        <script nonce={nonce} async src="https://www.googletagmanager.com/gtag/js?id=AW-18367655896" />
+        <script suppressHydrationWarning nonce={nonce} async src="https://www.googletagmanager.com/gtag/js?id=G-ECR1NWWTFG" />
         <script
+          suppressHydrationWarning
           nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.dataLayer = window.dataLayer || [];
@@ -69,6 +71,7 @@ gtag('config', 'G-ECR1NWWTFG');`,
           }}
         />
         <script
+          suppressHydrationWarning
           nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `!function(f,b,e,v,n,t,s)
@@ -93,6 +96,7 @@ fbq('track', 'PageView');`,
         </noscript>
       </head>
       <body className={inter.variable}>
+        <WhatsAppConversionTracker />
         <Suspense fallback={null}>
           <GoogleAdsPurchaseConversion />
         </Suspense>

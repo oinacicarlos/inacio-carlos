@@ -193,7 +193,16 @@ type RoutineClientStatus = 'Ativo' | 'Inativo'
 type RoutineItemStatus = 'Pendente' | 'Não precisa' | 'Anexado' | 'Enviado'
 type RoutineArea = 'Clientes' | 'Competências'
 type RoutineDepartment = 'Obrigatoriedade' | 'Fiscal' | 'Atualização Cadastral' | 'Departamento Pessoal' | 'Obrigações específicas'
+type RoutineDepartmentStatus = 'Enviado' | 'Anexado' | 'Inacabado' | 'Não se aplica'
+type RoutineDepartmentFilter = 'Todos' | 'Feito' | 'Pendente' | 'Não se aplica'
+type RoutineBroadcastAudience = 'Folha' | 'Geral'
 type RoutineAttachmentCategory = 'socios' | 'endereco' | 'contratos' | 'cnpj_inscricoes' | 'licencas' | 'procuracao'
+type RoutineEmailScope = RoutineDepartment | 'Geral'
+
+type RoutineEmailDraft = {
+  subject: string
+  text: string
+}
 
 type RoutineClientDocument = {
   id: string
@@ -381,6 +390,16 @@ type RoutineClientAttachmentRow = {
   updated_at: string
 }
 
+type RoutineEmailDraftRow = {
+  id: string
+  competence_id: string
+  scope: string
+  subject: string
+  body: string
+  created_at: string
+  updated_at: string
+}
+
 type RoutineClientFormData = {
   name: string
   cnpj: string
@@ -405,8 +424,10 @@ const ROUTINE_COMPETENCES_TABLE = 'routine_competences'
 const ROUTINE_ITEMS_TABLE = 'routine_items'
 const ROUTINE_CLIENT_CUSTOM_OBLIGATIONS_TABLE = 'routine_client_custom_obligations'
 const ROUTINE_CLIENT_ATTACHMENTS_TABLE = 'routine_client_attachments'
+const ROUTINE_EMAIL_DRAFTS_TABLE = 'routine_email_drafts'
 const ROUTINE_CLIENT_ATTACHMENTS_BUCKET = 'routine-client-attachments'
 const ROUTINE_ATTACHMENT_LIMIT_BYTES = 10 * 1024 * 1024
+const ROUTINE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const ROUTINE_AREAS: RoutineArea[] = ['Clientes', 'Competências']
 const ROUTINE_REGIMES: RoutineRegime[] = ['MEI', 'Simples Nacional']
@@ -777,6 +798,38 @@ function formatRoutineMoney(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
 }
 
+function getRoutineClientInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const [first, second] = parts
+  return `${first?.[0] ?? 'C'}${second?.[0] ?? ''}`.toUpperCase()
+}
+
+function getRoutineRegimeClass(regime: string) {
+  return regime
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+}
+
+function getRoutinePaginationPages(currentPage: number, totalPages: number) {
+  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1)
+
+  const pages: Array<number | 'ellipsis'> = [1]
+  const start = Math.max(2, currentPage - 1)
+  const end = Math.min(totalPages - 1, currentPage + 1)
+
+  if (start > 2) pages.push('ellipsis')
+  for (let page = start; page <= end; page += 1) pages.push(page)
+  if (end < totalPages - 1) pages.push('ellipsis')
+  pages.push(totalPages)
+
+  return pages
+}
+
 function parseRoutineMoney(value: string) {
   const normalized = value.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')
   const parsed = Number(normalized)
@@ -819,6 +872,25 @@ function formatRoutineCompetence(competenceMonth: string) {
     .replace(/^\w/, letter => letter.toUpperCase())
 }
 
+function getRoutineBroadcastDefaults(audience: RoutineBroadcastAudience, monthValue: string) {
+  const competenceLabel = formatRoutineCompetence(normalizeRoutineCompetenceMonth(monthValue)).toUpperCase()
+  if (audience === 'Folha') {
+    return {
+      subject: `LANÇAMENTO FOLHA - ${competenceLabel}`,
+      text: 'Olá amigo cliente, temos lançamentos na folha de pagamento como admissões, demissões, férias, afastamentos e etc para esse mês ou podemos processar a folha de pagamento?',
+    }
+  }
+
+  return {
+    subject: `COMUNICADO TROPA - ${competenceLabel}`,
+    text: 'Olá amigo cliente,',
+  }
+}
+
+function hasValidRoutineEmail(client: RoutineClient) {
+  return ROUTINE_EMAIL_PATTERN.test(client.email.trim())
+}
+
 function formatRoutineSentDate(value: string) {
   if (!value) return 'Não enviado'
   return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -854,9 +926,50 @@ function getRoutineCompetenceStatus(client: RoutineClient | null | undefined, it
   return applicableItems.every(item => item.status === 'Enviado' || item.status === 'Não precisa') ? 'Enviado' : 'Inacabado'
 }
 
+function isRoutineItemReady(item: RoutineItem) {
+  return item.status === 'Anexado' || item.status === 'Enviado' || item.status === 'Não precisa' || Boolean(item.fileName || item.fileStoragePath)
+}
+
+function getRoutineDepartmentStatus(client: RoutineClient | null | undefined, items: RoutineItem[], department: RoutineDepartment): RoutineDepartmentStatus {
+  const departmentItems = items.filter(item =>
+    getRoutineItemDepartment(item, client) === department &&
+    isRoutineItemApplicableToClient(client, item)
+  )
+
+  if (!departmentItems.length) return 'Não se aplica'
+  if (departmentItems.every(item => item.status === 'Enviado' || item.status === 'Não precisa')) return 'Enviado'
+  if (departmentItems.every(item => isRoutineItemReady(item))) return 'Anexado'
+  return 'Inacabado'
+}
+
+function matchesRoutineDepartmentFilter(status: RoutineDepartmentStatus, filter: RoutineDepartmentFilter) {
+  if (filter === 'Todos') return true
+  if (filter === 'Feito') return status === 'Enviado' || status === 'Anexado'
+  if (filter === 'Pendente') return status === 'Inacabado'
+  return status === 'Não se aplica'
+}
+
+function getRoutineDepartmentStatusClass(status: RoutineDepartmentStatus) {
+  if (status === 'Não se aplica') return 'not-applicable'
+  if (status === 'Inacabado') return 'no'
+  if (status === 'Anexado') return 'attached'
+  return 'yes'
+}
+
 function buildRoutineEmailSubject(client: RoutineClient, competence: RoutineCompetence, scopeDepartment: RoutineDepartment | null) {
+  if (scopeDepartment === 'Fiscal') return `Documentos fiscais - ${formatRoutineCompetence(competence.competenceMonth)}`
+  if (scopeDepartment === 'Departamento Pessoal') return `Documentos de folha - ${formatRoutineCompetence(competence.competenceMonth)}`
   const scopeLabel = scopeDepartment ? ` - ${scopeDepartment}` : ''
   return `Rotinas contábeis - ${client.name} - ${formatRoutineCompetence(competence.competenceMonth)}${scopeLabel}`
+}
+
+function getRoutineEmailScopeKey(competenceId: string, scope: RoutineEmailScope) {
+  return `${competenceId}:${scope}`
+}
+
+function getRoutineEmailScopeTitle(scope: RoutineEmailScope) {
+  if (scope === 'Geral') return 'E-mail geral'
+  return 'E-mail do setor'
 }
 
 function getPfxValidityStatus(validityDate: string): PfxValidityStatus {
@@ -1593,18 +1706,23 @@ function RoutineControlModule() {
   const [clientSearch, setClientSearch] = useState('')
   const [regimeFilter, setRegimeFilter] = useState<'Todos' | RoutineRegime>('Todos')
   const [payrollFilter, setPayrollFilter] = useState<'Todos' | 'Sim' | 'Não'>('Todos')
+  const [clientsPage, setClientsPage] = useState(1)
+  const [clientsPageSize, setClientsPageSize] = useState(10)
   const [competenceClientFilter, setCompetenceClientFilter] = useState('Todos')
   const [competenceRegimeFilter, setCompetenceRegimeFilter] = useState<'Todos' | RoutineRegime>('Todos')
-  const [competencePayrollFilter, setCompetencePayrollFilter] = useState<'Todos' | 'Sim' | 'Não'>('Todos')
+  const [competenceFiscalFilter, setCompetenceFiscalFilter] = useState<RoutineDepartmentFilter>('Todos')
+  const [competencePayrollFilter, setCompetencePayrollFilter] = useState<RoutineDepartmentFilter>('Todos')
   const [competenceStatusFilter, setCompetenceStatusFilter] = useState<'Todos' | RoutineCompetenceStatus>('Todos')
   const [competenceMonthFilter, setCompetenceMonthFilter] = useState(getCurrentRoutineCompetenceMonth().slice(0, 7))
   const [selectedCompetenceId, setSelectedCompetenceId] = useState<string | null>(null)
   const [clientModal, setClientModal] = useState<RoutineClient | null | 'new'>(null)
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false)
   const [attachmentsClient, setAttachmentsClient] = useState<RoutineClient | null>(null)
   const [competenceModalOpen, setCompetenceModalOpen] = useState(false)
   const [quickCompetenceModalOpen, setQuickCompetenceModalOpen] = useState(false)
-  const [emailModalScope, setEmailModalScope] = useState<RoutineDepartment | 'Geral' | null>(null)
-  const [routineEmailText, setRoutineEmailText] = useState('')
+  const [emailModalScope, setEmailModalScope] = useState<RoutineEmailScope | null>(null)
+  const [routineEmailDrafts, setRoutineEmailDrafts] = useState<Record<string, RoutineEmailDraft>>({})
+  const [routineEmailDraftPersistence, setRoutineEmailDraftPersistence] = useState(true)
   const [routineEmailSending, setRoutineEmailSending] = useState(false)
   const [routineEmailFeedback, setRoutineEmailFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [routineFileUploading, setRoutineFileUploading] = useState<Record<string, boolean>>({})
@@ -1640,6 +1758,11 @@ function RoutineControlModule() {
       .select('*')
       .order('sort_order', { ascending: true })
 
+    const emailDraftsResult = await supabase
+      .from(ROUTINE_EMAIL_DRAFTS_TABLE)
+      .select('*')
+      .order('updated_at', { ascending: false })
+
     if (attachmentsResult.error) {
       setAttachments([])
       setError('Clientes carregados. Execute o SQL de anexos para liberar as pastas de documentos.')
@@ -1654,10 +1777,30 @@ function RoutineControlModule() {
       setCustomObligations((customObligationsResult.data ?? []).map(row => mapRoutineClientCustomObligation(row as RoutineClientCustomObligationRow)))
     }
 
+    if (emailDraftsResult.error) {
+      setRoutineEmailDraftPersistence(false)
+      setRoutineEmailDrafts({})
+    } else {
+      setRoutineEmailDraftPersistence(true)
+      setRoutineEmailDrafts((emailDraftsResult.data ?? []).reduce<Record<string, RoutineEmailDraft>>((drafts, row) => {
+        const draft = row as RoutineEmailDraftRow
+        drafts[getRoutineEmailScopeKey(draft.competence_id, draft.scope as RoutineEmailScope)] = {
+          subject: draft.subject ?? '',
+          text: draft.body ?? '',
+        }
+        return drafts
+      }, {}))
+    }
+
     setLoading(false)
   }
 
   useEffect(() => { void loadRoutineData() }, [])
+
+  useEffect(() => {
+    setRoutineEmailFeedback(null)
+    setEmailModalScope(null)
+  }, [selectedCompetenceId])
 
   const selectedCompetence = selectedCompetenceId ? competences.find(competence => competence.id === selectedCompetenceId) ?? null : null
   const selectedClient = selectedCompetence ? clients.find(client => client.id === selectedCompetence.clientId) ?? null : null
@@ -1686,12 +1829,47 @@ function RoutineControlModule() {
   const filteredClients = useMemo(() => {
     const search = clientSearch.toLowerCase().trim()
     return clients.filter(client => {
-      const matchesSearch = !search || [client.name, client.cnpj, client.partnerName, client.partnerCpf, client.whatsapp].some(value => value.toLowerCase().includes(search))
+      const matchesSearch = !search || [client.name, client.cnpj, client.partnerName, client.partnerCpf, client.whatsapp, client.email].some(value => value.toLowerCase().includes(search))
       const matchesRegime = regimeFilter === 'Todos' || client.regime === regimeFilter
       const matchesPayroll = payrollFilter === 'Todos' || (payrollFilter === 'Sim' ? client.hasPayroll : !client.hasPayroll)
       return matchesSearch && matchesRegime && matchesPayroll
     })
   }, [clients, clientSearch, regimeFilter, payrollFilter])
+
+  useEffect(() => {
+    setClientsPage(1)
+  }, [clientSearch, regimeFilter, payrollFilter, clientsPageSize])
+
+  const clientsPageCount = Math.max(1, Math.ceil(filteredClients.length / clientsPageSize))
+
+  useEffect(() => {
+    setClientsPage(current => Math.min(Math.max(current, 1), clientsPageCount))
+  }, [clientsPageCount])
+
+  const paginatedClients = useMemo(() => {
+    const start = (clientsPage - 1) * clientsPageSize
+    return filteredClients.slice(start, start + clientsPageSize)
+  }, [filteredClients, clientsPage, clientsPageSize])
+
+  const clientsRangeStart = filteredClients.length ? (clientsPage - 1) * clientsPageSize + 1 : 0
+  const clientsRangeEnd = filteredClients.length ? Math.min(clientsPage * clientsPageSize, filteredClients.length) : 0
+
+  const clientsSummary = useMemo(() => {
+    const activeClients = clients.filter(client => client.status === 'Ativo').length
+    const inactiveClients = clients.filter(client => client.status === 'Inativo').length
+    const payrollClients = clients.filter(client => client.hasPayroll).length
+    const monthlyRevenue = clients.reduce((total, client) => total + client.monthlyFee, 0)
+
+    return {
+      totalClients: clients.length,
+      activeClients,
+      inactiveClients,
+      payrollClients,
+      payrollPercentage: clients.length ? Math.round((payrollClients / clients.length) * 100) : 0,
+      monthlyRevenue,
+      totalAttachments: attachments.length,
+    }
+  }, [clients, attachments])
 
   const filteredCompetences = useMemo(() => {
     const month = competenceMonthFilter ? normalizeRoutineCompetenceMonth(competenceMonthFilter) : ''
@@ -1699,14 +1877,17 @@ function RoutineControlModule() {
       const client = getClient(competence.clientId)
       const competenceItems = getCompetenceItems(competence.id)
       const competenceStatus = getRoutineCompetenceStatus(client, competenceItems)
+      const fiscalStatus = getRoutineDepartmentStatus(client, competenceItems, 'Fiscal')
+      const payrollStatus = getRoutineDepartmentStatus(client, competenceItems, 'Departamento Pessoal')
       const matchesClient = competenceClientFilter === 'Todos' || competence.clientId === competenceClientFilter
       const matchesMonth = !month || competence.competenceMonth === month
       const matchesRegime = competenceRegimeFilter === 'Todos' || client?.regime === competenceRegimeFilter
-      const matchesPayroll = competencePayrollFilter === 'Todos' || (competencePayrollFilter === 'Sim' ? Boolean(client?.hasPayroll) : !client?.hasPayroll)
+      const matchesFiscal = matchesRoutineDepartmentFilter(fiscalStatus, competenceFiscalFilter)
+      const matchesPayroll = matchesRoutineDepartmentFilter(payrollStatus, competencePayrollFilter)
       const matchesStatus = competenceStatusFilter === 'Todos' || competenceStatus === competenceStatusFilter
-      return matchesClient && matchesMonth && matchesRegime && matchesPayroll && matchesStatus
+      return matchesClient && matchesMonth && matchesRegime && matchesFiscal && matchesPayroll && matchesStatus
     })
-  }, [competences, clients, items, competenceClientFilter, competenceRegimeFilter, competencePayrollFilter, competenceStatusFilter, competenceMonthFilter])
+  }, [competences, clients, items, competenceClientFilter, competenceRegimeFilter, competenceFiscalFilter, competencePayrollFilter, competenceStatusFilter, competenceMonthFilter])
 
   const getClientAttachmentCount = (clientId: string) => attachments.filter(attachment => attachment.clientId === clientId).length
 
@@ -2136,40 +2317,90 @@ function RoutineControlModule() {
     URL.revokeObjectURL(url)
   }
 
-  const getEmailScopeItems = (scope: RoutineDepartment | 'Geral') => scope === 'Geral'
+  const getEmailScopeItems = (scope: RoutineEmailScope) => scope === 'Geral'
     ? selectedVisibleItems
     : selectedVisibleItems.filter(item => getRoutineItemDepartment(item, selectedClient) === scope)
 
   const emailScopeItems = emailModalScope ? getEmailScopeItems(emailModalScope) : []
   const emailScopeAttachmentCount = emailScopeItems.filter(item => item.fileStoragePath).length
-  const routineEmailSubject = selectedClient && selectedCompetence && emailModalScope
-    ? buildRoutineEmailSubject(selectedClient, selectedCompetence, emailModalScope === 'Geral' ? null : emailModalScope)
-    : ''
   const selectedCompetenceStatus = selectedClient && selectedCompetence
     ? getRoutineCompetenceStatus(selectedClient, selectedItems)
     : 'Inacabado'
 
-  const openRoutineEmailModal = (scope: RoutineDepartment | 'Geral') => {
+  const getRoutineEmailDraft = (scope: RoutineEmailScope, scopedItems = getEmailScopeItems(scope)): RoutineEmailDraft => {
+    if (!selectedClient || !selectedCompetence) return { subject: '', text: '' }
+    const key = getRoutineEmailScopeKey(selectedCompetence.id, scope)
+    return routineEmailDrafts[key] ?? {
+      subject: buildRoutineEmailSubject(selectedClient, selectedCompetence, scope === 'Geral' ? null : scope),
+      text: buildRoutineMessage(selectedClient, selectedCompetence, scopedItems, scope === 'Geral' ? null : scope),
+    }
+  }
+
+  const updateRoutineEmailDraft = (scope: RoutineEmailScope, updates: Partial<RoutineEmailDraft>, scopedItems = getEmailScopeItems(scope)) => {
+    if (!selectedCompetence) return
+    setRoutineEmailDrafts(current => {
+      const key = getRoutineEmailScopeKey(selectedCompetence.id, scope)
+      const fallback = getRoutineEmailDraft(scope, scopedItems)
+      return {
+        ...current,
+        [key]: { ...fallback, ...current[key], ...updates },
+      }
+    })
+  }
+
+  const saveRoutineEmailDraft = async (scope: RoutineEmailScope, scopedItems = getEmailScopeItems(scope)) => {
+    if (!selectedCompetence || !routineEmailDraftPersistence) return
+    const draft = getRoutineEmailDraft(scope, scopedItems)
+    const { error: saveError } = await supabase
+      .from(ROUTINE_EMAIL_DRAFTS_TABLE)
+      .upsert({
+        competence_id: selectedCompetence.id,
+        scope,
+        subject: draft.subject,
+        body: draft.text,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'competence_id,scope' })
+
+    if (saveError) {
+      setRoutineEmailDraftPersistence(false)
+      setRoutineEmailFeedback({ type: 'error', text: 'Rascunho mantido só nesta tela. Execute o SQL de rascunhos para salvar no banco.' })
+    }
+  }
+
+  const emailModalDraft = emailModalScope ? getRoutineEmailDraft(emailModalScope, emailScopeItems) : { subject: '', text: '' }
+
+  const openRoutineEmailModal = (scope: RoutineEmailScope) => {
     if (!selectedClient || !selectedCompetence) return
-    const scopedItems = getEmailScopeItems(scope)
     setRoutineEmailFeedback(null)
-    setRoutineEmailText(buildRoutineMessage(selectedClient, selectedCompetence, scopedItems, scope === 'Geral' ? null : scope))
     setEmailModalScope(scope)
   }
 
-  const handleSendRoutineEmail = async () => {
-    if (!selectedClient || !selectedCompetence || !emailModalScope) return
+  const handleSendRoutineEmail = async (scope: RoutineEmailScope) => {
+    if (!selectedClient || !selectedCompetence) return
+    const scopedItems = getEmailScopeItems(scope)
+    const emailDraft = getRoutineEmailDraft(scope, scopedItems)
 
     if (!selectedClient.email.trim()) {
       setRoutineEmailFeedback({ type: 'error', text: 'Este cliente não tem e-mail cadastrado.' })
       return
     }
 
+    if (!emailDraft.subject.trim()) {
+      setRoutineEmailFeedback({ type: 'error', text: 'Informe o assunto do e-mail.' })
+      return
+    }
+
+    if (!emailDraft.text.trim()) {
+      setRoutineEmailFeedback({ type: 'error', text: 'Informe o corpo do e-mail.' })
+      return
+    }
+
     setRoutineEmailSending(true)
     setRoutineEmailFeedback(null)
+    void saveRoutineEmailDraft(scope, scopedItems)
 
     try {
-      const sentItemIds = emailScopeItems
+      const sentItemIds = scopedItems
         .filter(item => isRoutineItemApplicableToClient(selectedClient, item) && item.status !== 'Não precisa')
         .map(item => item.id)
 
@@ -2178,8 +2409,8 @@ function RoutineControlModule() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: selectedClient.email.trim(),
-          subject: routineEmailSubject,
-          text: routineEmailText,
+          subject: emailDraft.subject,
+          text: emailDraft.text,
           itemIds: sentItemIds,
         }),
       })
@@ -2222,48 +2453,63 @@ function RoutineControlModule() {
         <div className="crm-module-header">
           <div>
             <h2>Clientes</h2>
+            <p>Gerencie seus clientes e acompanhe suas informações.</p>
           </div>
           <div className="crm-header-right">
             {error && <span className="crm-global-error">{error}</span>}
             {activeArea === 'Clientes' && (
               <button
-                className="crm-add-btn crm-add-icon-btn"
+                className="crm-add-btn crm-add-icon-btn routine-top-action"
                 onClick={() => void handleExportRoutineClients()}
                 type="button"
                 aria-label="Exportar clientes"
                 title="Exportar clientes"
               >
                 <DownloadTemplateIcon />
+                <span>Exportar</span>
               </button>
             )}
             {activeArea === 'Competências' && (
               <button
-                className="crm-add-btn crm-add-icon-btn"
+                className="crm-add-btn crm-add-icon-btn routine-top-action"
                 onClick={() => setQuickCompetenceModalOpen(true)}
                 type="button"
-                aria-label="Configurar competências em lote"
-                title="Configurar rápido"
+                aria-label="Processar competências em massa"
+                title="Processar em massa"
               >
                 <RoutineBulkIcon />
+                <span>Processar em massa</span>
               </button>
             )}
             <button
-              className="crm-add-btn crm-add-icon-btn"
-              onClick={() => setCompetenceModalOpen(true)}
+              className="crm-add-btn crm-add-icon-btn routine-top-action"
+              onClick={() => setBroadcastModalOpen(true)}
               type="button"
-              aria-label="Criar competência"
-              title="Criar competência"
+              aria-label="Criar disparo"
+              title="Disparos"
             >
-              <RoutineCalendarIcon />
+              <RoutineBroadcastIcon />
+              <span>Disparos</span>
             </button>
             <button
-              className="crm-add-btn crm-add-icon-btn"
+              className="crm-add-btn crm-add-icon-btn routine-top-action"
+              onClick={() => setCompetenceModalOpen(true)}
+              type="button"
+              aria-label="Criar novo período"
+              title="Novo período"
+            >
+              <RoutineCalendarIcon />
+              <span>Novo período</span>
+            </button>
+            <button
+              className="crm-add-btn crm-add-icon-btn routine-top-action routine-top-action-primary"
               onClick={() => setClientModal('new')}
               type="button"
               aria-label="Cadastrar cliente"
               title="Cadastrar cliente"
             >
               <UserPlusIcon />
+              <span>Novo cliente</span>
             </button>
           </div>
         </div>
@@ -2288,8 +2534,49 @@ function RoutineControlModule() {
           <div className="crm-loading">Carregando rotinas...</div>
         ) : activeArea === 'Clientes' ? (
           <>
-            <RoutineFilters>
-              <input value={clientSearch} onChange={event => setClientSearch(event.target.value)} placeholder="Buscar por nome, CNPJ, WhatsApp ou e-mail" />
+            <div className="routine-summary-grid" aria-label="Resumo de clientes">
+              <article className="routine-summary-card">
+                <span className="routine-summary-icon"><ModuleIcon type="clients" /></span>
+                <div>
+                  <span>Total de clientes</span>
+                  <strong>{clientsSummary.totalClients}</strong>
+                  <p><em>Ativos</em> {clientsSummary.activeClients} <span>Inativos</span> {clientsSummary.inactiveClients}</p>
+                </div>
+              </article>
+              <article className="routine-summary-card">
+                <span className="routine-summary-icon"><UserPlusIcon /></span>
+                <div>
+                  <span>Clientes com folha</span>
+                  <strong>{clientsSummary.payrollClients}</strong>
+                  <p>{clientsSummary.payrollPercentage}% do total</p>
+                </div>
+              </article>
+              <article className="routine-summary-card">
+                <span className="routine-summary-icon routine-summary-icon-text">R$</span>
+                <div>
+                  <span>Receita mensal recorrente</span>
+                  <strong>{formatRoutineMoney(clientsSummary.monthlyRevenue)}</strong>
+                  <p>Mensalidades cadastradas</p>
+                </div>
+              </article>
+              <article className="routine-summary-card">
+                <span className="routine-summary-icon"><FolderIcon /></span>
+                <div>
+                  <span>Anexos totais</span>
+                  <strong>{clientsSummary.totalAttachments}</strong>
+                  <p>Documentos</p>
+                </div>
+              </article>
+            </div>
+
+            <RoutineFilters className="routine-client-filters">
+              <label className="routine-search-field">
+                <svg aria-hidden viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m16.5 16.5 4 4" />
+                </svg>
+                <input value={clientSearch} onChange={event => setClientSearch(event.target.value)} placeholder="Buscar por nome, CNPJ, WhatsApp ou e-mail" />
+              </label>
               <select value={regimeFilter} onChange={event => setRegimeFilter(event.target.value as 'Todos' | RoutineRegime)}>
                 <option value="Todos">Todos os regimes</option>
                 {ROUTINE_REGIMES.map(regime => <option key={regime} value={regime}>{regime}</option>)}
@@ -2300,7 +2587,7 @@ function RoutineControlModule() {
                 <option value="Não">Sem folha</option>
               </select>
             </RoutineFilters>
-            <div className="pfx-table-card routine-table-card">
+            <div className="pfx-table-card routine-table-card routine-clients-card">
               <table className="pfx-table routine-table routine-clients-table">
                 <thead>
                   <tr>
@@ -2314,35 +2601,76 @@ function RoutineControlModule() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredClients.map(client => (
+                  {paginatedClients.map(client => {
+                    const attachmentCount = getClientAttachmentCount(client.id)
+                    return (
                     <tr key={client.id} className="routine-clickable-row" onClick={() => setClientModal(client)}>
-                      <td><div className="pfx-client-cell"><strong>{client.name}</strong>{client.notes && <span>{client.notes}</span>}</div></td>
-                      <td>{client.cnpj || 'Não informado'}</td>
-                      <td><span className="pfx-pill">{client.regime}</span></td>
-                      <td>{client.hasPayroll ? 'Sim' : 'Não'}</td>
-                      <td>{client.email || 'Não informado'}</td>
-                      <td>{formatRoutineMoney(client.monthlyFee)}</td>
-                      <td>
+                      <td data-label="Cliente">
+                        <div className="routine-client-identity">
+                          <span className="routine-client-avatar" aria-hidden="true">{getRoutineClientInitials(client.name)}</span>
+                          <strong>{client.name}</strong>
+                        </div>
+                      </td>
+                      <td data-label="CNPJ"><span className="routine-muted-value">{client.cnpj || 'Não informado'}</span></td>
+                      <td data-label="Regime"><span className={`routine-regime-badge ${getRoutineRegimeClass(client.regime)}`}>{client.regime}</span></td>
+                      <td data-label="Folha"><span className={`routine-payroll-badge ${client.hasPayroll ? 'yes' : 'no'}`}>{client.hasPayroll ? 'Sim' : 'Não'}</span></td>
+                      <td data-label="E-mail"><span className="routine-email-value" title={client.email || 'Não informado'}>{client.email || 'Não informado'}</span></td>
+                      <td data-label="Mensalidade"><strong className="routine-money-value">{formatRoutineMoney(client.monthlyFee)}</strong></td>
+                      <td data-label="Ações">
                         <div className="routine-row-actions">
                           <button
+                            className="routine-icon-action"
                             type="button"
                             onClick={event => {
                               event.stopPropagation()
                               setAttachmentsClient(client)
                             }}
-                            title="Anexos"
+                            aria-label={`Anexos${attachmentCount ? ` (${attachmentCount})` : ''}`}
+                            title={`Anexos${attachmentCount ? ` (${attachmentCount})` : ''}`}
                           >
-                            <FolderIcon /> Anexos{getClientAttachmentCount(client.id) ? ` (${getClientAttachmentCount(client.id)})` : ''}
+                            <FolderIcon />
+                            {attachmentCount > 0 && <span className="routine-action-count">{attachmentCount}</span>}
                           </button>
-                          <button type="button" onClick={event => { event.stopPropagation(); setClientModal(client) }} title="Editar"><PencilIcon /></button>
-                          <button type="button" onClick={event => { event.stopPropagation(); void handleDeleteClient(client.id) }} title="Excluir"><TrashIcon /></button>
+                          <button className="routine-icon-action" type="button" onClick={event => { event.stopPropagation(); setClientModal(client) }} aria-label="Editar" title="Editar"><PencilIcon /></button>
+                          <button className="routine-icon-action routine-icon-action-danger" type="button" onClick={event => { event.stopPropagation(); void handleDeleteClient(client.id) }} aria-label="Excluir" title="Excluir"><TrashIcon /></button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
               {filteredClients.length === 0 && <div className="pfx-empty-state"><strong>Nenhum cliente encontrado.</strong><span>Cadastre ou ajuste os filtros para visualizar.</span></div>}
+              {filteredClients.length > 0 && (
+                <div className="routine-pagination" aria-label="Paginação de clientes">
+                  <span>Mostrando {clientsRangeStart} a {clientsRangeEnd} de {filteredClients.length} clientes</span>
+                  <div className="routine-pagination-controls">
+                    <button type="button" onClick={() => setClientsPage(page => Math.max(1, page - 1))} disabled={clientsPage === 1} aria-label="Página anterior">‹</button>
+                    {getRoutinePaginationPages(clientsPage, clientsPageCount).map((page, index) => page === 'ellipsis' ? (
+                      <em key={`ellipsis-${index}`}>...</em>
+                    ) : (
+                      <button
+                        key={page}
+                        type="button"
+                        className={clientsPage === page ? 'active' : ''}
+                        onClick={() => setClientsPage(page)}
+                        aria-label={`Página ${page}`}
+                        aria-current={clientsPage === page ? 'page' : undefined}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setClientsPage(page => Math.min(clientsPageCount, page + 1))} disabled={clientsPage === clientsPageCount} aria-label="Próxima página">›</button>
+                  </div>
+                  <label>
+                    <select value={clientsPageSize} onChange={event => setClientsPageSize(Number(event.target.value))}>
+                      <option value={10}>10 por página</option>
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                    </select>
+                  </label>
+                </div>
+              )}
             </div>
           </>
         ) : activeArea === 'Competências' && selectedCompetence && selectedClient ? (
@@ -2359,51 +2687,108 @@ function RoutineControlModule() {
               <button type="button" onClick={() => setClientModal(selectedClient)}>Obrigação específica</button>
               <button type="button" onClick={() => openRoutineEmailModal('Geral')}>Enviar tudo</button>
             </div>
+            {routineEmailFeedback && <p className={`routine-email-feedback ${routineEmailFeedback.type}`}>{routineEmailFeedback.text}</p>}
             <div className="routine-checklist-list">
-              {selectedItemsByDepartment.map(group => (
+              {selectedItemsByDepartment.map(group => {
+                const departmentDraft = getRoutineEmailDraft(group.department, group.items)
+                const departmentAttachedItems = group.items.filter(item => item.fileStoragePath)
+                return (
                 <section key={group.department} className="routine-department-group">
                   <div className="routine-department-header">
-                    <strong>{group.department}</strong>
+                    <div>
+                      <strong>{group.department}</strong>
+                      <span>{group.items.length} {group.items.length === 1 ? 'obrigação' : 'obrigações'} no setor</span>
+                    </div>
                     <div className="routine-department-header-meta">
-                      <span>{group.items.length} {group.items.length === 1 ? 'obrigação' : 'obrigações'}</span>
-                      <button type="button" className="routine-department-send" onClick={() => openRoutineEmailModal(group.department)}>Enviar setor</button>
+                      <span>{departmentAttachedItems.length} {departmentAttachedItems.length === 1 ? 'arquivo' : 'arquivos'}</span>
+                      <button type="button" className="routine-department-send" disabled={routineEmailSending} onClick={() => { void handleSendRoutineEmail(group.department) }}>
+                        {routineEmailSending ? 'Enviando...' : 'Enviar setor'}
+                      </button>
                     </div>
                   </div>
-                  <div className="routine-department-items">
-                    {group.items.map(item => {
-                const applicable = isRoutineItemApplicableToClient(selectedClient, item)
-                const fileError = routineFileErrors[item.id]
-                const isUploading = Boolean(routineFileUploading[item.id])
-                return (
-                  <div key={item.id} className={`routine-checklist-item${!applicable ? ' routine-not-applicable' : ''}`}>
-                    <div className="routine-checklist-title">
-                      <span style={{ background: applicable ? ROUTINE_STATUS_DOT[item.status] : '#71717a' }} />
-                      <div>
-                        <strong>{item.routineName}</strong>
-                        <em>{getRoutineItemCategory(item, selectedClient)}{item.isCustom ? ' · personalizada' : ''}</em>
+                  <div className="routine-department-workspace">
+                    <div className="routine-department-items">
+                      {group.items.map(item => {
+                  const applicable = isRoutineItemApplicableToClient(selectedClient, item)
+                  const fileError = routineFileErrors[item.id]
+                  const isUploading = Boolean(routineFileUploading[item.id])
+                  return (
+                    <div key={item.id} className={`routine-checklist-item${!applicable ? ' routine-not-applicable' : ''}`}>
+                      <div className="routine-checklist-title">
+                        <span style={{ background: applicable ? ROUTINE_STATUS_DOT[item.status] : '#71717a' }} />
+                        <div>
+                          <strong>{item.routineName}</strong>
+                          <em>{getRoutineItemCategory(item, selectedClient)}{item.isCustom ? ' · personalizada' : ''}</em>
+                        </div>
+                        {!applicable && <em>Não se aplica</em>}
                       </div>
-                      {!applicable && <em>Não se aplica</em>}
+                      <select value={item.status} onChange={event => void handleUpdateItem(item.id, { status: event.target.value as RoutineItemStatus })}>
+                        {ROUTINE_ITEM_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                      <label className={`routine-file-control${fileError ? ' has-error' : ''}`} title={fileError || item.fileName || undefined}>
+                        <input type="file" disabled={isUploading} onChange={event => void handleRoutineFile(selectedClient, item, event)} />
+                        {isUploading ? 'Enviando...' : fileError ? 'Falha ao anexar' : (item.fileName || 'Anexar arquivo')}
+                      </label>
+                      <input value={item.notes} onChange={event => setItems(current => current.map(currentItem => currentItem.id === item.id ? { ...currentItem, notes: event.target.value } : currentItem))} onBlur={event => void handleUpdateItem(item.id, { notes: event.target.value })} placeholder="Observação interna" />
+                      <span>{formatRoutineSentDate(item.sentAt)}</span>
                     </div>
-                    <select value={item.status} onChange={event => void handleUpdateItem(item.id, { status: event.target.value as RoutineItemStatus })}>
-                      {ROUTINE_ITEM_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
-                    </select>
-                    <label className={`routine-file-control${fileError ? ' has-error' : ''}`} title={fileError || item.fileName || undefined}>
-                      <input type="file" disabled={isUploading} onChange={event => void handleRoutineFile(selectedClient, item, event)} />
-                      {isUploading ? 'Enviando...' : fileError ? 'Falha ao anexar' : (item.fileName || 'Anexar arquivo')}
-                    </label>
-                    <input value={item.notes} onChange={event => setItems(current => current.map(currentItem => currentItem.id === item.id ? { ...currentItem, notes: event.target.value } : currentItem))} onBlur={event => void handleUpdateItem(item.id, { notes: event.target.value })} placeholder="Observação" />
-                    <span>{formatRoutineSentDate(item.sentAt)}</span>
-                  </div>
-                )
-                    })}
+                  )
+                      })}
+                    </div>
+                    <aside className="routine-sector-email-card">
+                      <div className="routine-sector-email-header">
+                        <div>
+                          <span>{getRoutineEmailScopeTitle(group.department)}</span>
+                          <strong>{selectedClient.email || 'E-mail não cadastrado'}</strong>
+                        </div>
+                        <em>{departmentAttachedItems.length} {departmentAttachedItems.length === 1 ? 'arquivo' : 'arquivos'}</em>
+                      </div>
+                      <label>
+                        Assunto
+                        <input
+                          value={departmentDraft.subject}
+                          onChange={event => updateRoutineEmailDraft(group.department, { subject: event.target.value }, group.items)}
+                          onBlur={() => { void saveRoutineEmailDraft(group.department, group.items) }}
+                        />
+                      </label>
+                      <label>
+                        Corpo do e-mail
+                        <textarea
+                          value={departmentDraft.text}
+                          onChange={event => updateRoutineEmailDraft(group.department, { text: event.target.value }, group.items)}
+                          onBlur={() => { void saveRoutineEmailDraft(group.department, group.items) }}
+                        />
+                      </label>
+                      <div className="routine-sector-attachments">
+                        <div>
+                          <strong>Arquivos anexados do setor</strong>
+                          <span>{departmentAttachedItems.length ? `${departmentAttachedItems.length} arquivo${departmentAttachedItems.length === 1 ? '' : 's'}` : 'Nenhum arquivo anexado'}</span>
+                        </div>
+                        {departmentAttachedItems.length > 0 && (
+                          <ul>
+                            {departmentAttachedItems.slice(0, 3).map(item => (
+                              <li key={item.id}>
+                                <FolderIcon />
+                                <span>{item.fileName || item.routineName}</span>
+                              </li>
+                            ))}
+                            {departmentAttachedItems.length > 3 && <li className="routine-sector-more">+{departmentAttachedItems.length - 3} mais</li>}
+                          </ul>
+                        )}
+                      </div>
+                      <button type="button" className="routine-sector-send" disabled={routineEmailSending} onClick={() => { void handleSendRoutineEmail(group.department) }}>
+                        {routineEmailSending ? 'Enviando...' : 'Enviar setor'}
+                      </button>
+                    </aside>
                   </div>
                 </section>
-              ))}
+                )
+              })}
             </div>
           </div>
         ) : activeArea === 'Competências' ? (
           <>
-            <RoutineFilters>
+            <RoutineFilters className="routine-competence-filters">
               <select value={competenceClientFilter} onChange={event => setCompetenceClientFilter(event.target.value)}>
                 <option value="Todos">Todos os clientes</option>
                 {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
@@ -2412,10 +2797,17 @@ function RoutineControlModule() {
                 <option value="Todos">Todos os regimes</option>
                 {ROUTINE_REGIMES.map(regime => <option key={regime} value={regime}>{regime}</option>)}
               </select>
-              <select value={competencePayrollFilter} onChange={event => setCompetencePayrollFilter(event.target.value as 'Todos' | 'Sim' | 'Não')}>
-                <option value="Todos">Com ou sem folha</option>
-                <option value="Sim">Com folha</option>
-                <option value="Não">Sem folha</option>
+              <select value={competenceFiscalFilter} onChange={event => setCompetenceFiscalFilter(event.target.value as RoutineDepartmentFilter)}>
+                <option value="Todos">Fiscal: todos</option>
+                <option value="Feito">Fiscal: feito</option>
+                <option value="Pendente">Fiscal: pendente</option>
+                <option value="Não se aplica">Fiscal: não se aplica</option>
+              </select>
+              <select value={competencePayrollFilter} onChange={event => setCompetencePayrollFilter(event.target.value as RoutineDepartmentFilter)}>
+                <option value="Todos">DP: todos</option>
+                <option value="Feito">DP: feito</option>
+                <option value="Pendente">DP: pendente</option>
+                <option value="Não se aplica">DP: não se aplica</option>
               </select>
               <select value={competenceStatusFilter} onChange={event => setCompetenceStatusFilter(event.target.value as 'Todos' | RoutineCompetenceStatus)}>
                 <option value="Todos">Todos os status</option>
@@ -2424,16 +2816,18 @@ function RoutineControlModule() {
               </select>
               <div className="routine-month-control">
                 <button type="button" onClick={() => setCompetenceMonthFilter(current => shiftRoutineMonthValue(current, -1))} aria-label="Competência anterior">‹</button>
-                <input type="month" value={competenceMonthFilter} onChange={event => setCompetenceMonthFilter(event.target.value)} />
+                <span>{formatRoutineCompetence(normalizeRoutineCompetenceMonth(competenceMonthFilter))}</span>
                 <button type="button" onClick={() => setCompetenceMonthFilter(current => shiftRoutineMonthValue(current, 1))} aria-label="Próxima competência">›</button>
               </div>
             </RoutineFilters>
-            <div className="pfx-table-card routine-table-card">
+            <div className="pfx-table-card routine-table-card routine-competences-card">
               <table className="pfx-table routine-table routine-competences-table">
                 <thead>
                   <tr>
                     <th>Cliente</th>
                     <th>Competência</th>
+                    <th>Fiscal</th>
+                    <th>DP</th>
                     <th>Status</th>
                     <th>Ações</th>
                   </tr>
@@ -2441,29 +2835,36 @@ function RoutineControlModule() {
                 <tbody>
                   {filteredCompetences.map(competence => {
                     const client = getClient(competence.clientId)
-                    const competenceItems = getCompetenceItems(competence.id).filter(item => isRoutineItemApplicableToClient(client, item))
+                    const competenceItems = getCompetenceItems(competence.id)
                     const competenceStatus = getRoutineCompetenceStatus(client, competenceItems)
+                    const fiscalStatus = getRoutineDepartmentStatus(client, competenceItems, 'Fiscal')
+                    const payrollStatus = getRoutineDepartmentStatus(client, competenceItems, 'Departamento Pessoal')
                     return (
                       <tr
                         key={competence.id}
                         className="routine-clickable-row"
                         onClick={() => { void openRoutineCompetence(competence.id) }}
                       >
-                        <td>
-                          <button type="button" className="routine-client-open" onClick={event => { event.stopPropagation(); void openRoutineCompetence(competence.id) }}>
-                            {client?.name ?? 'Cliente removido'}
-                          </button>
+                        <td data-label="Cliente">
+                          <div className="routine-client-identity">
+                            <span className="routine-client-avatar" aria-hidden="true">{getRoutineClientInitials(client?.name ?? 'Cliente removido')}</span>
+                            <button type="button" className="routine-client-open" onClick={event => { event.stopPropagation(); void openRoutineCompetence(competence.id) }}>
+                              {client?.name ?? 'Cliente removido'}
+                            </button>
+                          </div>
                         </td>
-                        <td>{formatRoutineCompetence(competence.competenceMonth)}</td>
-                        <td>
+                        <td data-label="Competência"><span className="routine-muted-value">{formatRoutineCompetence(competence.competenceMonth)}</span></td>
+                        <td data-label="Fiscal"><span className={`routine-service-badge ${getRoutineDepartmentStatusClass(fiscalStatus)}`}>{fiscalStatus}</span></td>
+                        <td data-label="DP"><span className={`routine-service-badge ${getRoutineDepartmentStatusClass(payrollStatus)}`}>{payrollStatus}</span></td>
+                        <td data-label="Status">
                           <span className={`routine-competence-badge ${competenceStatus === 'Enviado' ? 'sent' : 'unfinished'}`}>
                             {competenceStatus}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Ações">
                           <div className="routine-row-actions">
-                            <button type="button" onClick={event => { event.stopPropagation(); void openRoutineCompetence(competence.id) }}>Abrir</button>
-                            <button type="button" onClick={event => { event.stopPropagation(); void handleDeleteCompetence(competence.id) }} title="Excluir"><TrashIcon /></button>
+                            <button type="button" className="routine-open-action" onClick={event => { event.stopPropagation(); void openRoutineCompetence(competence.id) }}>Abrir</button>
+                            <button type="button" className="routine-icon-action routine-icon-action-danger" onClick={event => { event.stopPropagation(); void handleDeleteCompetence(competence.id) }} aria-label="Excluir" title="Excluir"><TrashIcon /></button>
                           </div>
                         </td>
                       </tr>
@@ -2536,6 +2937,14 @@ function RoutineControlModule() {
         />
       )}
 
+      {broadcastModalOpen && (
+        <RoutineBroadcastModal
+          clients={clients}
+          currentMonth={competenceMonthFilter}
+          onClose={() => setBroadcastModalOpen(false)}
+        />
+      )}
+
       {emailModalScope && selectedClient && selectedCompetence && (
         <div className="crm-modal-backdrop" onClick={() => setEmailModalScope(null)}>
           <div className="crm-modal routine-message-modal" onClick={event => event.stopPropagation()}>
@@ -2550,9 +2959,17 @@ function RoutineControlModule() {
               </div>
               <div className="routine-email-meta">
                 <span>Assunto</span>
-                <strong>{routineEmailSubject}</strong>
+                <input
+                  value={emailModalDraft.subject}
+                  onChange={event => emailModalScope && updateRoutineEmailDraft(emailModalScope, { subject: event.target.value }, emailScopeItems)}
+                  onBlur={() => { if (emailModalScope) void saveRoutineEmailDraft(emailModalScope, emailScopeItems) }}
+                />
               </div>
-              <textarea value={routineEmailText} onChange={event => setRoutineEmailText(event.target.value)} />
+              <textarea
+                value={emailModalDraft.text}
+                onChange={event => emailModalScope && updateRoutineEmailDraft(emailModalScope, { text: event.target.value }, emailScopeItems)}
+                onBlur={() => { if (emailModalScope) void saveRoutineEmailDraft(emailModalScope, emailScopeItems) }}
+              />
               <p className="routine-email-attachments-note">
                 {emailScopeAttachmentCount
                   ? `${emailScopeAttachmentCount} arquivo${emailScopeAttachmentCount === 1 ? '' : 's'} anexado${emailScopeAttachmentCount === 1 ? '' : 's'} será${emailScopeAttachmentCount === 1 ? '' : 'ão'} enviado${emailScopeAttachmentCount === 1 ? '' : 's'} junto.`
@@ -2566,7 +2983,7 @@ function RoutineControlModule() {
                 type="button"
                 className="crm-modal-submit"
                 disabled={routineEmailSending}
-                onClick={() => { void handleSendRoutineEmail() }}
+                onClick={() => { if (emailModalScope) void handleSendRoutineEmail(emailModalScope) }}
               >
                 {routineEmailSending ? 'Enviando...' : 'Enviar e-mail'}
               </button>
@@ -2578,8 +2995,8 @@ function RoutineControlModule() {
   )
 }
 
-function RoutineFilters({ children }: { children: ReactNode }) {
-  return <div className="routine-filters">{children}</div>
+function RoutineFilters({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`routine-filters${className ? ` ${className}` : ''}`}>{children}</div>
 }
 
 function RoutineClientModal({
@@ -2607,7 +3024,6 @@ function RoutineClientModal({
   const [partnerName, setPartnerName] = useState(client?.partnerName ?? '')
   const [partnerCpf, setPartnerCpf] = useState(client?.partnerCpf ?? '')
   const [regime, setRegime] = useState<RoutineRegime>(client?.regime ?? 'MEI')
-  const [hasPayroll, setHasPayroll] = useState(client?.hasPayroll ?? false)
   const [hasEmployees, setHasEmployees] = useState(client?.hasEmployees ?? false)
   const [hasProLabore, setHasProLabore] = useState(client?.hasProLabore ?? false)
   const [issuesInvoices, setIssuesInvoices] = useState(client?.issuesInvoices ?? true)
@@ -2641,7 +3057,7 @@ function RoutineClientModal({
         partnerName,
         partnerCpf,
         regime,
-        hasPayroll,
+        hasPayroll: hasEmployees || hasProLabore,
         hasEmployees,
         hasProLabore,
         issuesInvoices,
@@ -2706,48 +3122,46 @@ function RoutineClientModal({
           <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
         </div>
         <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
-          <label>Nome/Razão Social *<input value={name} onChange={event => setName(event.target.value)} placeholder="Empresa Exemplo LTDA" autoFocus /></label>
-          <div className="crm-modal-row">
+          <div className="routine-client-main-grid">
+            <label>Nome/Razão Social *<input value={name} onChange={event => setName(event.target.value)} placeholder="Empresa Exemplo LTDA" autoFocus /></label>
             <label>Sócio<input value={partnerName} onChange={event => setPartnerName(event.target.value)} placeholder="Nome do sócio" /></label>
             <label>CPF<input value={partnerCpf} onChange={event => setPartnerCpf(maskRoutineCpf(event.target.value))} placeholder="000.000.000-00" /></label>
-          </div>
-          <div className="crm-modal-row">
             <label>CNPJ<input value={cnpj} onChange={event => setCnpj(maskRoutineCnpj(event.target.value))} placeholder="00.000.000/0000-00" /></label>
             <label>Regime<select value={regime} onChange={event => setRegime(event.target.value as RoutineRegime)}>{ROUTINE_REGIMES.map(option => <option key={option} value={option}>{option}</option>)}</select></label>
+            <label>Mensalidade<input value={monthlyFee} onChange={event => setMonthlyFee(event.target.value)} onBlur={() => setMonthlyFee(formatRoutineMoney(parseRoutineMoney(monthlyFee)))} placeholder="R$ 0,00" /></label>
+            <label>WhatsApp<input value={whatsapp} onChange={event => setWhatsapp(maskRoutineWhatsapp(event.target.value))} placeholder="(00) 00000-0000" /></label>
+            <label className="routine-client-field-wide">E-mail<input value={email} onChange={event => setEmail(event.target.value)} placeholder="cliente@empresa.com" /></label>
           </div>
           <div className="routine-client-question-grid">
-            <label className={hasPayroll ? 'routine-check-option active' : 'routine-check-option'}>
-              <input type="checkbox" checked={hasPayroll} onChange={event => setHasPayroll(event.target.checked)} />
-              <span>Precisa fechamento de folha mensal?</span>
-            </label>
             <label className={hasEmployees ? 'routine-check-option active' : 'routine-check-option'}>
               <input type="checkbox" checked={hasEmployees} onChange={event => setHasEmployees(event.target.checked)} />
-              <span>Tem funcionário registrado?</span>
+              <span>Funcionário registrado</span>
             </label>
             <label className={hasProLabore ? 'routine-check-option active' : 'routine-check-option'}>
               <input type="checkbox" checked={hasProLabore} onChange={event => setHasProLabore(event.target.checked)} />
-              <span>Tem pró-labore mensal?</span>
+              <span>Pró-labore mensal</span>
             </label>
             <label className={issuesInvoices ? 'routine-check-option active' : 'routine-check-option'}>
               <input type="checkbox" checked={issuesInvoices} onChange={event => setIssuesInvoices(event.target.checked)} />
-              <span>Emite nota fiscal mensalmente?</span>
+              <span>Emite nota fiscal</span>
             </label>
             <label className={needsFiscalTracking ? 'routine-check-option active' : 'routine-check-option'}>
               <input type="checkbox" checked={needsFiscalTracking} onChange={event => setNeedsFiscalTracking(event.target.checked)} />
-              <span>Precisa acompanhamento fiscal mensal?</span>
+              <span>Apuração Fiscal</span>
             </label>
           </div>
-          <div className="crm-modal-row">
-            <label>Mensalidade<input value={monthlyFee} onChange={event => setMonthlyFee(event.target.value)} onBlur={() => setMonthlyFee(formatRoutineMoney(parseRoutineMoney(monthlyFee)))} placeholder="R$ 0,00" /></label>
-          </div>
-          <div className="crm-modal-row">
-            <label>WhatsApp<input value={whatsapp} onChange={event => setWhatsapp(maskRoutineWhatsapp(event.target.value))} placeholder="(00) 00000-0000" /></label>
-            <label>E-mail<input value={email} onChange={event => setEmail(event.target.value)} placeholder="cliente@empresa.com" /></label>
-          </div>
-          {client && onOpenAttachments && (
-            <button type="button" className="routine-attachments-open" onClick={onOpenAttachments}>
-              <FolderIcon /> Abrir anexos
-            </button>
+          {client && onOpenAttachments ? (
+            <div className="routine-client-compact-row">
+              <div className="routine-client-compact-panel">
+                <span>Anexos</span>
+                <button type="button" className="routine-attachments-open" onClick={onOpenAttachments}>
+                  <FolderIcon /> Abrir anexos
+                </button>
+              </div>
+              <label className="routine-client-notes-field">Observação<textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Detalhes internos..." /></label>
+            </div>
+          ) : (
+            <label>Observação<textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Detalhes internos..." /></label>
           )}
           {client && (
             <div className="routine-custom-obligations-field">
@@ -2779,13 +3193,12 @@ function RoutineClientModal({
                   <option value="Não">Não exige anexo</option>
                 </select>
                 <textarea value={customNotes} onChange={event => setCustomNotes(event.target.value)} placeholder="Observação padrão dessa obrigação" />
-                <button type="button" disabled={customSaving} onClick={() => void handleAddCustom()}>
-                  {customSaving ? 'Salvando...' : 'Acrescentar obrigação específica'}
+                <button type="button" disabled={customSaving} onClick={() => void handleAddCustom()} aria-label="Acrescentar obrigação específica" title="Acrescentar obrigação específica">
+                  +
                 </button>
               </div>
             </div>
           )}
-          <label>Observação<textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Detalhes internos..." /></label>
           {error && <p className="crm-modal-error">{error}</p>}
           <div className="crm-modal-footer">
             <button type="button" onClick={onClose} className="crm-modal-cancel">Cancelar</button>
@@ -3019,7 +3432,7 @@ function RoutineCompetenceModal({ clients, competences, currentMonth, onClose, o
     <div className="crm-modal-backdrop" onClick={onClose}>
       <div className="crm-modal" onClick={event => event.stopPropagation()}>
         <div className="crm-modal-header">
-          <h3>Nova competência</h3>
+          <h3>Novo período</h3>
           <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
         </div>
         <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
@@ -3115,7 +3528,7 @@ function RoutineQuickCompetenceModal({ clients, competences, currentMonth, onClo
     <div className="crm-modal-backdrop" onClick={onClose}>
       <div className="crm-modal routine-quick-modal" onClick={event => event.stopPropagation()}>
         <div className="crm-modal-header">
-          <h3>Configurar competências</h3>
+          <h3>Processar em massa</h3>
           <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
         </div>
         <form className="crm-modal-form" onSubmit={event => void handleSubmit(event)}>
@@ -3170,6 +3583,148 @@ function RoutineQuickCompetenceModal({ clients, competences, currentMonth, onClo
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+function RoutineBroadcastModal({ clients, currentMonth, onClose }: {
+  clients: RoutineClient[]
+  currentMonth: string
+  onClose: () => void
+}) {
+  const [audience, setAudience] = useState<RoutineBroadcastAudience>('Folha')
+  const [monthValue, setMonthValue] = useState(currentMonth || getCurrentRoutineCompetenceMonth().slice(0, 7))
+  const [draft, setDraft] = useState(() => getRoutineBroadcastDefaults('Folha', currentMonth || getCurrentRoutineCompetenceMonth().slice(0, 7)))
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sending, setSending] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const activeClients = useMemo(() => clients.filter(client => client.status === 'Ativo'), [clients])
+  const eligibleClients = useMemo(() => (
+    activeClients.filter(client => audience === 'Geral' || client.hasPayroll)
+  ), [activeClients, audience])
+  const emailableClients = useMemo(() => eligibleClients.filter(hasValidRoutineEmail), [eligibleClients])
+  const selectedClients = useMemo(() => emailableClients.filter(client => selectedIds.includes(client.id)), [emailableClients, selectedIds])
+  const clientsWithoutEmail = eligibleClients.length - emailableClients.length
+
+  useEffect(() => {
+    setDraft(getRoutineBroadcastDefaults(audience, monthValue))
+    setFeedback(null)
+  }, [audience, monthValue])
+
+  useEffect(() => {
+    setSelectedIds(emailableClients.map(client => client.id))
+  }, [emailableClients])
+
+  const toggleClient = (clientId: string) => {
+    setSelectedIds(current => current.includes(clientId)
+      ? current.filter(id => id !== clientId)
+      : [...current, clientId]
+    )
+  }
+
+  const handleSend = async () => {
+    if (!selectedClients.length) {
+      setFeedback({ type: 'error', text: 'Selecione pelo menos um cliente com e-mail válido.' })
+      return
+    }
+
+    if (!draft.subject.trim()) {
+      setFeedback({ type: 'error', text: 'Informe o assunto do disparo.' })
+      return
+    }
+
+    if (!draft.text.trim()) {
+      setFeedback({ type: 'error', text: 'Informe o texto do disparo.' })
+      return
+    }
+
+    setSending(true)
+    setFeedback(null)
+
+    let sentCount = 0
+    const failedClients: string[] = []
+
+    for (const client of selectedClients) {
+      try {
+        const response = await fetch('/api/contabilidade/enviar-rotinas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: client.email.trim(),
+            subject: draft.subject,
+            text: draft.text,
+            itemIds: [],
+          }),
+        })
+
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          throw new Error(typeof result.error === 'string' ? result.error : 'Falha no envio.')
+        }
+
+        sentCount += 1
+      } catch {
+        failedClients.push(client.name)
+      }
+    }
+
+    setSending(false)
+    if (failedClients.length) {
+      setFeedback({ type: 'error', text: `${sentCount} enviado(s). Falhou para: ${failedClients.slice(0, 3).join(', ')}${failedClients.length > 3 ? '...' : ''}` })
+      return
+    }
+
+    setFeedback({ type: 'success', text: `${sentCount} disparo(s) enviado(s) com sucesso.` })
+  }
+
+  return (
+    <div className="crm-modal-backdrop" onClick={onClose}>
+      <div className="crm-modal routine-broadcast-modal" onClick={event => event.stopPropagation()}>
+        <div className="crm-modal-header">
+          <h3>Disparos</h3>
+          <button type="button" className="crm-modal-close" onClick={onClose}><CloseIcon /></button>
+        </div>
+        <div className="crm-modal-form">
+          <div className="routine-broadcast-segments">
+            <button type="button" className={audience === 'Folha' ? 'active' : ''} onClick={() => setAudience('Folha')}>Folha</button>
+            <button type="button" className={audience === 'Geral' ? 'active' : ''} onClick={() => setAudience('Geral')}>Geral</button>
+          </div>
+          <div className="crm-modal-row">
+            <label>Competência<input type="month" value={monthValue} onChange={event => setMonthValue(event.target.value)} /></label>
+            <label>Assunto<input value={draft.subject} onChange={event => setDraft(current => ({ ...current, subject: event.target.value }))} /></label>
+          </div>
+          <label>Texto<textarea value={draft.text} onChange={event => setDraft(current => ({ ...current, text: event.target.value }))} /></label>
+          <div className="routine-quick-toolbar routine-broadcast-toolbar">
+            <span>{selectedClients.length} selecionado(s) · {emailableClients.length} com e-mail válido{clientsWithoutEmail ? ` · ${clientsWithoutEmail} sem e-mail` : ''}</span>
+            <div>
+              <button type="button" onClick={() => setSelectedIds(emailableClients.map(client => client.id))}>Selecionar todos</button>
+              <button type="button" onClick={() => setSelectedIds([])}>Limpar</button>
+            </div>
+          </div>
+          <div className="routine-broadcast-client-list">
+            {emailableClients.map(client => (
+              <label key={client.id} className="routine-quick-client">
+                <input type="checkbox" checked={selectedIds.includes(client.id)} onChange={() => toggleClient(client.id)} />
+                <span>
+                  <strong>{client.name}</strong>
+                  <em>{client.email}</em>
+                </span>
+              </label>
+            ))}
+            {emailableClients.length === 0 && (
+              <p>{audience === 'Folha' ? 'Nenhum cliente com folha e e-mail válido.' : 'Nenhum cliente ativo com e-mail válido.'}</p>
+            )}
+          </div>
+          {feedback && <p className={`routine-email-feedback ${feedback.type}`}>{feedback.text}</p>}
+        </div>
+        <div className="crm-modal-footer">
+          <button type="button" className="crm-modal-cancel" onClick={onClose}>Cancelar</button>
+          <button type="button" className="crm-modal-submit" disabled={sending || selectedClients.length === 0} onClick={() => { void handleSend() }}>
+            {sending ? 'Enviando...' : 'Enviar disparo'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -4691,6 +5246,17 @@ function RoutineBulkIcon() {
       <path d="M8 18h5" />
       <path d="M17 15h4" />
       <path d="M19 13v4" />
+    </svg>
+  )
+}
+
+function RoutineBroadcastIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24">
+      <path d="M4 12h3l9-5v10l-9-5H4Z" />
+      <path d="M7 12v6a2 2 0 0 0 2 2h1" />
+      <path d="M19 9a4 4 0 0 1 0 6" />
+      <path d="M21 6a8 8 0 0 1 0 12" />
     </svg>
   )
 }
