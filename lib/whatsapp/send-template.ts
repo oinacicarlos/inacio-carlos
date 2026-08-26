@@ -1,3 +1,4 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { maskWhatsAppPhone, normalizeBrazilianWhatsAppPhone } from "@/lib/whatsapp/contacts"
 
 export const WHATSAPP_GRAPH_API_VERSION = "v26.0"
@@ -65,10 +66,23 @@ export class WhatsAppSendError extends Error {
   }
 }
 
+function readServerEnv(name: string) {
+  const processValue = process.env[name]
+  if (processValue) return processValue
+
+  try {
+    const context = getCloudflareContext({ async: false })
+    const value = (context.env as Record<string, unknown>)[name]
+    return typeof value === "string" && value ? value : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function getWhatsAppConfig() {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-  const wabaId = process.env.WHATSAPP_WABA_ID
+  const accessToken = readServerEnv("WHATSAPP_ACCESS_TOKEN")
+  const phoneNumberId = readServerEnv("WHATSAPP_PHONE_NUMBER_ID")
+  const wabaId = readServerEnv("WHATSAPP_WABA_ID")
 
   if (!accessToken || !phoneNumberId || !wabaId) {
     return null
@@ -179,9 +193,9 @@ export async function sendWhatsAppTemplate(input: WhatsAppTemplateSendInput): Pr
   const config = getWhatsAppConfig()
   if (!config) {
     console.error("[whatsapp:send] config.missing", {
-      hasAccessToken: Boolean(process.env.WHATSAPP_ACCESS_TOKEN),
-      hasPhoneNumberId: Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID),
-      hasWabaId: Boolean(process.env.WHATSAPP_WABA_ID),
+      hasAccessToken: Boolean(readServerEnv("WHATSAPP_ACCESS_TOKEN")),
+      hasPhoneNumberId: Boolean(readServerEnv("WHATSAPP_PHONE_NUMBER_ID")),
+      hasWabaId: Boolean(readServerEnv("WHATSAPP_WABA_ID")),
     })
 
     throw new WhatsAppSendError("WhatsApp Cloud API não configurado.", {

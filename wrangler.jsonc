@@ -33,6 +33,8 @@
   "vars": {
     "NEXT_PUBLIC_SITE_URL": "https://tropacontabilidade.com",
     "RESEND_FROM": "Tropa <contato@tropacontabilidade.com>",
+    "WHATSAPP_PHONE_NUMBER_ID": "1341841905669849",
+    "WHATSAPP_WABA_ID": "2019393318744125",
     "STRIPE_PRICE_ABERTURA_EMPRESA": "price_1U0X7K7im61UN4ESP8HC4jO9",
     "STRIPE_PRICE_ALTERACAO_CNPJ": "price_1U0X6F7im61UN4ESn8KQz2Tl",
     "STRIPE_PRICE_BRONZE": "price_1U0X3K7im61UN4ES3YTNMBEo",
