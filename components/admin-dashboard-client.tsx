@@ -1,6 +1,6 @@
 'use client'
 
-import { type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, type DragEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatBillingReference, getBillingDueDateFromDueMonth, getBillingReferenceFromDueMonth } from '@/lib/offline-billing'
 import { supabase } from '@/lib/supabaseClient'
@@ -29,11 +29,13 @@ import {
   type MeiStatus,
   type RegimeBens,
 } from '@/lib/onboarding/constants'
+import { maskWhatsAppPhone, parseWhatsAppContactsText } from '@/lib/whatsapp/contacts'
 
 type AdminModule =
   | 'Contabilidade'
   | 'PFX'
   | 'Boletos'
+  | 'Disparazap'
 
 type AdminDashboardClientProps = {
   initialModule?: AdminModule
@@ -179,6 +181,120 @@ type OfflineBillingClientRow = {
   due_day: number
   default_amount: number
   active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// ─── Disparazap ────────────────────────────────────────────────────────────
+type DisparazapTemplate = {
+  name: string
+  status: string
+  category: string
+  language: string
+  body: string
+  buttons: Array<{ type: string; text: string }>
+  bodyVariableCount: number
+  components: Array<Record<string, unknown>>
+}
+
+type DisparazapSendResult = {
+  phone: string
+  status: string
+  wamid: string
+}
+
+type DisparazapMode = 'individual' | 'bulk' | 'inbox'
+type DisparazapBulkStep = 'contacts' | 'template' | 'review' | 'send' | 'result'
+
+type DisparazapCampaignSummary = {
+  totalImported: number
+  valid: number
+  invalid: number
+  duplicates: number
+  optouts: number
+  sendable: number
+  testCap: number
+}
+
+type DisparazapCampaignRecipient = {
+  id: string
+  name: string
+  phone: string | null
+  status: string
+  error_message: string | null
+  wamid: string | null
+  attempts: number
+  queued_at: string | null
+  sent_at: string | null
+  delivered_at: string | null
+  read_at: string | null
+  failed_at: string | null
+  created_at: string
+}
+
+type DisparazapContactValidationRow = {
+  name: string
+  phone: string | null
+  situation: 'ready' | 'invalid' | 'duplicate' | 'optout'
+  error: string | null
+}
+
+type DisparazapContactValidationSummary = {
+  totalImported: number
+  ready: number
+  invalid: number
+  duplicates: number
+  optouts: number
+}
+
+type DisparazapCampaign = {
+  id: string
+  name: string
+  template_name: string
+  template_language: string
+  template_category: string
+  status: string
+  total_contacts: number
+  total_queued: number
+  total_sent: number
+  total_delivered: number
+  total_read: number
+  total_failed: number
+  total_optout: number
+  created_at: string
+  started_at?: string | null
+  finished_at?: string | null
+}
+
+type DisparazapInboxFilter = 'all' | 'unread' | 'interested' | 'optout'
+
+type DisparazapConversation = {
+  id: string
+  phone: string | null
+  name: string | null
+  last_message_text: string | null
+  last_message_at: string | null
+  unread_count: number
+  status: string
+  interested: boolean
+  opted_out: boolean
+  customer_service_window_expires_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+type DisparazapInboxMessage = {
+  id: string
+  wamid: string | null
+  direction: 'inbound' | 'outbound'
+  type: 'text' | 'button' | 'template' | 'system' | 'unsupported'
+  text: string | null
+  button_text: string | null
+  template_name: string | null
+  status: string | null
+  error_code: string | null
+  error_message: string | null
+  meta_timestamp: string | null
   created_at: string
   updated_at: string
 }
@@ -445,6 +561,7 @@ const ROUTINE_ATTACHMENT_CATEGORIES: Array<{
   { key: 'licencas', label: 'Licenças', description: 'Alvarás, licenças e autorizações específicas.' },
   { key: 'procuracao', label: 'Procuração', description: 'Procurações digitais, autorizações e acessos.' },
 ]
+
 const ROUTINE_DEFINITIONS: RoutineDefinition[] = [
   { name: 'DAS', department: 'Obrigatoriedade', category: 'Obrigação mensal', regimes: ['MEI'], requiresFile: true, sortOrder: 10 },
 
@@ -545,6 +662,108 @@ function normalizePfxWhatsapp(value: string) {
   if (digits.startsWith('55')) return digits
   if (digits.length === 10 || digits.length === 11) return `55${digits}`
   return digits
+}
+
+function normalizeDisparazapPhone(value: string) {
+  const digits = onlyDigits(value)
+  if (!digits) return ''
+  const normalized = digits.startsWith('55') ? digits : digits.length === 10 || digits.length === 11 ? `55${digits}` : digits
+  if (normalized.length !== 12 && normalized.length !== 13) return ''
+  return normalized
+}
+
+function maskDisparazapPhone(value: string) {
+  return maskWhatsAppPhone(value) ?? ''
+}
+
+function getDisparazapSafeError(error: unknown) {
+  if (typeof error === 'string' && error.trim()) return error.trim()
+  if (error && typeof error === 'object') {
+    const payload = error as { message?: unknown; details?: unknown }
+    if (typeof payload.message === 'string' && payload.message.trim()) return payload.message.trim()
+    if (typeof payload.details === 'string' && payload.details.trim()) return payload.details.trim()
+  }
+  return 'Não consegui enviar a mensagem.'
+}
+
+function normalizeDisparazapSpreadsheetHeader(value: unknown) {
+  return String(value ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function buildDisparazapContactsTextFromRows(rows: unknown[][]) {
+  if (!rows.length) {
+    throw new Error('Arquivo vazio. Importe uma planilha com Nome e Telefone.')
+  }
+
+  const [headerRow, ...dataRows] = rows
+  const headers = headerRow.map(normalizeDisparazapSpreadsheetHeader)
+  const nameIndex = headers.indexOf('nome')
+  const phoneIndex = headers.indexOf('telefone')
+
+  if (nameIndex < 0) {
+    throw new Error('Não encontramos a coluna Nome. Baixe nosso modelo e tente novamente.')
+  }
+
+  if (phoneIndex < 0) {
+    throw new Error('Não encontramos a coluna Telefone. Baixe nosso modelo e tente novamente.')
+  }
+
+  const lines = dataRows
+    .map(row => {
+      const name = String(row[nameIndex] ?? '').trim()
+      const phone = String(row[phoneIndex] ?? '').trim()
+      return { name, phone }
+    })
+    .filter(row => row.name || row.phone)
+
+  if (!lines.length) {
+    throw new Error('Nenhuma linha válida encontrada na planilha.')
+  }
+
+  return `nome,telefone\n${lines.map(row => `${row.name},${row.phone}`).join('\n')}`
+}
+
+const DISPARAZAP_CONTACT_STATUS_LABEL: Record<DisparazapContactValidationRow['situation'], string> = {
+  ready: 'Apto',
+  invalid: 'Inválido',
+  duplicate: 'Duplicado',
+  optout: 'Opt-out',
+}
+
+function formatDisparazapRelativeTime(iso: string | null | undefined) {
+  if (!iso) return 'Sem atividade'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Sem atividade'
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000))
+  if (diffMinutes < 1) return 'Agora'
+  if (diffMinutes < 60) return `Há ${diffMinutes} min`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `Há ${diffHours}h`
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+function getDisparazapWindowState(expiresAt: string | null | undefined) {
+  if (!expiresAt) {
+    return { active: false, label: 'Janela encerrada', detail: 'Use um template aprovado para iniciar uma nova conversa.' }
+  }
+
+  const remainingMs = new Date(expiresAt).getTime() - Date.now()
+  if (remainingMs <= 0 || Number.isNaN(remainingMs)) {
+    return { active: false, label: 'Janela encerrada', detail: 'Use um template aprovado para iniciar uma nova conversa.' }
+  }
+
+  const hours = Math.floor(remainingMs / 3600000)
+  const minutes = Math.floor((remainingMs % 3600000) / 60000)
+  return { active: true, label: 'Janela de atendimento ativa', detail: `${hours}h ${minutes}min restantes` }
+}
+
+function getDisparazapMessageText(message: DisparazapInboxMessage) {
+  return message.text || message.button_text || (message.template_name ? `Template: ${message.template_name}` : 'Mensagem não suportada')
 }
 
 function mapRoutineClient(row: RoutineClientRow): RoutineClient {
@@ -1095,17 +1314,19 @@ function isValidOfflineBillingEmailList(value: string) {
 const MODULES: Array<{
   name: AdminModule
   label: string
-  icon: 'routines' | 'pfx' | 'clients' | 'billing'
+  icon: 'routines' | 'pfx' | 'clients' | 'billing' | 'message'
 }> = [
   { name: 'Contabilidade', label: 'Clientes', icon: 'routines' },
   { name: 'PFX', label: 'PFX', icon: 'pfx' },
   { name: 'Boletos', label: 'Boletos', icon: 'billing' },
+  { name: 'Disparazap', label: 'Disparazap', icon: 'message' },
 ]
 
 const MODULE_ROUTES: Partial<Record<AdminModule, string>> = {
   Contabilidade: '/clientes',
   PFX: '/pfx',
   Boletos: '/boletos',
+  Disparazap: '/disparazap',
 }
 
 function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36) }
@@ -1675,7 +1896,7 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
       )}
 
       <section
-        className={activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Boletos' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
+        className={activeModule === 'Contabilidade' || activeModule === 'PFX' || activeModule === 'Boletos' || activeModule === 'Disparazap' ? 'admin-module-stage forms-module-stage' : 'admin-module-stage'}
         aria-labelledby="active-module-title"
       >
         {activeModule === 'Contabilidade' ? (
@@ -1684,6 +1905,8 @@ export default function DashboardPage({ initialModule = 'Contabilidade' }: Admin
           <PfxModule />
         ) : activeModule === 'Boletos' ? (
           <OfflineBillingModule />
+        ) : activeModule === 'Disparazap' ? (
+          <DisparazapModule />
         ) : (
           <div className="admin-module-empty">
             <h2 id="active-module-title">{activeModule}</h2>
@@ -3730,6 +3953,1070 @@ function RoutineBroadcastModal({ clients, currentMonth, onClose }: {
   )
 }
 
+function DisparazapModule() {
+  const [mode, setMode] = useState<DisparazapMode>('individual')
+  const [templates, setTemplates] = useState<DisparazapTemplate[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
+  const [templatesError, setTemplatesError] = useState('')
+  const [phone, setPhone] = useState('')
+  const [templateKey, setTemplateKey] = useState('')
+  const [bodyParameters, setBodyParameters] = useState<Record<string, string>>({})
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<DisparazapSendResult | null>(null)
+  const [bulkStep, setBulkStep] = useState<DisparazapBulkStep>('contacts')
+  const [bulkName, setBulkName] = useState(`Campanha ${new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' })}`)
+  const [bulkContactsText, setBulkContactsText] = useState('')
+  const [bulkContactsFileName, setBulkContactsFileName] = useState('')
+  const [bulkContactsValidated, setBulkContactsValidated] = useState(false)
+  const [bulkContactRows, setBulkContactRows] = useState<DisparazapContactValidationRow[]>([])
+  const [bulkContactSummary, setBulkContactSummary] = useState<DisparazapContactValidationSummary | null>(null)
+  const [bulkContactFilter, setBulkContactFilter] = useState<'all' | DisparazapContactValidationRow['situation']>('all')
+  const [bulkManualOpen, setBulkManualOpen] = useState(false)
+  const [bulkDragActive, setBulkDragActive] = useState(false)
+  const [bulkValidatingContacts, setBulkValidatingContacts] = useState(false)
+  const [bulkCampaign, setBulkCampaign] = useState<DisparazapCampaign | null>(null)
+  const [bulkSummary, setBulkSummary] = useState<DisparazapCampaignSummary | null>(null)
+  const [bulkRecipients, setBulkRecipients] = useState<DisparazapCampaignRecipient[]>([])
+  const [bulkWorking, setBulkWorking] = useState(false)
+  const [inboxConversations, setInboxConversations] = useState<DisparazapConversation[]>([])
+  const [inboxSelectedId, setInboxSelectedId] = useState('')
+  const [inboxSelected, setInboxSelected] = useState<DisparazapConversation | null>(null)
+  const [inboxMessages, setInboxMessages] = useState<DisparazapInboxMessage[]>([])
+  const [inboxSearch, setInboxSearch] = useState('')
+  const [inboxFilter, setInboxFilter] = useState<DisparazapInboxFilter>('all')
+  const [inboxLoading, setInboxLoading] = useState(false)
+  const [inboxConversationLoading, setInboxConversationLoading] = useState(false)
+  const [inboxError, setInboxError] = useState('')
+  const [inboxReply, setInboxReply] = useState('')
+  const [inboxSending, setInboxSending] = useState(false)
+
+  const templateOptions = useMemo(() => templates.map(template => ({
+    key: `${template.name}::${template.language}::${template.category}`,
+    template,
+  })), [templates])
+  const approvedTemplateOptions = templateOptions.filter(({ template }) => template.status === 'APPROVED')
+  const selectedTemplateOption = templateOptions.find(option => option.key === templateKey) ?? approvedTemplateOptions[0] ?? templateOptions[0]
+  const selectedTemplate = selectedTemplateOption?.template ?? null
+  const normalizedPhone = normalizeDisparazapPhone(phone)
+  const previewPhone = normalizedPhone ? maskDisparazapPhone(normalizedPhone) : 'Informe o telefone'
+  const parameterValues = Array.from({ length: selectedTemplate?.bodyVariableCount ?? 0 }, (_, index) => bodyParameters[`body_${index}`]?.trim() ?? '')
+  const phoneHasError = Boolean(error) && (error.startsWith('Informe o telefone') || error.startsWith('Informe um telefone'))
+  const parsedBulkContacts = useMemo(() => parseWhatsAppContactsText(bulkContactsText), [bulkContactsText])
+  const localBulkSummary = useMemo(() => ({
+    totalImported: bulkContactSummary?.totalImported ?? parsedBulkContacts.length,
+    valid: bulkContactSummary?.ready ?? parsedBulkContacts.filter(contact => contact.valid).length,
+    invalid: bulkContactSummary?.invalid ?? parsedBulkContacts.filter(contact => !contact.name || !contact.normalizedPhone).length,
+    duplicates: bulkContactSummary?.duplicates ?? parsedBulkContacts.filter(contact => contact.duplicate).length,
+    optouts: bulkContactSummary?.optouts ?? bulkSummary?.optouts ?? 0,
+    sendable: bulkContactSummary?.ready ?? bulkSummary?.sendable ?? parsedBulkContacts.filter(contact => contact.valid).length,
+    testCap: bulkSummary?.testCap ?? 5,
+  }), [bulkContactSummary, bulkSummary, parsedBulkContacts])
+  const filteredBulkContactRows = bulkContactFilter === 'all' ? bulkContactRows : bulkContactRows.filter(row => row.situation === bulkContactFilter)
+  const selectedInboxWindow = getDisparazapWindowState(inboxSelected?.customer_service_window_expires_at)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadTemplates() {
+      setTemplatesLoading(true)
+      setTemplatesError('')
+
+      try {
+        const response = await fetch('/api/whatsapp/templates')
+        const data = (await response.json().catch(() => null)) as { ok?: boolean; templates?: DisparazapTemplate[]; error?: unknown } | null
+
+        if (!response.ok || !data?.ok || !Array.isArray(data.templates)) {
+          throw new Error(getDisparazapSafeError(data?.error))
+        }
+
+        if (!mounted) return
+
+        setTemplates(data.templates)
+        const firstApproved = data.templates.find(template => template.status === 'APPROVED') ?? data.templates[0]
+        if (firstApproved) {
+          setTemplateKey(`${firstApproved.name}::${firstApproved.language}::${firstApproved.category}`)
+        }
+      } catch (loadError) {
+        if (mounted) setTemplatesError(loadError instanceof Error ? loadError.message : 'Não consegui carregar os templates.')
+      } finally {
+        if (mounted) setTemplatesLoading(false)
+      }
+    }
+
+    void loadTemplates()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const loadInboxConversations = async (options: { silent?: boolean } = {}) => {
+    if (!options.silent) setInboxLoading(true)
+    setInboxError('')
+
+    try {
+      const params = new URLSearchParams()
+      params.set('filter', inboxFilter)
+      if (inboxSearch.trim()) params.set('search', inboxSearch.trim())
+
+      const response = await fetch(`/api/whatsapp/conversations?${params.toString()}`)
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; conversations?: DisparazapConversation[]; error?: unknown } | null
+
+      if (!response.ok || !data?.ok || !Array.isArray(data.conversations)) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setInboxConversations(data.conversations)
+      if (!inboxSelectedId && data.conversations[0]) {
+        setInboxSelectedId(data.conversations[0].id)
+      }
+    } catch (loadError) {
+      setInboxError(loadError instanceof Error ? loadError.message : 'Não consegui carregar a caixa de entrada.')
+    } finally {
+      if (!options.silent) setInboxLoading(false)
+    }
+  }
+
+  const loadInboxConversation = async (conversationId: string, options: { silent?: boolean } = {}) => {
+    if (!conversationId) return
+    if (!options.silent) setInboxConversationLoading(true)
+    setInboxError('')
+
+    try {
+      const response = await fetch(`/api/whatsapp/conversations/${conversationId}`)
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean
+        conversation?: DisparazapConversation
+        messages?: DisparazapInboxMessage[]
+        error?: unknown
+      } | null
+
+      if (!response.ok || !data?.ok || !data.conversation || !Array.isArray(data.messages)) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setInboxSelected(data.conversation)
+      setInboxMessages(data.messages)
+
+      if (data.conversation.unread_count > 0) {
+        void fetch(`/api/whatsapp/conversations/${conversationId}/read`, { method: 'POST' })
+        setInboxConversations(current => current.map(conversation => conversation.id === conversationId ? { ...conversation, unread_count: 0 } : conversation))
+      }
+    } catch (loadError) {
+      setInboxError(loadError instanceof Error ? loadError.message : 'Não consegui abrir a conversa.')
+    } finally {
+      if (!options.silent) setInboxConversationLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (mode !== 'inbox') return
+    void loadInboxConversations()
+    const intervalId = window.setInterval(() => {
+      void loadInboxConversations({ silent: true })
+      if (inboxSelectedId) void loadInboxConversation(inboxSelectedId, { silent: true })
+    }, 6000)
+
+    return () => window.clearInterval(intervalId)
+  }, [mode, inboxFilter, inboxSearch, inboxSelectedId])
+
+  useEffect(() => {
+    if (mode !== 'inbox' || !inboxSelectedId) return
+    void loadInboxConversation(inboxSelectedId)
+  }, [mode, inboxSelectedId])
+
+  const updateTemplate = (nextTemplateKey: string) => {
+    setTemplateKey(nextTemplateKey)
+    setBodyParameters({})
+    setError('')
+    setResult(null)
+  }
+
+  const handleSendInboxReply = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!inboxSelected || inboxSending) return
+
+    const text = inboxReply.trim()
+    if (!text) return
+
+    setInboxSending(true)
+    setInboxError('')
+
+    try {
+      const response = await fetch('/api/whatsapp/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: inboxSelected.id, text }),
+      })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setInboxReply('')
+      await loadInboxConversation(inboxSelected.id, { silent: true })
+      await loadInboxConversations({ silent: true })
+    } catch (sendError) {
+      setInboxError(sendError instanceof Error ? sendError.message : 'Não consegui enviar a resposta.')
+    } finally {
+      setInboxSending(false)
+    }
+  }
+
+  const getPreviewBody = (template: DisparazapTemplate | null, values: string[]) => {
+    if (!template) return 'Selecione um template aprovado'
+    return template.body.replace(/{{\s*(\d+)\s*}}/g, (_match, index: string) => values[Number(index) - 1] || `{{${index}}}`)
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (sending) return
+
+    setError('')
+    setResult(null)
+
+    if (!selectedTemplate || selectedTemplate.status !== 'APPROVED') {
+      setError('Selecione um template aprovado.')
+      return
+    }
+
+    if (!phone.trim()) {
+      setError('Informe o telefone do destinatário.')
+      return
+    }
+
+    if (!normalizedPhone) {
+      setError('Informe um telefone válido com DDD e código do país quando necessário.')
+      return
+    }
+
+    if (selectedTemplate.bodyVariableCount > 0 && parameterValues.some(value => !value)) {
+      setError('Preencha todos os parâmetros do template.')
+      return
+    }
+
+    setSending(true)
+
+    try {
+      const response = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: phone,
+          templateName: selectedTemplate.name,
+          languageCode: selectedTemplate.language,
+          bodyParameters: parameterValues,
+        }),
+      })
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean
+        error?: unknown
+        wamid?: string
+        message_status?: string | null
+      } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setResult({
+        phone: maskDisparazapPhone(normalizedPhone),
+        status: data.message_status ?? 'accepted',
+        wamid: data.wamid ?? '',
+      })
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'Não consegui enviar a mensagem.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const resetBulkDraftContacts = () => {
+    setBulkContactsText('')
+    setBulkContactsFileName('')
+    setBulkContactsValidated(false)
+    setBulkContactRows([])
+    setBulkContactSummary(null)
+    setBulkContactFilter('all')
+    setBulkSummary(null)
+    setBulkCampaign(null)
+    setBulkRecipients([])
+    setBulkStep('contacts')
+  }
+
+  const validateBulkContactsText = async (contactsText: string) => {
+    setBulkValidatingContacts(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/whatsapp/contacts/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactsText }),
+      })
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean
+        error?: unknown
+        summary?: DisparazapContactValidationSummary
+        rows?: DisparazapContactValidationRow[]
+      } | null
+
+      if (!response.ok || !data?.ok || !data.summary || !Array.isArray(data.rows)) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setBulkContactSummary(data.summary)
+      setBulkContactRows(data.rows)
+      setBulkContactsValidated(true)
+      setBulkContactFilter('all')
+    } catch (validationError) {
+      setBulkContactsValidated(false)
+      setBulkContactRows([])
+      setBulkContactSummary(null)
+      setError(validationError instanceof Error ? validationError.message : 'Não consegui validar a planilha.')
+    } finally {
+      setBulkValidatingContacts(false)
+    }
+  }
+
+  const handleDownloadContactModel = async () => {
+    const XLSX = await import('xlsx')
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Nome', 'Telefone'],
+      ['João da Silva', '21999999999'],
+      ['Maria Souza', '5521988887777'],
+    ])
+    sheet['!cols'] = [{ wch: 28 }, { wch: 20 }]
+    ;(sheet as { '!freeze'?: unknown })['!freeze'] = { xSplit: 0, ySplit: 1 }
+
+    for (const cellAddress of ['A1', 'B1']) {
+      const cell = sheet[cellAddress]
+      if (cell) cell.s = { font: { bold: true } }
+    }
+
+    for (const cellAddress of ['B2', 'B3']) {
+      const cell = sheet[cellAddress]
+      if (cell) {
+        cell.t = 's'
+        cell.z = '@'
+      }
+    }
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Contatos')
+    XLSX.writeFile(workbook, 'modelo_disparazap.xlsx')
+  }
+
+  const importBulkContactsFile = async (file: File) => {
+    const extension = file.name.split('.').pop()?.toLowerCase()
+    if (!extension || !['xlsx', 'xls', 'csv'].includes(extension)) {
+      setError('Formato não suportado. Use .xlsx, .xls ou .csv.')
+      return
+    }
+
+    setBulkWorking(true)
+    setError('')
+
+    try {
+      const XLSX = await import('xlsx')
+      const buffer = await file.arrayBuffer()
+      const workbook = XLSX.read(buffer, { type: 'array', raw: false })
+      const sheetName = workbook.SheetNames.includes('Contatos') ? 'Contatos' : workbook.SheetNames[0]
+
+      if (!sheetName) {
+        throw new Error('Arquivo vazio. Importe uma planilha com Nome e Telefone.')
+      }
+
+      const sheet = workbook.Sheets[sheetName]
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false }) as unknown[][]
+      const contactsText = buildDisparazapContactsTextFromRows(rows.filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim())))
+
+      setBulkContactsText(contactsText)
+      setBulkContactsFileName(file.name)
+      setBulkSummary(null)
+      setBulkCampaign(null)
+      setBulkRecipients([])
+      await validateBulkContactsText(contactsText)
+    } catch (importError) {
+      setBulkContactsValidated(false)
+      setBulkContactRows([])
+      setBulkContactSummary(null)
+      setBulkContactsFileName('')
+      setError(importError instanceof Error ? importError.message : 'Não conseguimos ler a planilha. O arquivo pode estar corrompido.')
+    } finally {
+      setBulkWorking(false)
+    }
+  }
+
+  const handleSpreadsheetImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) void importBulkContactsFile(file)
+    event.target.value = ''
+  }
+
+  const handleContactsDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault()
+    setBulkDragActive(false)
+    const file = event.dataTransfer.files?.[0]
+    if (file) void importBulkContactsFile(file)
+  }
+
+  const handleCreateCampaignReview = async () => {
+    if (bulkWorking) return
+    setError('')
+
+    if (!selectedTemplate || selectedTemplate.status !== 'APPROVED') {
+      setError('Escolha um template aprovado para revisar a campanha.')
+      return
+    }
+
+    if (!bulkContactsText.trim()) {
+      setError('Cole ou importe ao menos um contato.')
+      return
+    }
+
+    setBulkWorking(true)
+
+    try {
+      const response = await fetch('/api/whatsapp/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: bulkName,
+          templateName: selectedTemplate.name,
+          templateLanguage: selectedTemplate.language,
+          templateCategory: selectedTemplate.category,
+          contactsText: bulkContactsText,
+        }),
+      })
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean
+        error?: unknown
+        campaign?: DisparazapCampaign
+        summary?: DisparazapCampaignSummary
+        recipients?: DisparazapCampaignRecipient[]
+      } | null
+
+      if (!response.ok || !data?.ok || !data.campaign || !data.summary) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setBulkCampaign(data.campaign)
+      setBulkSummary(data.summary)
+      setBulkRecipients(data.recipients ?? [])
+      setBulkStep('review')
+    } catch (campaignError) {
+      setError(campaignError instanceof Error ? campaignError.message : 'Não consegui preparar a campanha.')
+    } finally {
+      setBulkWorking(false)
+    }
+  }
+
+  const handleStartCampaign = async () => {
+    if (!bulkCampaign || bulkWorking) return
+    setBulkWorking(true)
+    setError('')
+
+    try {
+      const response = await fetch(`/api/whatsapp/campaigns/${bulkCampaign.id}/start`, { method: 'POST' })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown; status?: string } | null
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setBulkCampaign(current => current ? { ...current, status: data.status ?? 'processing' } : current)
+      setBulkStep('send')
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : 'Não consegui iniciar a campanha.')
+    } finally {
+      setBulkWorking(false)
+    }
+  }
+
+  const renderTemplateSelect = (disabled = false) => (
+    <select value={selectedTemplateOption?.key ?? ''} onChange={event => updateTemplate(event.target.value)} disabled={disabled || templatesLoading || !templateOptions.length}>
+      {templateOptions.map(({ key, template }) => (
+        <option key={key} value={key} disabled={template.status !== 'APPROVED'}>
+          {template.name} · {template.language}{template.status === 'APPROVED' ? '' : ' · Em análise'}
+        </option>
+      ))}
+    </select>
+  )
+
+  const renderPreview = (template: DisparazapTemplate | null, values: string[], destination = previewPhone) => (
+    <aside className="disparazap-card disparazap-preview" aria-label="Prévia da mensagem">
+      <div className="disparazap-card-header">
+        <span className="disparazap-card-icon is-whatsapp">
+          <ModuleIcon type="message" />
+        </span>
+        <div>
+          <strong>Prévia da mensagem</strong>
+          <span>Representação do template antes do envio.</span>
+        </div>
+      </div>
+
+      <div className="disparazap-phone-preview">
+        <span>Destinatário</span>
+        <strong><DisparazapIcon type="user" />{destination}</strong>
+      </div>
+
+      <div className="disparazap-chat-preview">
+        <div className="disparazap-chat-header">
+          <span />
+          <strong>WhatsApp API Oficial</strong>
+          <em><DisparazapIcon type="verified" /></em>
+        </div>
+        <div className="disparazap-chat-body">
+          <div className="disparazap-bubble">
+            <strong>{getPreviewBody(template, values)}</strong>
+            <small>12:30 <DisparazapIcon type="checks" /></small>
+          </div>
+        </div>
+      </div>
+
+      <div className="pfx-detail-list disparazap-preview-details">
+        <div>
+          <span>Template</span>
+          <strong>{template?.name ?? 'Nenhum'}</strong>
+        </div>
+        <div>
+          <span>Idioma</span>
+          <strong>{template?.language ?? '-'}</strong>
+        </div>
+        <div>
+          <span>Parâmetros</span>
+          <strong>{values.length ? values.join(', ') : 'Nenhum'}</strong>
+        </div>
+      </div>
+
+      {result && mode === 'individual' && (
+        <div className="disparazap-success-card" role="status">
+          <strong>Mensagem enviada com sucesso</strong>
+          <span>Telefone: {result.phone}</span>
+          <span>Status: {result.status}</span>
+          {result.wamid && <small>wamid: {result.wamid}</small>}
+        </div>
+      )}
+    </aside>
+  )
+
+  return (
+    <div className="disparazap-module crm-module">
+      <div className="crm-module-inner disparazap-inner">
+        <div className="crm-module-header">
+          <div>
+            <p>Offline</p>
+            <h2 id="active-module-title">Disparazap</h2>
+            <span className="disparazap-header-copy">
+              {mode === 'individual' ? 'Envio individual via WhatsApp API Oficial.' : mode === 'bulk' ? 'Campanhas em massa com revisão e fila controlada.' : 'Atendimento das respostas recebidas pelo número oficial.'}
+            </span>
+          </div>
+          <div className="crm-header-right">
+            {templatesError && <span className="crm-global-error">{templatesError}</span>}
+            {error && <span className="crm-global-error">{error}</span>}
+            {result && <span className="offline-billing-message">Mensagem enviada com sucesso</span>}
+          </div>
+        </div>
+
+        <div className="disparazap-mode-tabs" role="tablist" aria-label="Modo de envio">
+          <button type="button" className={mode === 'individual' ? 'is-active' : ''} onClick={() => setMode('individual')}>Envio individual</button>
+          <button type="button" className={mode === 'bulk' ? 'is-active' : ''} onClick={() => setMode('bulk')}>Disparo em massa</button>
+          <button type="button" className={mode === 'inbox' ? 'is-active' : ''} onClick={() => setMode('inbox')}>Caixa de entrada</button>
+        </div>
+
+        {mode === 'individual' ? (
+          <>
+            <div className="disparazap-summary-grid" aria-label="Resumo do envio">
+              <div className="disparazap-summary-card is-destination">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="user" /></span>
+                <div>
+                  <span>Destino</span>
+                  <strong>{previewPhone}</strong>
+                </div>
+              </div>
+              <div className="disparazap-summary-card is-template">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="template" /></span>
+                <div>
+                  <span>Template</span>
+                  <strong>{selectedTemplate?.name ?? 'Carregando'}</strong>
+                </div>
+              </div>
+              <div className="disparazap-summary-card is-language">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="globe" /></span>
+                <div>
+                  <span>Idioma</span>
+                  <strong>{selectedTemplate?.language ?? '-'}</strong>
+                </div>
+              </div>
+              <div className="disparazap-summary-card is-params">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="sliders" /></span>
+                <div>
+                  <span>Parâmetros</span>
+                  <strong>{selectedTemplate?.bodyVariableCount ?? 0}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="disparazap-grid">
+              <form className="disparazap-card disparazap-form" onSubmit={handleSubmit} noValidate>
+                <div className="disparazap-card-header">
+                  <span className="disparazap-card-icon">
+                    <ModuleIcon type="message" />
+                  </span>
+                  <div>
+                    <strong>Envio individual</strong>
+                    <span>Preencha o destinatário e confira a prévia antes de enviar.</span>
+                  </div>
+                </div>
+
+                <label className={`disparazap-field${phoneHasError ? ' is-invalid' : ''}`}>
+                  <span>Telefone</span>
+                  <div className="disparazap-input-wrap">
+                    <DisparazapIcon type="phone" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={event => {
+                        setPhone(event.target.value)
+                        setError('')
+                        setResult(null)
+                      }}
+                      placeholder="(21) 99999-9999"
+                      autoComplete="tel"
+                    />
+                  </div>
+                  {phoneHasError && <small>{error}</small>}
+                </label>
+
+                <div className="disparazap-field-row">
+                  <label className="disparazap-field">
+                    <span>Template</span>
+                    {renderTemplateSelect()}
+                  </label>
+
+                  <label className="disparazap-field">
+                    <span>Idioma</span>
+                    <input value={selectedTemplate?.language ?? ''} readOnly />
+                  </label>
+                </div>
+
+                <div className="disparazap-parameters">
+                  <div className="disparazap-section-title">
+                    <strong>Parâmetros do template</strong>
+                    <span>{selectedTemplate?.bodyVariableCount ? `${selectedTemplate.bodyVariableCount} campo(s)` : 'Nenhum parâmetro para este template'}</span>
+                  </div>
+
+                  {selectedTemplate?.bodyVariableCount ? (
+                    Array.from({ length: selectedTemplate.bodyVariableCount }, (_, index) => (
+                      <label className="disparazap-field" key={index}>
+                        <span>Variável {index + 1}</span>
+                        <input
+                          value={bodyParameters[`body_${index}`] ?? ''}
+                          onChange={event => {
+                            setBodyParameters(current => ({ ...current, [`body_${index}`]: event.target.value }))
+                            setError('')
+                            setResult(null)
+                          }}
+                          placeholder={index === 0 ? 'Nome do destinatário' : `Valor ${index + 1}`}
+                        />
+                      </label>
+                    ))
+                  ) : (
+                    <div className="disparazap-empty-params">
+                      <DisparazapIcon type="info" />
+                      <span>Este template não exige variáveis.</span>
+                    </div>
+                  )}
+                </div>
+
+                <button className="crm-add-btn disparazap-submit" type="submit" disabled={sending || !selectedTemplate || selectedTemplate.status !== 'APPROVED'}>
+                  <DisparazapIcon type="send" />
+                  {sending ? 'Enviando...' : 'Enviar mensagem'}
+                </button>
+              </form>
+
+              {renderPreview(selectedTemplate, parameterValues)}
+            </div>
+          </>
+        ) : mode === 'bulk' ? (
+          <>
+            <div className="disparazap-steps" aria-label="Fluxo do disparo em massa">
+              {(['contacts', 'template', 'review', 'send', 'result'] as DisparazapBulkStep[]).map((step, index) => (
+                <button key={step} type="button" className={bulkStep === step ? 'is-active' : ''} onClick={() => setBulkStep(step)} disabled={step === 'review' && !bulkCampaign}>
+                  <span>{index + 1}</span>
+                  {step === 'contacts' ? 'Contatos' : step === 'template' ? 'Template' : step === 'review' ? 'Revisão' : step === 'send' ? 'Envio' : 'Resultado'}
+                </button>
+              ))}
+            </div>
+
+            <div className="disparazap-summary-grid" aria-label="Resumo da campanha">
+              <div className="disparazap-summary-card is-destination">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="user" /></span>
+                <div><span>Total importado</span><strong>{localBulkSummary.totalImported}</strong></div>
+              </div>
+              <div className="disparazap-summary-card is-language">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="verified" /></span>
+                <div><span>Aptos</span><strong>{localBulkSummary.sendable}</strong></div>
+              </div>
+              <div className="disparazap-summary-card is-template">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="template" /></span>
+                <div><span>Template</span><strong>{selectedTemplate?.name ?? '-'}</strong></div>
+              </div>
+              <div className="disparazap-summary-card is-params">
+                <span className="disparazap-summary-icon"><DisparazapIcon type="sliders" /></span>
+                <div><span>Status</span><strong>{bulkCampaign?.status ?? 'Rascunho'}</strong></div>
+              </div>
+            </div>
+
+            <div className="disparazap-grid">
+              <section className="disparazap-card disparazap-form">
+                <div className="disparazap-card-header">
+                  <span className="disparazap-card-icon">
+                    <ModuleIcon type="message" />
+                  </span>
+                  <div>
+                    <strong>Disparo em massa</strong>
+                    <span>Importe, revise e inicie somente quando tudo estiver certo.</span>
+                  </div>
+                </div>
+
+                {bulkStep === 'contacts' && (
+                  <>
+                    <label className="disparazap-field">
+                      <span>Campanha</span>
+                      <input value={bulkName} onChange={event => setBulkName(event.target.value)} placeholder="Nome da campanha" />
+                    </label>
+
+                    <div className="disparazap-model-row">
+                      <button type="button" className="disparazap-file-button" onClick={() => { void handleDownloadContactModel() }}>
+                        Baixar modelo Excel
+                      </button>
+                      <div>
+                        <strong>Baixe o modelo, preencha Nome e Telefone e importe a planilha.</strong>
+                        <span>Formatos aceitos: .xlsx, .xls e .csv</span>
+                      </div>
+                    </div>
+
+                    {!bulkContactsValidated ? (
+                      <label
+                        className={`disparazap-upload-zone${bulkDragActive ? ' is-dragging' : ''}`}
+                        onDragOver={event => {
+                          event.preventDefault()
+                          setBulkDragActive(true)
+                        }}
+                        onDragLeave={() => setBulkDragActive(false)}
+                        onDrop={handleContactsDrop}
+                      >
+                        <span className="disparazap-upload-icon"><DisparazapIcon type="template" /></span>
+                        <strong>{bulkValidatingContacts || bulkWorking ? 'Validando planilha...' : 'Arraste sua planilha aqui'}</strong>
+                        <em>ou selecione um arquivo</em>
+                        <small>.xlsx, .xls ou .csv</small>
+                        <b>Selecionar planilha</b>
+                        <input type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" onChange={handleSpreadsheetImport} />
+                      </label>
+                    ) : (
+                      <div className="disparazap-import-result">
+                        <div className="disparazap-import-file">
+                          <div>
+                            <span>Planilha importada</span>
+                            <strong>{bulkContactsFileName || 'Contatos manuais'}</strong>
+                          </div>
+                          <button type="button" onClick={resetBulkDraftContacts}>Trocar planilha</button>
+                        </div>
+
+                        <div className="disparazap-contact-summary">
+                          <div><strong>{localBulkSummary.totalImported}</strong><span>Total importado</span></div>
+                          <div><strong>{localBulkSummary.sendable}</strong><span>Aptos</span></div>
+                          <div><strong>{localBulkSummary.invalid}</strong><span>Inválidos</span></div>
+                          <div><strong>{localBulkSummary.duplicates}</strong><span>Duplicados</span></div>
+                          <div><strong>{localBulkSummary.optouts}</strong><span>Opt-out</span></div>
+                        </div>
+
+                        <div className="disparazap-contact-filters" aria-label="Filtrar contatos importados">
+                          {[
+                            ['all', 'Todos'],
+                            ['ready', 'Aptos'],
+                            ['invalid', 'Inválidos'],
+                            ['duplicate', 'Duplicados'],
+                            ['optout', 'Opt-out'],
+                          ].map(([key, label]) => (
+                            <button key={key} type="button" className={bulkContactFilter === key ? 'is-active' : ''} onClick={() => setBulkContactFilter(key as typeof bulkContactFilter)}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="disparazap-contact-table">
+                          <div className="disparazap-contact-table-head">
+                            <span>Nome</span>
+                            <span>Telefone</span>
+                            <span>Situação</span>
+                          </div>
+                          {filteredBulkContactRows.slice(0, 80).map((row, index) => (
+                            <div className="disparazap-contact-row" key={`${row.name}-${row.phone}-${index}`}>
+                              <strong>{row.name}</strong>
+                              <span>{row.phone ?? 'Sem telefone'}</span>
+                              <em className={`is-${row.situation}`}>{DISPARAZAP_CONTACT_STATUS_LABEL[row.situation]}</em>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="disparazap-format-help">
+                      <strong>Exemplos válidos</strong>
+                      <span>(21) 99999-9999</span>
+                      <span>21999999999</span>
+                      <span>+55 21 99999-9999</span>
+                      <span>5521999999999</span>
+                    </div>
+
+                    <div className="disparazap-manual-block">
+                      <button type="button" onClick={() => setBulkManualOpen(current => !current)}>
+                        Inserir contatos manualmente
+                      </button>
+                      {bulkManualOpen && (
+                        <label className="disparazap-field">
+                          <span>Lista manual</span>
+                          <textarea value={bulkContactsText} onChange={event => {
+                            setBulkContactsText(event.target.value)
+                            setBulkContactsFileName('')
+                            setBulkContactsValidated(false)
+                            setBulkContactRows([])
+                            setBulkContactSummary(null)
+                            setBulkSummary(null)
+                            setBulkCampaign(null)
+                            setBulkRecipients([])
+                          }} placeholder={'nome,telefone\nJoão,21999999999\nMaria,+55 (21) 98888-8888'} />
+                          <small>Use uma linha por contato no formato nome,telefone.</small>
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="disparazap-import-row">
+                      {bulkManualOpen && !bulkContactsValidated && (
+                        <button type="button" className="disparazap-file-button" onClick={() => { void validateBulkContactsText(bulkContactsText) }} disabled={!bulkContactsText.trim() || bulkValidatingContacts}>
+                          Validar contatos
+                        </button>
+                      )}
+                      <button type="button" className="disparazap-submit" onClick={() => setBulkStep('template')} disabled={!bulkContactsValidated || localBulkSummary.sendable < 1}>
+                        Avançar
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {bulkStep === 'template' && (
+                  <>
+                    <label className="disparazap-field">
+                      <span>Template</span>
+                      {renderTemplateSelect()}
+                    </label>
+                    <div className="disparazap-template-list">
+                      {templateOptions.map(({ key, template }) => (
+                        <button key={key} type="button" className={key === selectedTemplateOption?.key ? 'is-active' : ''} disabled={template.status !== 'APPROVED'} onClick={() => updateTemplate(key)}>
+                          <strong>{template.name}</strong>
+                          <span>{template.category} · {template.language} · {template.status === 'APPROVED' ? 'Aprovado' : 'Em análise'}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" className="disparazap-submit" onClick={handleCreateCampaignReview} disabled={bulkWorking || !selectedTemplate || selectedTemplate.status !== 'APPROVED'}>
+                      {bulkWorking ? 'Preparando...' : 'Preparar revisão'}
+                    </button>
+                  </>
+                )}
+
+                {bulkStep === 'review' && (
+                  <>
+                    <div className="disparazap-review-grid">
+                      <div><span>Campanha</span><strong>{bulkCampaign?.name ?? bulkName}</strong></div>
+                      <div><span>Template</span><strong>{bulkCampaign?.template_name ?? selectedTemplate?.name ?? '-'}</strong></div>
+                      <div><span>Categoria</span><strong>{bulkCampaign?.template_category ?? selectedTemplate?.category ?? '-'}</strong></div>
+                      <div><span>Idioma</span><strong>{bulkCampaign?.template_language ?? selectedTemplate?.language ?? '-'}</strong></div>
+                      <div><span>Inválidos</span><strong>{localBulkSummary.invalid}</strong></div>
+                      <div><span>Duplicados</span><strong>{localBulkSummary.duplicates}</strong></div>
+                      <div><span>Opt-out</span><strong>{localBulkSummary.optouts}</strong></div>
+                      <div><span>Receberão</span><strong>{localBulkSummary.sendable}</strong></div>
+                    </div>
+                    <button type="button" className="disparazap-submit" onClick={handleStartCampaign} disabled={bulkWorking || !bulkCampaign || bulkCampaign.status !== 'ready'}>
+                      {bulkWorking ? 'Iniciando...' : 'Iniciar campanha'}
+                    </button>
+                  </>
+                )}
+
+                {(bulkStep === 'send' || bulkStep === 'result') && (
+                  <>
+                    <div className="disparazap-review-grid">
+                      <div><span>Total</span><strong>{bulkCampaign?.total_contacts ?? 0}</strong></div>
+                      <div><span>Na fila</span><strong>{bulkCampaign?.total_queued ?? 0}</strong></div>
+                      <div><span>Enviadas</span><strong>{bulkCampaign?.total_sent ?? 0}</strong></div>
+                      <div><span>Entregues</span><strong>{bulkCampaign?.total_delivered ?? 0}</strong></div>
+                      <div><span>Lidas</span><strong>{bulkCampaign?.total_read ?? 0}</strong></div>
+                      <div><span>Falharam</span><strong>{bulkCampaign?.total_failed ?? 0}</strong></div>
+                      <div><span>Opt-out</span><strong>{bulkCampaign?.total_optout ?? 0}</strong></div>
+                    </div>
+                    <div className="disparazap-empty-params">
+                      <DisparazapIcon type="info" />
+                      <span>Acompanhe os status pelo webhook conforme a Meta retornar sent, delivered, read e failed.</span>
+                    </div>
+                  </>
+                )}
+              </section>
+
+              <div className="disparazap-bulk-side">
+                {renderPreview(selectedTemplate, selectedTemplate?.bodyVariableCount ? ['Nome do cliente'] : [], bulkRecipients[0]?.phone ?? 'Telefone mascarado')}
+                <div className="disparazap-counters">
+                  <span>Válidos <strong>{localBulkSummary.valid}</strong></span>
+                  <span>Inválidos <strong>{localBulkSummary.invalid}</strong></span>
+                  <span>Duplicados <strong>{localBulkSummary.duplicates}</strong></span>
+                  <span>Opt-out <strong>{localBulkSummary.optouts}</strong></span>
+                </div>
+                {bulkRecipients.length > 0 && (
+                  <div className="disparazap-recipient-list">
+                    {bulkRecipients.slice(0, 8).map(recipient => (
+                      <div key={recipient.id}>
+                        <strong>{recipient.name}</strong>
+                        <span>{recipient.phone ?? 'Telefone mascarado'} · {recipient.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="disparazap-inbox">
+            <aside className="disparazap-card disparazap-inbox-list">
+              <div className="disparazap-card-header">
+                <span className="disparazap-card-icon is-whatsapp">
+                  <ModuleIcon type="message" />
+                </span>
+                <div>
+                  <strong>Caixa de entrada</strong>
+                  <span>Respostas das campanhas e conversas abertas.</span>
+                </div>
+              </div>
+
+              <label className="disparazap-field">
+                <span>Buscar</span>
+                <input value={inboxSearch} onChange={event => setInboxSearch(event.target.value)} placeholder="Nome ou telefone" />
+              </label>
+
+              <div className="disparazap-inbox-filters">
+                {[
+                  ['all', 'Todas'],
+                  ['unread', 'Não lidas'],
+                  ['interested', 'Interessados'],
+                  ['optout', 'Opt-out'],
+                ].map(([key, label]) => (
+                  <button key={key} type="button" className={inboxFilter === key ? 'is-active' : ''} onClick={() => setInboxFilter(key as DisparazapInboxFilter)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {inboxLoading ? (
+                <div className="disparazap-inbox-empty">Carregando conversas...</div>
+              ) : inboxConversations.length === 0 ? (
+                <div className="disparazap-inbox-empty">
+                  <strong>Nenhuma conversa ainda</strong>
+                  <span>As respostas das suas campanhas aparecerão aqui automaticamente.</span>
+                </div>
+              ) : (
+                <div className="disparazap-inbox-thread-list">
+                  {inboxConversations.map(conversation => (
+                    <button key={conversation.id} type="button" className={inboxSelectedId === conversation.id ? 'is-active' : ''} onClick={() => setInboxSelectedId(conversation.id)}>
+                      <div>
+                        <strong>{conversation.name || 'Contato sem nome'}</strong>
+                        <span>{conversation.phone || 'Telefone mascarado'}</span>
+                      </div>
+                      <p>{conversation.last_message_text || 'Sem mensagem'}</p>
+                      <footer>
+                        {conversation.interested && <em className="is-interested">Interessado</em>}
+                        {conversation.opted_out && <em className="is-optout">Opt-out</em>}
+                        <small>{formatDisparazapRelativeTime(conversation.last_message_at)}</small>
+                        {conversation.unread_count > 0 && <b>{conversation.unread_count}</b>}
+                      </footer>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </aside>
+
+            <section className="disparazap-card disparazap-inbox-chat">
+              {inboxConversationLoading && !inboxSelected ? (
+                <div className="disparazap-inbox-empty">Carregando conversa...</div>
+              ) : !inboxSelected ? (
+                <div className="disparazap-inbox-empty">
+                  <strong>Nenhuma conversa selecionada</strong>
+                  <span>Escolha uma conversa para ler e responder.</span>
+                </div>
+              ) : (
+                <>
+                  <div className="disparazap-inbox-chat-header">
+                    <div>
+                      <strong>{inboxSelected.name || 'Contato sem nome'}</strong>
+                      <span>{inboxSelected.phone || 'Telefone mascarado'} · {formatDisparazapRelativeTime(inboxSelected.last_message_at)}</span>
+                    </div>
+                    <div className="disparazap-inbox-badges">
+                      {inboxSelected.interested && <em className="is-interested">Interessado</em>}
+                      {inboxSelected.opted_out && <em className="is-optout">Opt-out</em>}
+                      <b className={selectedInboxWindow.active ? 'is-active' : 'is-closed'}>{selectedInboxWindow.label}</b>
+                      <small>{selectedInboxWindow.detail}</small>
+                    </div>
+                  </div>
+
+                  {inboxError && <span className="crm-global-error">{inboxError}</span>}
+
+                  <div className="disparazap-inbox-messages">
+                    {inboxMessages.length === 0 ? (
+                      <div className="disparazap-inbox-empty">Nenhuma mensagem nesta conversa.</div>
+                    ) : (
+                      inboxMessages.map(message => (
+                        <div key={message.id} className={`disparazap-inbox-message is-${message.direction}`}>
+                          <div>
+                            {message.type === 'template' && <span>Campanha</span>}
+                            {message.type === 'button' && <span>Resposta rápida</span>}
+                            <strong>{getDisparazapMessageText(message)}</strong>
+                            <footer>
+                              <small>{formatCrmDate(message.meta_timestamp || message.created_at)}</small>
+                              {message.direction === 'outbound' && <em>{message.status || 'accepted'}</em>}
+                            </footer>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <form className="disparazap-inbox-reply" onSubmit={handleSendInboxReply}>
+                    {!selectedInboxWindow.active || inboxSelected.opted_out ? (
+                      <div className="disparazap-empty-params">
+                        <DisparazapIcon type="info" />
+                        <span>{inboxSelected.opted_out ? 'Este contato pediu opt-out. Não responda por texto livre.' : 'A janela de atendimento de 24 horas terminou. Use um template aprovado para iniciar uma nova conversa.'}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <textarea value={inboxReply} onChange={event => setInboxReply(event.target.value)} placeholder="Digite sua resposta..." />
+                        <button type="submit" className="disparazap-submit" disabled={inboxSending || !inboxReply.trim()}>
+                          <DisparazapIcon type="send" />
+                          {inboxSending ? 'Enviando...' : 'Enviar'}
+                        </button>
+                      </>
+                    )}
+                  </form>
+                </>
+              )}
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function OfflineBillingModule() {
   const [clients, setClients] = useState<OfflineBillingClient[]>([])
   const [slips, setSlips] = useState<OfflineBillingSlip[]>([])
@@ -5264,7 +6551,7 @@ function RoutineBroadcastIcon() {
 function ModuleIcon({
   type,
 }: {
-  type: 'routines' | 'pfx' | 'clients' | 'billing'
+  type: 'routines' | 'pfx' | 'clients' | 'billing' | 'message'
 }) {
   if (type === 'routines') {
     return (
@@ -5307,6 +6594,113 @@ function ModuleIcon({
         <path d="M7 9h10" />
         <path d="M7 13h6" />
         <path d="M16 13h1" />
+      </svg>
+    )
+  }
+
+  if (type === 'message') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
+        <path d="M8 9h8" />
+        <path d="M8 13h5" />
+      </svg>
+    )
+  }
+
+  return null
+}
+
+function DisparazapIcon({
+  type,
+}: {
+  type: 'user' | 'template' | 'globe' | 'sliders' | 'phone' | 'info' | 'send' | 'verified' | 'checks'
+}) {
+  if (type === 'user') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M20 21a8 8 0 0 0-16 0" />
+        <circle cx="12" cy="8" r="4" />
+      </svg>
+    )
+  }
+
+  if (type === 'template') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
+      </svg>
+    )
+  }
+
+  if (type === 'globe') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M2 12h20" />
+        <path d="M12 2a15 15 0 0 1 0 20" />
+        <path d="M12 2a15 15 0 0 0 0 20" />
+      </svg>
+    )
+  }
+
+  if (type === 'sliders') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M4 7h8" />
+        <path d="M16 7h4" />
+        <circle cx="14" cy="7" r="2" />
+        <path d="M4 17h4" />
+        <path d="M12 17h8" />
+        <circle cx="10" cy="17" r="2" />
+      </svg>
+    )
+  }
+
+  if (type === 'phone') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.6 2.61a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.26-1.26a2 2 0 0 1 2.11-.45c.84.28 1.71.48 2.61.6A2 2 0 0 1 22 16.92Z" />
+      </svg>
+    )
+  }
+
+  if (type === 'info') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 16v-4" />
+        <path d="M12 8h.01" />
+      </svg>
+    )
+  }
+
+  if (type === 'send') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="m22 2-7 20-4-9-9-4Z" />
+        <path d="M22 2 11 13" />
+      </svg>
+    )
+  }
+
+  if (type === 'verified') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="m9 12 2 2 4-5" />
+        <path d="M12 2.8 14.1 5l3-.3.6 3 2.6 1.5-1.3 2.8 1.3 2.8-2.6 1.5-.6 3-3-.3-2.1 2.2L9.9 19l-3 .3-.6-3-2.6-1.5L5 12 3.7 9.2l2.6-1.5.6-3 3 .3Z" />
+      </svg>
+    )
+  }
+
+  if (type === 'checks') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="m3 12 4 4 8-8" />
+        <path d="m13 12 3 3 5-6" />
       </svg>
     )
   }

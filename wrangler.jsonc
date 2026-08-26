@@ -16,6 +16,14 @@
       "service": "inacio-carlos"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "WHATSAPP_CAMPAIGN_QUEUE",
+        "queue": "whatsapp-campaigns"
+      }
+    ]
+  },
   "images": {
     "binding": "IMAGES"
   },

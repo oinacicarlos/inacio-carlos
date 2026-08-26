@@ -2,7 +2,7 @@
 
 import nextDynamic from 'next/dynamic'
 
-type AdminModule = 'Contabilidade' | 'PFX' | 'Boletos'
+type AdminModule = 'Contabilidade' | 'PFX' | 'Boletos' | 'Disparazap'
 
 const AdminDashboardClient = nextDynamic(
   () => import('@/components/admin-dashboard-client'),
