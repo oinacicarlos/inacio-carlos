@@ -162,5 +162,24 @@ export async function processWhatsAppCampaignBatch(campaignId: string, options: 
     }
   }
 
+  const { data: remainingRecipients } = await supabase
+    .from("whatsapp_campaign_recipients")
+    .select("id")
+    .eq("campaign_id", campaignId)
+    .in("status", ["pending", "queued"])
+    .is("wamid", null)
+    .lt("attempts", MAX_CAMPAIGN_ATTEMPTS)
+    .limit(1)
+
+  if (!remainingRecipients?.length) {
+    await supabase
+      .from("whatsapp_campaigns")
+      .update({ status: "completed", finished_at: new Date().toISOString() })
+      .eq("id", campaignId)
+      .eq("status", "processing")
+
+    return { ok: true as const, processed, finished: "completed" }
+  }
+
   return { ok: true as const, processed }
 }

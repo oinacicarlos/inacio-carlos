@@ -1,6 +1,6 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare"
 import { NextResponse } from "next/server"
 import { requireAdminRoute } from "@/lib/admin-route"
+import { processWhatsAppCampaignBatch } from "@/lib/whatsapp/process-campaign"
 
 const WHATSAPP_CAMPAIGN_TEST_CAP = 5
 
@@ -8,19 +8,6 @@ type RouteContext = {
   params: Promise<{
     id: string
   }>
-}
-
-type CloudflareQueue = {
-  send: (message: unknown, options?: { contentType?: string }) => Promise<void>
-}
-
-function getCampaignQueue() {
-  try {
-    const context = getCloudflareContext({ async: false })
-    return (context.env as Record<string, unknown>).WHATSAPP_CAMPAIGN_QUEUE as CloudflareQueue | undefined
-  } catch {
-    return undefined
-  }
 }
 
 export async function POST(_request: Request, context: RouteContext) {
@@ -68,14 +55,6 @@ export async function POST(_request: Request, context: RouteContext) {
     }, { status: 400 })
   }
 
-  const queue = getCampaignQueue()
-  if (!queue) {
-    return NextResponse.json({
-      ok: false,
-      error: "Fila Cloudflare WHATSAPP_CAMPAIGN_QUEUE ainda não configurada no Worker.",
-    }, { status: 503 })
-  }
-
   const { error: updateError } = await admin.supabase
     .from("whatsapp_campaigns")
     .update({ status: "processing", started_at: new Date().toISOString() })
@@ -86,11 +65,15 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ ok: false, error: "Não consegui iniciar a campanha." }, { status: 500 })
   }
 
-  await queue.send({
-    type: "whatsapp_campaign",
-    campaignId: id,
-    requestedBy: admin.user.id,
-  })
+  const result = await processWhatsAppCampaignBatch(id, { limit: WHATSAPP_CAMPAIGN_TEST_CAP })
+  if (!result.ok) {
+    await admin.supabase
+      .from("whatsapp_campaigns")
+      .update({ status: "failed", finished_at: new Date().toISOString() })
+      .eq("id", id)
 
-  return NextResponse.json({ ok: true, status: "processing" })
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, status: result.finished ?? "processing", processed: result.processed })
 }
