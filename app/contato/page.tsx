@@ -29,7 +29,7 @@ const contactChannels = [
 
 export default function ContatoPage() {
   return (
-    <ToolShell mainClassName="blog-site">
+    <ToolShell mainClassName="legal-page" variant="dark">
       <section className="legal-page-hero" aria-labelledby="legal-page-title">
         <h1 id="legal-page-title">Contato</h1>
         <p>Fale com a gente pelo canal que preferir.</p>

@@ -1,40 +1,38 @@
 import { headers } from "next/headers"
 import {
+  ArrowRight,
   Building2,
   Calculator,
+  Calendar,
   ChartColumnIncreasing,
-  Check,
-  Clock,
+  CircleHelp,
   Compass,
   FileSignature,
   Headset,
-  HeartHandshake,
   Mail,
-  Medal,
-  Menu,
   MessageCircle,
   Percent,
+  Search,
   ShieldCheck,
+  Star,
   TrendingUp,
+  User,
   UserCheck,
   Users,
-  X,
   type LucideIcon,
 } from "lucide-react"
-import { BrandLogo } from "@/components/brand-logo"
-import { PlanWhatsAppButton } from "@/components/plan-whatsapp-button"
+import {
+  AccountingOfferingsAccordion,
+  type AccountingOfferingIcon,
+} from "@/components/accounting-offerings-accordion"
+import { PricingPlansSection } from "@/components/pricing-plans-section"
 import { AccountingAdvisorNotice } from "@/components/accounting-advisor-notice"
 import { TestimonialsCarousel } from "@/components/testimonials-carousel"
+import { FooterDark } from "@/components/footer-dark"
+import { HeaderMain } from "@/components/header-main"
 import { TROPA_WHATSAPP_LINK } from "@/lib/contact-links"
 import { pricingPlans, buildPlanWhatsAppLink } from "@/lib/pricing-plans"
-import {
-  COMPANY_ADDRESS_LINE,
-  COMPANY_ADDRESS_ZIP,
-  COMPANY_CNPJ,
-  COMPANY_EMAIL,
-  COMPANY_LEGAL_NAME,
-  CRC_REGISTRATION,
-} from "@/lib/company-info"
+import { COMPANY_EMAIL, CRC_REGISTRATION } from "@/lib/company-info"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { ToolSlug } from "@/lib/tool-usage/tools"
 
@@ -60,32 +58,25 @@ const businessOfferings = [
   {
     title: "Análise Tributária",
     description: "Buscamos oportunidades legais para reduzir impostos e melhorar a eficiência tributária da sua empresa.",
-    icon: Percent,
-    image: "/images/offerings/analise-tributaria.jpg",
-    imageAlt: "Profissional preenchendo documentos financeiros com calculadora sobre a mesa",
+    icon: "percent",
   },
   {
-    title: "Atendimento Rápido",
-    description: "Um time próximo para resolver suas demandas com rapidez e sem burocracia.",
-    icon: Headset,
-    image: "/images/offerings/atendimento-rapido.jpg",
-    imageAlt: "Profissional de atendimento ao cliente usando headset em frente ao computador",
+    title: "Assessor Exclusivo",
+    description:
+      "Tenha um assessor exclusivo no whatsapp para tirar suas dúvidas, agilizar solicitações de segunda a sábado de 8:00 as 17:00.",
+    icon: "headset",
   },
   {
-    title: "Segurança Legal",
+    title: "Departamento Pessoal",
     description: "Cuidamos das obrigações fiscais e trabalhistas para sua empresa operar com segurança.",
-    icon: ShieldCheck,
-    image: "/images/offerings/seguranca-legal.jpg",
-    imageAlt: "Profissional assinando um documento contratual em mesa de escritório",
+    icon: "users",
   },
   {
     title: "Soluções Gerais",
     description: "Quando surgir um problema, ajudamos você a encontrar o melhor caminho para resolver.",
-    icon: HeartHandshake,
-    image: "/images/offerings/solucoes-gerais.jpg",
-    imageAlt: "Dois empreendedores sorrindo em frente a um notebook",
+    icon: "handshake",
   },
-]
+] satisfies Array<{ title: string; description: string; icon: AccountingOfferingIcon }>
 
 const supportChannels = [
   {
@@ -94,7 +85,8 @@ const supportChannels = [
     description: "Você terá acesso a um assessor exclusivo para te atender no WhatsApp, de forma ágil, simples e sem complicação.",
     icon: MessageCircle,
     image: "/images/support/whatsapp.jpg",
-    imageAlt: "Pessoa usando o celular para conversar em um aplicativo de mensagens em uma mesa de escritório",
+    linkLabel: "Escolher WhatsApp",
+    href: TEAM_WHATSAPP_LINK,
   },
   {
     key: "email" as const,
@@ -102,7 +94,8 @@ const supportChannels = [
     description: "Envie suas solicitações e rotinas e nosso time responde em até 2 horas úteis, com atenção e agilidade.",
     icon: Mail,
     image: "/images/support/email.jpg",
-    imageAlt: "Notebook aberto sobre uma mesa em um ambiente de trabalho iluminado",
+    linkLabel: "Escolher E-mail",
+    href: `mailto:${COMPANY_EMAIL}`,
   },
 ]
 
@@ -178,64 +171,70 @@ const accountantSwitchSteps = [
   },
 ] satisfies Array<{ number: string; title: string; description: string; icon: LucideIcon }>
 
-// Depoimentos provisórios para dar forma à seção — recomendo substituir por
-// depoimentos reais de clientes antes de publicar, para não misturar prova
-// social genuína com texto de exemplo.
+// Depoimentos provisórios (modelo para aprovação) — nomes e histórias
+// fictícios, só pra dar forma realista à seção. Substituir pelos
+// depoimentos reais de clientes assim que o cliente enviar, antes de
+// publicar, para não misturar prova social genuína com texto de exemplo.
 const testimonials = [
   {
-    name: "Camila Duarte",
-    role: "Consultora de marketing",
+    name: "Marcelo Andrade",
+    role: "Sócio de gráfica industrial",
     quote:
-      "Descobri que estava pagando mais imposto do que precisava. A Tropa revisou meu enquadramento e hoje pago bem menos todo mês.",
+      "A folha de pagamento já pesava demais no Simples. Fizeram as contas, mostraram que o Lucro Real compensava e, só no primeiro ano, a economia de impostos pagou a migração toda.",
   },
   {
-    name: "Bruno Azevedo",
-    role: "Personal trainer, MEI",
+    name: "Fernanda Bittencourt",
+    role: "Sócia de rede de clínicas estéticas",
     quote:
-      "Achei que MEI não dava pra economizar em nada, mas eles me mostraram uma forma de organizar tudo e reduzir o tanto que eu pagava de DAS.",
+      "Uma ex-funcionária abriu uma reclamação trabalhista pedindo verbas que já tinham sido pagas. Como o departamento pessoal mantinha admissão e rescisão certinhas, vencemos o processo sem pagar nada a mais.",
   },
   {
-    name: "Larissa Prado",
-    role: "Fotógrafa autônoma",
-    quote: "Todo mês eles me avisam antes de eu pagar imposto sem necessidade. Já evitei mais de uma surpresa desagradável.",
-  },
-  {
-    name: "Fernando Melo",
-    role: "Consultor financeiro autônomo",
+    name: "Ricardo Salgado",
+    role: "Diretor de empresa de logística",
     quote:
-      "Achei que já estava no regime certo, mas a análise deles encontrou uma forma de pagar menos imposto sem mudar nada na operação.",
+      "Migramos do Simples para o Lucro Real depois que me apresentaram a análise com números. A carga tributária caiu bem mais do que eu esperava pro tamanho da nossa operação.",
   },
   {
-    name: "Diego Ramos",
-    role: "Consultor de TI",
-    quote: "O assessor responde no WhatsApp em minutos, sem enrolação. Sempre que tenho dúvida, explica de um jeito que eu entendo de primeira.",
-  },
-  {
-    name: "Patrícia Lima",
-    role: "Nutricionista",
-    quote: "O que mais me marcou foi a clareza. Nunca mais fiquei sem saber o que estava acontecendo com minha empresa.",
-  },
-  {
-    name: "Thiago Correia",
-    role: "Arquiteto autônomo",
-    quote: "Atendimento rápido de verdade. Mando mensagem e recebo resposta no mesmo dia, geralmente em minutos.",
-  },
-  {
-    name: "Rafael Nunes",
-    role: "Designer gráfico freelancer",
+    name: "Patrícia Guimarães",
+    role: "Proprietária de escola de idiomas",
     quote:
-      "Trocar de contador parecia complicado, mas foi rápido e sem burocracia nenhuma. Em poucos dias já estava tudo funcionando.",
+      "Fomos processados por horas extras não pagas. Com o controle de ponto e a folha organizados pela equipe desde o início, conseguimos comprovar tudo e a Justiça do Trabalho negou o pedido.",
+  },
+  {
+    name: "André Monteiro",
+    role: "Sócio de empresa de tecnologia",
+    quote:
+      "Achava que sair do Simples só ia complicar a rotina. Cuidaram de toda a apuração do Lucro Real e hoje pagamos bem menos imposto do que se tivéssemos ficado onde estávamos.",
   },
   {
     name: "Juliana Ferreira",
-    role: "Dona de salão de beleza",
-    quote: "Abri minha empresa em poucos dias, sem complicação. Cuidaram de tudo enquanto eu focava no salão.",
+    role: "Sócia de rede de salões de beleza",
+    quote:
+      "Demitimos um funcionário e ele tentou reverter na Justiça alegando erro na rescisão. Estava tudo calculado certinho desde o desligamento, e a causa foi arquivada.",
+  },
+  {
+    name: "Camila Duarte",
+    role: "Sócia de agência de marketing",
+    quote:
+      "Descobrimos que estávamos pagando mais imposto do que precisávamos no Simples. A revisão tributária encontrou uma forma de pagar bem menos sem mudar nada na operação.",
+  },
+  {
+    name: "Rafael Nunes",
+    role: "Sócio de escritório de arquitetura",
+    quote:
+      "Trocar de contador com uma equipe já formada parecia arriscado, mas organizaram a migração em poucos dias, sem deixar nenhuma obrigação atrasada.",
+  },
+  {
+    name: "Diego Ramos",
+    role: "Sócio de empresa de manutenção predial",
+    quote:
+      "O assessor responde no WhatsApp em minutos, mesmo em assuntos mais complexos como enquadramento tributário e departamento pessoal.",
   },
   {
     name: "Marcos Vinícius",
-    role: "Prestador de serviços de TI",
+    role: "Sócio de empresa de comércio varejista",
     quote:
-      "Contratei um funcionário pela primeira vez e a Tropa cuidou de toda a parte de folha e admissão sem eu precisar entender de burocracia trabalhista.",
+      "Contratamos vários funcionários em pouco tempo, e cuidaram de toda a admissão e da folha certinho. Isso evitou dor de cabeça trabalhista lá na frente.",
   },
 ]
 
@@ -366,46 +365,10 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
-      <header className="accounting-header accounting-header--home" aria-label="Cabeçalho Tropa">
-        <div className="accounting-header-inner">
-          <a className="accounting-logo" href="/" aria-label="Tropa">
-            <BrandLogo variant="black" />
-          </a>
-
-          <input type="checkbox" id="accounting-mobile-nav-toggle" className="accounting-mobile-nav-checkbox" />
-
-          <nav className="accounting-nav" aria-label="Navegação principal">
-            <a href="#ofertas">Serviços</a>
-            <a href="#atendimento">Atendimento</a>
-            <a href="#solucoes">Soluções</a>
-            <a href="#planos">Planos</a>
-            <a href="#duvidas">Dúvidas</a>
-            <a href="/blog">Blog</a>
-            <a className="accounting-nav-login" href="/login">
-              Entrar
-            </a>
-          </nav>
-
-          <div className="accounting-header-actions">
-            <a className="accounting-login" href="/login">
-              Entrar
-            </a>
-            <a className="accounting-header-cta" href={PLAN_SIMULATOR_ANCHOR}>
-              Abrir Empresa
-            </a>
-            <label
-              className="accounting-mobile-nav-toggle"
-              htmlFor="accounting-mobile-nav-toggle"
-              aria-label="Abrir menu de navegação"
-            >
-              <Menu size={22} strokeWidth={2.2} className="accounting-mobile-nav-icon-open" aria-hidden="true" />
-              <X size={22} strokeWidth={2.2} className="accounting-mobile-nav-icon-close" aria-hidden="true" />
-            </label>
-          </div>
-        </div>
-      </header>
+      <HeaderMain />
 
       <section className="accounting-hero" aria-labelledby="accounting-hero-title">
+        <span className="accounting-hero-blend" aria-hidden="true" />
         <div className="accounting-hero-copy">
           <div className="accounting-hero-proof">
             <div className="accounting-hero-avatars" aria-hidden="true">
@@ -413,15 +376,15 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
               <span className="accounting-hero-avatar">M</span>
               <span className="accounting-hero-avatar">R</span>
             </div>
-            <span>+ de 2000 clientes atendidos</span>
+            <span>+ de 2010 clientes atendidos</span>
           </div>
 
           <h1 id="accounting-hero-title">
-            <span>Contabilidade para empresas</span>
-            <span>do Rio de Janeiro</span>
+            <span>Contabilidade on-line com</span>
+            <span>atendimento <span className="accounting-hero-title-accent">humanizado.</span></span>
           </h1>
           <p className="accounting-hero-subtitle">
-            Contabilidade focada em atendimento rápido, humanizado e que busca gerar lucro para a sua empresa
+            Tenha um assessor exclusivo para cuidar das rotinas da sua empresa e tirar suas dúvidas.
           </p>
 
           <div className="accounting-hero-actions">
@@ -435,13 +398,13 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
           <div className="accounting-hero-trust">
             <span className="accounting-hero-trust-item">
-              <UserCheck size={16} strokeWidth={2.2} aria-hidden="true" />
-              Assessor exclusivo
+              <User size={16} strokeWidth={2.2} aria-hidden="true" />
+              Assessor Exclusivo
             </span>
             <span className="accounting-hero-trust-divider" aria-hidden="true" />
             <span className="accounting-hero-trust-item">
-              <Clock size={16} strokeWidth={2.2} aria-hidden="true" />
-              Resposta em até 2h úteis
+              <Search size={16} strokeWidth={2.2} aria-hidden="true" />
+              Análise Tributária
             </span>
             <span className="accounting-hero-trust-divider" aria-hidden="true" />
             <span className="accounting-hero-trust-item">
@@ -459,65 +422,73 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             Tudo isso com um time que acompanha de perto o seu negócio, sem burocracia e sem enrolação.
           </p>
 
-          <div className="accounting-offerings-grid">
-            {businessOfferings.map(({ title, description, icon: Icon, image, imageAlt }) => (
-              <article className="accounting-offering-card" key={title}>
-                <div className="accounting-offering-photo">
-                  <img src={image} alt={imageAlt} loading="lazy" />
-                </div>
-                <div className="accounting-offering-content">
-                  <div className="accounting-offering-heading">
-                    <span className="accounting-offering-icon" aria-hidden="true">
-                      <Icon size={19} strokeWidth={2} />
-                    </span>
-                    <h3>{title}</h3>
-                  </div>
-                  <p>{description}</p>
-                  <a
-                    className="accounting-offering-cta"
-                    href={buildOfferingWhatsAppLink(title)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Saber Mais
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
+          <AccountingOfferingsAccordion
+            items={businessOfferings.map(({ title, description, icon }) => ({
+              title,
+              description,
+              icon,
+              href: buildOfferingWhatsAppLink(title),
+            }))}
+          />
         </div>
       </section>
 
       <section className="accounting-support" id="atendimento" aria-labelledby="accounting-support-title">
         <div className="accounting-support-inner">
           <span className="accounting-support-badge">
-            <Headset size={17} strokeWidth={2.2} aria-hidden="true" />
+            <Headset size={16} strokeWidth={2.2} aria-hidden="true" />
             Atendimento humano e rápido
           </span>
 
-          <h2 id="accounting-support-title">Como funciona nosso atendimento?</h2>
+          <h2 id="accounting-support-title">
+            Como funciona nosso <span className="accounting-support-title-accent">atendimento</span>?
+          </h2>
           <p className="accounting-support-subtitle">
             Escolha o canal que preferir e receba um atendimento rápido, sem burocracia e com pessoas prontas para te
             ajudar.
           </p>
 
           <div className="accounting-support-grid">
-            {supportChannels.map(({ key, title, description, icon: Icon, image, imageAlt }) => (
-              <article className="accounting-support-card" key={key}>
-                <div className="accounting-support-photo">
-                  <img src={image} alt={imageAlt} loading="lazy" />
-                </div>
-                <div className="accounting-support-content">
-                  <div className="accounting-support-heading">
+            {supportChannels.map(({ key, title, description, icon: Icon, image, linkLabel, href }) => {
+              const [firstWord, ...restWords] = title.split(" ")
+              const lastWord = restWords[restWords.length - 1]
+              const middleWords = restWords.slice(0, -1).join(" ")
+
+              return (
+                <a
+                  className={`accounting-support-card accounting-support-card--${key}`}
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img className="accounting-support-card-image" src={image} alt="" loading="lazy" />
+                  <span className="accounting-support-card-overlay" aria-hidden="true" />
+
+                  <div className="accounting-support-card-content">
                     <span className={`accounting-support-icon accounting-support-icon--${key}`} aria-hidden="true">
-                      <Icon size={20} strokeWidth={2} />
+                      <Icon size={key === "whatsapp" ? 26 : 25} strokeWidth={2} />
                     </span>
-                    <h3>{title}</h3>
+
+                    <h3>
+                      {firstWord}
+                      <br />
+                      {middleWords ? `${middleWords} ` : ""}
+                      <span className="accounting-support-card-accent">{lastWord}</span>
+                    </h3>
+
+                    <span className="accounting-support-card-rule" aria-hidden="true" />
+
+                    <p>{description}</p>
+
+                    <span className="accounting-support-card-link">
+                      {linkLabel}
+                      <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+                    </span>
                   </div>
-                  <p>{description}</p>
-                </div>
-              </article>
-            ))}
+                </a>
+              )
+            })}
           </div>
 
           <a className="accounting-support-main-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
@@ -532,75 +503,114 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         </div>
       </section>
 
-      <section className="accounting-advisor-section" aria-labelledby="accounting-advisor-title">
-        <div className="accounting-advisor-inner">
-          <div className="accounting-advisor-photo">
-            <img
-              src="/images/support/whatsapp.jpg"
-              alt="Empreendedor conversando com um assessor pelo WhatsApp"
-              loading="lazy"
-            />
+      <section className="advisor-section" aria-labelledby="advisor-title">
+        <div className="advisor-inner">
+          <div className="advisor-intro">
+            <span className="advisor-badge">
+              <UserCheck size={16} strokeWidth={2.2} aria-hidden="true" />
+              Assessor exclusivo
+            </span>
+
+            <h2 id="advisor-title" className="advisor-title">
+              Assessor exclusivo para <span className="advisor-title-accent">cuidar</span> da sua rotina
+            </h2>
+
+            <p className="advisor-description">
+              Você conta com um assessor da Tropa para orientar, acompanhar e apoiar nas demandas diárias do seu
+              negócio todos os dias úteis, cuidando de dúvidas, prazos e próximos passos para você não perder tempo
+              com burocracia.
+            </p>
           </div>
 
-          <div className="accounting-advisor-copy">
-            <h2 id="accounting-advisor-title">Assessor exclusivo para cuidar da sua rotina</h2>
-            <p className="accounting-advisor-subtitle">
-              Você conta com um assessor da Tropa para orientar, acompanhar e apoiar nas demandas diárias do seu
-              negócio todos os dias úteis, cuidando de dúvidas, prazos e próximos passos para você não perder tempo com
-              burocracia.
-            </p>
+          <div className="advisor-media">
+            <div className="advisor-photo">
+              <img
+                src="/images/support/whatsapp.jpg"
+                alt="Empreendedor conversando com um assessor pelo WhatsApp"
+                loading="lazy"
+              />
+              <span className="advisor-photo-overlay" aria-hidden="true" />
 
-            <div className="accounting-advisor-highlights" aria-label="Benefícios do assessor exclusivo">
+              <div className="advisor-card advisor-card--assessor">
+                <span className="advisor-card-avatar" aria-hidden="true">
+                  <UserCheck size={18} strokeWidth={2.4} />
+                </span>
+                <span className="advisor-card-text">
+                  <strong className="advisor-card-name">Seu assessor</strong>
+                  <span className="advisor-card-status">
+                    <span className="advisor-card-status-dot" aria-hidden="true" />
+                    Online agora
+                  </span>
+                </span>
+              </div>
+
+              <div className="advisor-card advisor-card--appointment">
+                <span className="advisor-card-icon" aria-hidden="true">
+                  <Calendar size={17} strokeWidth={2.2} />
+                </span>
+                <span className="advisor-card-text">
+                  <span className="advisor-card-label">Próximo compromisso</span>
+                  <strong className="advisor-card-appointment-title">Revisão de pendências</strong>
+                  <span className="advisor-card-appointment-time">Amanhã, 10h30</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="advisor-details">
+            <div className="advisor-benefits" aria-label="Benefícios do assessor exclusivo">
               {[
                 { label: "Especialista dedicado", icon: UserCheck },
                 { label: "Atendimento próximo", icon: MessageCircle },
                 { label: "Orientação prática", icon: ShieldCheck },
               ].map(({ label, icon: Icon }) => (
-                <div className="accounting-advisor-highlight" key={label}>
-                  <span className="accounting-advisor-highlight-icon" aria-hidden="true">
+                <div className="advisor-benefit" key={label}>
+                  <span className="advisor-benefit-icon" aria-hidden="true">
                     <Icon size={22} strokeWidth={2.2} />
                   </span>
-                  <strong>{label}</strong>
+                  <strong className="advisor-benefit-label">{label}</strong>
                 </div>
               ))}
             </div>
 
-            <a className="accounting-advisor-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            <a className="advisor-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
               <UserCheck size={20} strokeWidth={2.2} aria-hidden="true" />
               Falar com um assessor
             </a>
 
-            <p className="accounting-advisor-trust">
-              <ShieldCheck size={17} strokeWidth={2.1} aria-hidden="true" />
+            <p className="advisor-trust">
+              <ShieldCheck size={16} strokeWidth={2.1} aria-hidden="true" />
               Atendimento humano, seguro e sem burocracia.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="accounting-solutions" id="solucoes" aria-labelledby="accounting-solutions-title">
-        <div className="accounting-solutions-inner">
-          <span className="accounting-solutions-badge">
-            <span className="accounting-solutions-badge-dot" aria-hidden="true" />
+      <section className="solutions-section" id="solucoes" aria-labelledby="solutions-title">
+        <div className="solutions-inner">
+          <span className="solutions-badge">
+            <span className="solutions-badge-dot" aria-hidden="true" />
             Soluções organizadas por área
           </span>
 
-          <h2 id="accounting-solutions-title">Quais as soluções que oferecemos?</h2>
-          <p className="accounting-solutions-subtitle">
+          <h2 id="solutions-title" className="solutions-title">
+            Quais as soluções que <span className="solutions-title-accent">oferecemos?</span>
+          </h2>
+          <p className="solutions-subtitle">
             Organizamos nossos serviços por área para você entender rapidamente como ajudamos sua empresa a abrir,
             operar e crescer com segurança.
           </p>
 
-          <div className="accounting-solutions-grid">
+          <div className="solutions-grid">
             {businessSolutions.map(({ title, tag, description, icon: Icon }) => (
-              <article className="accounting-solutions-card" key={title}>
-                <div className="accounting-solutions-heading">
-                  <span className="accounting-solutions-icon" aria-hidden="true">
-                    <Icon size={21} strokeWidth={2} />
+              <article className="solutions-card" key={title}>
+                <div className="solutions-heading">
+                  <span className="solutions-icon" aria-hidden="true">
+                    <Icon size={22} strokeWidth={2} />
                   </span>
-                  <div className="accounting-solutions-heading-text">
+                  <div className="solutions-heading-text">
                     <h3>{title}</h3>
-                    <span className="accounting-solutions-tag">{tag}</span>
+                    <span className="solutions-tag">{tag}</span>
                   </div>
                 </div>
                 <p>{description}</p>
@@ -608,31 +618,40 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             ))}
           </div>
 
-          <a className="accounting-solutions-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+          <a className="solutions-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            <Users size={18} strokeWidth={2.2} aria-hidden="true" />
             Falar com a equipe
           </a>
+
+          <p className="solutions-trust">
+            <ShieldCheck size={16} strokeWidth={2.1} aria-hidden="true" />
+            Atendimento humano, seguro e sem burocracia.
+          </p>
         </div>
       </section>
 
-      <section className="accounting-switch" aria-labelledby="accounting-switch-title">
-        <div className="accounting-switch-inner">
-          <span className="accounting-switch-badge">
+      <section className="switch-section" aria-labelledby="switch-title">
+        <div className="switch-inner">
+          <span className="switch-badge">
             <UserCheck size={17} strokeWidth={2.2} aria-hidden="true" />
             Trocar de contador
           </span>
 
-          <h2 id="accounting-switch-title">Trocar de contador é simples e seguro</h2>
-          <p className="accounting-switch-subtitle">
+          <h2 id="switch-title" className="switch-title">
+            Trocar de contador é <span className="switch-title-accent">simples e seguro</span>
+          </h2>
+          <p className="switch-subtitle">
             Veja como funciona o processo para você trocar de contador e ter o suporte que sua empresa realmente
             precisa.
           </p>
 
-          <div className="accounting-switch-steps">
+          <div className="switch-steps">
+            <span className="switch-steps-line" aria-hidden="true" />
             {accountantSwitchSteps.map(({ number, title, description, icon: Icon }) => (
-              <article className="accounting-switch-card" key={number}>
-                <span className="accounting-switch-number">{number}</span>
-                <span className="accounting-switch-icon" aria-hidden="true">
-                  <Icon size={28} strokeWidth={2.2} />
+              <article className="switch-card" key={number}>
+                <span className="switch-number">{number}</span>
+                <span className="switch-icon" aria-hidden="true">
+                  <Icon size={24} strokeWidth={2.2} />
                 </span>
                 <h3>{title}</h3>
                 <p>{description}</p>
@@ -640,172 +659,120 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             ))}
           </div>
 
-          <a className="accounting-switch-cta" href={HERO_SWITCH_ACCOUNTANT_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+          <a className="switch-cta" href={HERO_SWITCH_ACCOUNTANT_WHATSAPP_LINK} target="_blank" rel="noreferrer">
             <MessageCircle size={22} strokeWidth={2.2} aria-hidden="true" />
             Falar com um especialista
           </a>
 
-          <p className="accounting-switch-trust">
+          <p className="switch-trust">
             <ShieldCheck size={16} strokeWidth={2.1} aria-hidden="true" />
             Atendimento humano, seguro e sem burocracia.
           </p>
         </div>
       </section>
 
-      <section className="accounting-testimonials" id="depoimentos" aria-labelledby="accounting-testimonials-title">
-        <div className="accounting-testimonials-inner">
-          <h2 id="accounting-testimonials-title">O que nossos clientes dizem</h2>
-          <p className="accounting-testimonials-subtitle">
+      <section className="testimonials-dark-section" id="depoimentos" aria-labelledby="testimonials-dark-title">
+        <div className="testimonials-dark-inner">
+          <span className="testimonials-dark-badge">
+            <Star size={13} strokeWidth={2.2} fill="currentColor" aria-hidden="true" />
+            Clientes satisfeitos
+          </span>
+
+          <h2 id="testimonials-dark-title" className="testimonials-dark-title">
+            O que nossos clientes dizem
+          </h2>
+          <p className="testimonials-dark-subtitle">
             Histórias reais de quem já organizou a contabilidade e passou a pagar só o imposto que devia.
           </p>
 
-          <TestimonialsCarousel testimonials={testimonials} />
+          <TestimonialsCarousel testimonials={testimonials} variant="dark" />
 
           <a
-            className="accounting-testimonials-cta"
+            className="testimonials-dark-cta"
             href={buildWhatsAppLink("Oi, vi os depoimentos de clientes da Tropa e quero saber mais")}
             target="_blank"
             rel="noreferrer"
           >
             Quero ser o próximo caso de sucesso
+            <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
           </a>
+
+          <p className="testimonials-dark-trust">
+            <ShieldCheck size={15} strokeWidth={2.1} aria-hidden="true" />+ de 2010 clientes atendidos
+          </p>
         </div>
       </section>
 
-      <section className="accounting-plans" id="planos" aria-labelledby="accounting-plans-title">
-        <div className="accounting-plans-inner">
-          <h2 id="accounting-plans-title">Conheça os nossos planos completos</h2>
-          <p className="accounting-plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
+      <section className="plans-section" id="planos" aria-labelledby="plans-title">
+        <div className="plans-inner">
+          <span className="plans-badge">Planos</span>
 
-          <div className="accounting-pricing-grid" id="simulador-planos">
-            {pricingPlans.map(({ tier, name, description, featured, features }) => (
-              <article className={`accounting-pricing-card${featured ? " is-featured" : ""}`} key={tier}>
-                {featured && <span className="accounting-pricing-badge">Mais escolhido</span>}
+          <h2 id="plans-title" className="plans-title">
+            Conheça os nossos planos completos
+          </h2>
+          <p className="plans-subtitle">Escolha o plano ideal para o momento do seu negócio.</p>
 
-                <div className={`accounting-pricing-icon accounting-pricing-icon--${tier}`} aria-hidden="true">
-                  <Medal size={24} strokeWidth={2} />
-                </div>
-
-                <h3>{name}</h3>
-
-                <p className="accounting-pricing-desc">{description}</p>
-
-                <ul className="accounting-pricing-benefits">
-                  {features.map((feature) => (
-                    <li key={feature}>
-                      <Check size={16} strokeWidth={2.6} aria-hidden="true" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <PlanWhatsAppButton
-                  className={`accounting-plan-button${featured ? " is-primary" : ""}`}
-                  href={buildPlanWhatsAppLink(TROPA_WHATSAPP_LINK, name)}
-                >
-                  Saber Mais
-                </PlanWhatsAppButton>
-              </article>
-            ))}
-          </div>
+          <PricingPlansSection
+            plans={pricingPlans.map(({ tier, name, description, featured, features }) => ({
+              tier,
+              name,
+              description,
+              featured,
+              features,
+              href: buildPlanWhatsAppLink(TROPA_WHATSAPP_LINK, name),
+            }))}
+          />
         </div>
       </section>
 
-      <section className="accounting-faq" id="duvidas" aria-labelledby="accounting-faq-title">
-        <div className="accounting-faq-inner">
-          <div className="accounting-faq-head">
-            <h2 id="accounting-faq-title">Dúvidas frequentes</h2>
-            <p>Respostas rápidas para entender como funciona o atendimento contábil da Tropa.</p>
-          </div>
+      <section className="faq-dark-section" id="duvidas" aria-labelledby="faq-dark-title">
+        <div className="faq-dark-inner">
+          <span className="faq-dark-badge">
+            <CircleHelp size={16} strokeWidth={2.2} aria-hidden="true" />
+            Dúvidas frequentes
+          </span>
 
-          <div className="accounting-faq-list">
+          <h2 id="faq-dark-title" className="faq-dark-title">
+            Dúvidas frequentes
+          </h2>
+          <p className="faq-dark-subtitle">
+            Respostas rápidas para entender como funciona o atendimento contábil da Tropa.
+          </p>
+
+          <div className="faq-dark-list">
             {accountingFaqs.map(({ question, answer }) => (
-              <details className="accounting-faq-item" key={question}>
-                <summary>
-                  <span>{question}</span>
-                  <span className="accounting-faq-toggle" aria-hidden="true">
-                    +
-                  </span>
+              <details className="faq-dark-item" key={question} name="faq-dark-accordion">
+                <summary className="faq-dark-summary">
+                  <span className="faq-dark-question">{question}</span>
+                  <span className="faq-dark-toggle" aria-hidden="true" />
                 </summary>
-                <p>{answer}</p>
+                <div className="faq-dark-panel">
+                  <p className="faq-dark-answer">{answer}</p>
+                </div>
               </details>
             ))}
           </div>
+
+          <a className="faq-dark-cta" href={TEAM_WHATSAPP_LINK} target="_blank" rel="noreferrer">
+            <UserCheck size={20} strokeWidth={2.2} aria-hidden="true" />
+            Falar com um assessor
+            <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
+          </a>
+
+          <p className="faq-dark-trust">
+            <ShieldCheck size={15} strokeWidth={2.1} aria-hidden="true" />
+            Atendimento humano, seguro e sem burocracia.
+          </p>
         </div>
       </section>
 
-      <footer className="accounting-footer" aria-label="Rodapé Tropa">
-        <div className="accounting-footer-inner">
-          <div className="accounting-footer-brand">
-            <a className="accounting-logo" href="/" aria-label="Tropa">
-              <BrandLogo variant="black" />
-            </a>
-            <p>Assessoria empresarial para prestadores de serviço e empreendedores que querem crescer com organização.</p>
-          </div>
-
-          <nav className="accounting-footer-nav" aria-label="Links do rodapé">
-            <div>
-              <h2>Menu</h2>
-              <a href="#ofertas">Serviços</a>
-              <a href="#atendimento">Atendimento</a>
-              <a href="#solucoes">Soluções</a>
-              <a href="#planos">Planos</a>
-              <a href="/blog">Blog</a>
-              <a href="#duvidas">Dúvidas</a>
-              <a href="/login">Login</a>
-            </div>
-
-            <div>
-              <h2>Ferramentas</h2>
-              {accountingTools.map(({ title, slug }) => (
-                <a href={buildToolsEntryHref(isAuthenticated, resolvedSearchParams, slug)} key={slug}>
-                  {title}
-                </a>
-              ))}
-            </div>
-
-            <div>
-              <h2>Institucional</h2>
-              <a href="/sobre">Sobre Nós</a>
-              <a href="/contato">Contato</a>
-              <a href="/politica-de-privacidade">Política de Privacidade</a>
-              <a href="/termos-de-uso">Termos de Uso</a>
-            </div>
-
-            <div>
-              <h2>Contato</h2>
-              <a href={TROPA_WHATSAPP_LINK} target="_blank" rel="noreferrer">
-                WhatsApp
-              </a>
-              <a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a>
-            </div>
-          </nav>
-        </div>
-
-        <div className="accounting-footer-disclaimer">
-          <p>
-            {COMPANY_LEGAL_NAME} — CNPJ {COMPANY_CNPJ}
-            <br />
-            {COMPANY_ADDRESS_LINE} — {COMPANY_ADDRESS_ZIP}
-          </p>
-          <p>
-            A Tropa é uma empresa privada de contabilidade e assessoria empresarial, sem qualquer vínculo oficial
-            com órgãos públicos ou governamentais. Não somos um órgão do governo e não emitimos, vendemos ou
-            intermediamos documentos públicos — todo o suporte para abertura, alteração ou regularização de
-            empresas é prestado como serviço de assessoria contábil privada.
-          </p>
-          <p>Responsável técnico: {CRC_REGISTRATION}.</p>
-        </div>
-
-        <div className="accounting-footer-bottom">
-          <span>© 2026 {COMPANY_LEGAL_NAME}. Todos os direitos reservados.</span>
-          <div className="accounting-footer-bottom-links">
-            <a href="/politica-de-privacidade">Política de Privacidade</a>
-            <a href="/termos-de-uso">Termos de Uso</a>
-            <a href={PLAN_SIMULATOR_ANCHOR}>Ver Planos</a>
-          </div>
-        </div>
-      </footer>
+      <FooterDark
+        tools={accountingTools.map(({ title, slug }) => ({
+          title,
+          href: buildToolsEntryHref(isAuthenticated, resolvedSearchParams, slug),
+        }))}
+        plansHref={PLAN_SIMULATOR_ANCHOR}
+      />
 
       <AccountingAdvisorNotice
         availableHref={ADVISOR_AVAILABLE_WHATSAPP_LINK}

@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function SobrePage() {
   return (
-    <ToolShell mainClassName="blog-site">
+    <ToolShell mainClassName="legal-page" variant="dark">
       <section className="legal-page-hero" aria-labelledby="legal-page-title">
         <h1 id="legal-page-title">Sobre a Tropa</h1>
         <p>Contabilidade e assessoria para quem presta serviço e empreende.</p>

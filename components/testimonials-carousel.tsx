@@ -11,8 +11,18 @@ type Testimonial = {
 
 const LOOP_COPIES = 3
 const AUTOPLAY_SPEED_PX_PER_SECOND = 36
+const FEATURED_TESTIMONIAL_INDEX = 2
 
-export function TestimonialsCarousel({ testimonials }: { testimonials: Testimonial[] }) {
+function getInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase()
+}
+
+type TestimonialsCarouselProps = {
+  testimonials: Testimonial[]
+  variant?: "light" | "dark"
+}
+
+export function TestimonialsCarousel({ testimonials, variant = "light" }: TestimonialsCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const isPaused = useRef(false)
@@ -118,10 +128,14 @@ export function TestimonialsCarousel({ testimonials }: { testimonials: Testimoni
     }
   }
 
+  const isDark = variant === "dark"
+  const carouselClass = isDark ? "testimonials-dark-carousel" : "accounting-testimonials-carousel"
+  const trackClass = isDark ? "testimonials-dark-track" : "accounting-testimonials-track"
+
   return (
-    <div className="accounting-testimonials-carousel">
+    <div className={carouselClass}>
       <div
-        className="accounting-testimonials-track"
+        className={trackClass}
         ref={trackRef}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
@@ -131,21 +145,56 @@ export function TestimonialsCarousel({ testimonials }: { testimonials: Testimoni
         onPointerCancel={handlePointerUp}
         onClickCapture={preventClickAfterDrag}
       >
-        {loopedTestimonials.map(({ name, role, quote }, index) => (
-          <article className="accounting-testimonial-card" key={`${name}-${index}`}>
-            <Quote size={22} strokeWidth={2} className="accounting-testimonial-quote-icon" aria-hidden="true" />
-            <div className="accounting-testimonial-stars" aria-hidden="true">
-              {Array.from({ length: 5 }).map((_, starIndex) => (
-                <Star key={starIndex} size={15} strokeWidth={0} fill="currentColor" />
-              ))}
-            </div>
-            <p className="accounting-testimonial-quote">{quote}</p>
-            <div className="accounting-testimonial-author">
-              <span className="accounting-testimonial-name">{name}</span>
-              <span className="accounting-testimonial-role">{role}</span>
-            </div>
-          </article>
-        ))}
+        {loopedTestimonials.map(({ name, role, quote }, index) => {
+          const isFeatured = isDark && index % testimonials.length === FEATURED_TESTIMONIAL_INDEX
+
+          if (!isDark) {
+            return (
+              <article className="accounting-testimonial-card" key={`${name}-${index}`}>
+                <Quote size={22} strokeWidth={2} className="accounting-testimonial-quote-icon" aria-hidden="true" />
+                <div className="accounting-testimonial-stars" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, starIndex) => (
+                    <Star key={starIndex} size={15} strokeWidth={0} fill="currentColor" />
+                  ))}
+                </div>
+                <p className="accounting-testimonial-quote">{quote}</p>
+                <div className="accounting-testimonial-author">
+                  <span className="accounting-testimonial-name">{name}</span>
+                  <span className="accounting-testimonial-role">{role}</span>
+                </div>
+              </article>
+            )
+          }
+
+          return (
+            <article
+              className={`testimonials-dark-card${isFeatured ? " is-featured" : ""}`}
+              key={`${name}-${index}`}
+            >
+              {isFeatured && <span className="testimonials-dark-featured-badge">Mais citado</span>}
+
+              <Quote size={26} strokeWidth={2} className="testimonials-dark-quote-icon" aria-hidden="true" />
+              <div className="testimonials-dark-stars" aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, starIndex) => (
+                  <Star key={starIndex} size={16} strokeWidth={0} fill="currentColor" />
+                ))}
+              </div>
+              <p className="testimonials-dark-quote">{quote}</p>
+
+              <span className="testimonials-dark-divider" aria-hidden="true" />
+
+              <div className="testimonials-dark-author">
+                <span className="testimonials-dark-avatar" aria-hidden="true">
+                  {getInitial(name)}
+                </span>
+                <span className="testimonials-dark-author-text">
+                  <span className="testimonials-dark-name">{name}</span>
+                  <span className="testimonials-dark-role">{role}</span>
+                </span>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </div>
   )

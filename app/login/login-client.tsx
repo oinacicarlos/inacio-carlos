@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { safeRedirectPath, buildAuthCallbackUrl } from '@/lib/safe-redirect'
+import { BrandLogo } from '@/components/brand-logo'
 
 function isInvalidRefreshTokenError(error: unknown) {
   return error instanceof Error && error.message.toLowerCase().includes('refresh token')
@@ -142,10 +143,11 @@ export default function LoginClient() {
   }
 
   return (
-    <main className="admin-login-page">
+    <main className="admin-login-page login-hub-page">
       <section className="admin-login-panel login-hub-panel" aria-label="Acesso ao hub admin">
         <div className="admin-login-content login-hub-card">
           <header className="admin-login-header login-hub-header">
+            <BrandLogo variant="white" className="login-hub-logo" />
             <h1>Acesse o hub</h1>
             <p>Entre para acompanhar clientes, rotinas e oportunidades em um só lugar.</p>
           </header>

@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function TermosDeUsoPage() {
   return (
-    <ToolShell mainClassName="blog-site">
+    <ToolShell mainClassName="legal-page" variant="dark">
       <section className="legal-page-hero" aria-labelledby="legal-page-title">
         <h1 id="legal-page-title">Termos de Uso</h1>
         <p>Última atualização: agosto de 2026</p>

@@ -1,36 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
-const SAO_PAULO_TIME_ZONE = "America/Sao_Paulo"
-const BUSINESS_START_MINUTES = 8 * 60
-const BUSINESS_END_MINUTES = 16 * 60 + 30
-const WEEKDAYS = new Set(["Mon", "Tue", "Wed", "Thu", "Fri"])
-
 type AdvisorNoticeProps = {
   availableHref: string
   unavailableHref: string
-}
-
-function isAdvisorAvailable(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: SAO_PAULO_TIME_ZONE,
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date)
-
-  const weekday = parts.find((part) => part.type === "weekday")?.value
-  const hour = Number(parts.find((part) => part.type === "hour")?.value)
-  const minute = Number(parts.find((part) => part.type === "minute")?.value)
-
-  if (!weekday || Number.isNaN(hour) || Number.isNaN(minute) || !WEEKDAYS.has(weekday)) {
-    return false
-  }
-
-  const currentMinutes = hour * 60 + minute
-  return currentMinutes >= BUSINESS_START_MINUTES && currentMinutes < BUSINESS_END_MINUTES
 }
 
 function WhatsAppIcon() {
@@ -44,40 +16,19 @@ function WhatsAppIcon() {
   )
 }
 
-export function AccountingAdvisorNotice({ availableHref, unavailableHref }: AdvisorNoticeProps) {
-  const [available, setAvailable] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    function refreshAvailability() {
-      setAvailable(isAdvisorAvailable())
-    }
-
-    refreshAvailability()
-    const intervalId = window.setInterval(refreshAvailability, 60_000)
-    return () => window.clearInterval(intervalId)
-  }, [])
-
-  if (available === null) return null
-
-  const href = available ? availableHref : unavailableHref
+export function AccountingAdvisorNotice({ availableHref }: AdvisorNoticeProps) {
+  const href = availableHref
 
   return (
     <aside className="accounting-advisor-notice" aria-label="Aviso de atendimento da Tropa">
       <a className="accounting-advisor-notice-link" href={href} target="_blank" rel="noreferrer">
-        <span
-          className={`accounting-advisor-notice-icon${available ? " is-available" : ""}`}
-          aria-hidden="true"
-        >
+        <span className="accounting-advisor-notice-icon is-available" aria-hidden="true">
           <WhatsAppIcon />
         </span>
 
         <span className="accounting-advisor-notice-copy">
-          <strong>{available ? "Um assessor está disponível" : "Fale com um assessor da Tropa"}</strong>
-          <span>
-            {available
-              ? "Atendimento rápido pelo WhatsApp agora."
-              : "Envie sua mensagem e retornamos no próximo horário útil."}
-          </span>
+          <strong>Um assessor esta online agora</strong>
+          <span>Clique aqui e seja atendido agora</span>
         </span>
       </a>
     </aside>

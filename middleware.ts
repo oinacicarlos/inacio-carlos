@@ -1,7 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_ROUTES = ['/admin', '/clientes', '/pfx', '/boletos', '/solicitacoes-clientes', '/onboarding-clientes']
+const ADMIN_ROUTES = [
+  '/admin',
+  '/clientes',
+  '/pfx',
+  '/disparazap',
+  '/solicitacoes-clientes',
+  '/onboarding-clientes',
+  '/tarefas',
+  '/boletos',
+  '/avisos',
+  '/pipeline',
+  '/call-sales',
+  '/comissoes',
+  '/links',
+  '/anexos',
+]
 const LEGACY_ADMIN_ROUTES = ['/crm', '/contabilidade']
 const HUB_ROUTES = ['/hub']
 
@@ -87,7 +102,7 @@ function buildContentSecurityPolicy(nonce: string) {
         'https://www.facebook.com',
       ],
     ],
-    ['frame-src', ["'self'", 'https://www.googletagmanager.com']],
+    ['frame-src', ["'self'", 'https://www.googletagmanager.com', 'https://mxgiolzcpoekruuawiph.supabase.co']],
     [
       'style-src',
       [

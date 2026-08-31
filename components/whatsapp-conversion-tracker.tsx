@@ -9,7 +9,6 @@ const EXCLUDED_ROUTE_PREFIXES = [
   "/admin",
   "/api",
   "/auth",
-  "/boletos",
   "/cadastro",
   "/clientes",
   "/contabilidade",
