@@ -2,8 +2,6 @@ import { NextResponse } from "next/server"
 import { requireAdminRoute } from "@/lib/admin-route"
 import { maskWhatsAppPhone } from "@/lib/whatsapp/contacts"
 
-const FILTERS = new Set(["all", "unread", "interested", "optout"])
-
 export async function GET(request: Request) {
   const admin = await requireAdminRoute()
   if (!admin.ok) {
@@ -20,7 +18,10 @@ export async function GET(request: Request) {
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(80)
 
-  if (FILTERS.has(filter)) {
+  if (filter === "blocked") {
+    query = query.eq("status", "blocked")
+  } else {
+    query = query.neq("status", "blocked")
     if (filter === "unread") query = query.gt("unread_count", 0)
     if (filter === "interested") query = query.eq("interested", true)
     if (filter === "optout") query = query.eq("opted_out", true)

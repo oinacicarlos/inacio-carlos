@@ -1,7 +1,7 @@
 'use client'
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { Search, Send } from 'lucide-react'
+import { Ban, Search, Send, ShieldCheck, Trash2 } from 'lucide-react'
 
 type Conversation = {
   id: string
@@ -28,7 +28,7 @@ type InboxMessage = {
   created_at: string
 }
 
-type Filter = 'all' | 'unread' | 'interested' | 'optout'
+type Filter = 'all' | 'unread' | 'interested' | 'optout' | 'blocked'
 
 function formatRelativeTime(value: string | null) {
   if (!value) return ''
@@ -161,8 +161,53 @@ export default function AdminHomeInbox() {
     }
   }
 
+  async function handleBlock() {
+    if (!selected) return
+    if (!window.confirm(`Bloquear "${selected.name || selected.phone}"? A conversa some da caixa principal e você não poderá mais responder.`)) return
+
+    const response = await fetch(`/api/whatsapp/conversations/${selected.id}/block`, { method: 'POST' })
+    const data = await response.json()
+    if (!response.ok || !data.ok) {
+      setError('Não consegui bloquear essa conversa agora.')
+      return
+    }
+    setSelectedId('')
+    setSelected(null)
+    loadConversations(true)
+  }
+
+  async function handleUnblock() {
+    if (!selected) return
+    const response = await fetch(`/api/whatsapp/conversations/${selected.id}/unblock`, { method: 'POST' })
+    const data = await response.json()
+    if (!response.ok || !data.ok) {
+      setError('Não consegui desbloquear essa conversa agora.')
+      return
+    }
+    setSelected(current => (current ? { ...current, status: 'open' } : current))
+    loadConversations(true)
+  }
+
+  async function handleDeleteConversation() {
+    if (!selected) return
+    if (!window.confirm(`Excluir a conversa com "${selected.name || selected.phone}"? Isso apaga todo o histórico de mensagens e não pode ser desfeito.`))
+      return
+
+    const response = await fetch(`/api/whatsapp/conversations/${selected.id}`, { method: 'DELETE' })
+    const data = await response.json()
+    if (!response.ok || !data.ok) {
+      setError('Não consegui excluir essa conversa agora.')
+      return
+    }
+    setSelectedId('')
+    setSelected(null)
+    setMessages([])
+    loadConversations(true)
+  }
+
   const windowState = selected ? getWindowState(selected.customer_service_window_expires_at) : { active: false, label: '', detail: '' }
-  const canReply = Boolean(selected) && !selected?.opted_out && windowState.active
+  const isBlocked = selected?.status === 'blocked'
+  const canReply = Boolean(selected) && !selected?.opted_out && !isBlocked && windowState.active
 
   return (
     <div className="clientes-nucleo-shell">
@@ -180,9 +225,17 @@ export default function AdminHomeInbox() {
             <input type="text" placeholder="Buscar" value={search} onChange={event => setSearch(event.target.value)} />
           </div>
           <div className="inbox-filters">
-            {(['all', 'unread', 'interested', 'optout'] as Filter[]).map(item => (
+            {(['all', 'unread', 'interested', 'optout', 'blocked'] as Filter[]).map(item => (
               <button key={item} type="button" className={filter === item ? 'inbox-filter active' : 'inbox-filter'} onClick={() => setFilter(item)}>
-                {item === 'all' ? 'Todas' : item === 'unread' ? 'Não lidas' : item === 'interested' ? 'Interessados' : 'Opt-out'}
+                {item === 'all'
+                  ? 'Todas'
+                  : item === 'unread'
+                    ? 'Não lidas'
+                    : item === 'interested'
+                      ? 'Interessados'
+                      : item === 'optout'
+                        ? 'Opt-out'
+                        : 'Bloqueados'}
               </button>
             ))}
           </div>
@@ -233,8 +286,27 @@ export default function AdminHomeInbox() {
                 <div className="inbox-thread-tags">
                   {selected.interested && <span className="clientes-nucleo-chip ok">Interessado</span>}
                   {selected.opted_out && <span className="clientes-nucleo-chip danger">Opt-out</span>}
-                  <span className={`clientes-nucleo-chip ${windowState.active ? 'ok' : 'muted'}`}>{windowState.label}</span>
-                  {windowState.detail && <span className="disparos-muted">{windowState.detail}</span>}
+                  {isBlocked && <span className="clientes-nucleo-chip danger">Bloqueado</span>}
+                  {!isBlocked && (
+                    <>
+                      <span className={`clientes-nucleo-chip ${windowState.active ? 'ok' : 'muted'}`}>{windowState.label}</span>
+                      {windowState.detail && <span className="disparos-muted">{windowState.detail}</span>}
+                    </>
+                  )}
+                  <div className="clientes-nucleo-row-actions">
+                    {isBlocked ? (
+                      <button type="button" aria-label="Desbloquear conversa" onClick={handleUnblock}>
+                        <ShieldCheck size={15} aria-hidden />
+                      </button>
+                    ) : (
+                      <button type="button" aria-label="Bloquear conversa" onClick={handleBlock}>
+                        <Ban size={15} aria-hidden />
+                      </button>
+                    )}
+                    <button type="button" aria-label="Excluir conversa" onClick={handleDeleteConversation}>
+                      <Trash2 size={15} aria-hidden />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -269,9 +341,11 @@ export default function AdminHomeInbox() {
                 </form>
               ) : (
                 <div className="inbox-reply-blocked">
-                  {selected.opted_out
-                    ? 'Este contato pediu opt-out — não é possível responder por texto livre.'
-                    : 'A janela de atendimento de 24h terminou. Use um template aprovado (disparo individual) para reiniciar a conversa.'}
+                  {isBlocked
+                    ? 'Você bloqueou essa conversa. Desbloqueie para poder responder de novo.'
+                    : selected.opted_out
+                      ? 'Este contato pediu opt-out — não é possível responder por texto livre.'
+                      : 'A janela de atendimento de 24h terminou. Use um template aprovado (disparo individual) para reiniciar a conversa.'}
                 </div>
               )}
             </>

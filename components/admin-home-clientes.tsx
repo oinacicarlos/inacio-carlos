@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import {
   Download,
   Pencil,
+  Plus,
   Search,
   Send,
   Trash2,
@@ -15,24 +16,21 @@ import {
   Folder,
   X,
 } from 'lucide-react'
+import ClientAttachmentsModal from '@/components/client-attachments-modal'
+import {
+  type RoutineClient,
+  type RoutineClientCustomObligation,
+  type RoutineClientStatus,
+  type RoutineDepartment,
+  type RoutineRegime,
+  ROUTINE_DEPARTMENTS,
+  mapRoutineClient,
+  mapRoutineCustomObligation,
+} from '@/lib/routine-engine'
 
-type Regime = 'MEI' | 'Simples Nacional'
-type ClientStatus = 'Ativo' | 'Inativo'
-
-type ClientRow = {
-  id: string
-  name: string
-  cnpj: string
-  partnerName: string
-  partnerCpf: string
-  regime: Regime
-  hasPayroll: boolean
-  whatsapp: string
-  email: string
-  monthlyFee: number
-  notes: string
-  status: ClientStatus
-}
+type Regime = RoutineRegime
+type ClientStatus = RoutineClientStatus
+type ClientRow = RoutineClient
 
 type ClientFormState = {
   name: string
@@ -42,6 +40,10 @@ type ClientFormState = {
   regime: Regime
   status: ClientStatus
   hasPayroll: boolean
+  hasEmployees: boolean
+  hasProLabore: boolean
+  issuesInvoices: boolean
+  needsFiscalTracking: boolean
   whatsapp: string
   email: string
   monthlyFee: string
@@ -56,27 +58,34 @@ const EMPTY_FORM: ClientFormState = {
   regime: 'Simples Nacional',
   status: 'Ativo',
   hasPayroll: false,
+  hasEmployees: false,
+  hasProLabore: false,
+  issuesInvoices: true,
+  needsFiscalTracking: true,
   whatsapp: '',
   email: '',
   monthlyFee: '',
   notes: '',
 }
 
+const OBLIGATION_DEPARTMENTS = ROUTINE_DEPARTMENTS.filter(department => department !== 'Obrigatoriedade')
+
+type ObligationFormState = {
+  name: string
+  department: RoutineDepartment
+  category: string
+  requiresFile: boolean
+}
+
+const EMPTY_OBLIGATION_FORM: ObligationFormState = {
+  name: '',
+  department: 'Obrigações específicas',
+  category: '',
+  requiresFile: true,
+}
+
 function mapRow(row: Record<string, unknown>): ClientRow {
-  return {
-    id: String(row.id),
-    name: (row.name as string) ?? '',
-    cnpj: (row.cnpj as string) ?? '',
-    partnerName: (row.partner_name as string) ?? '',
-    partnerCpf: (row.partner_cpf as string) ?? '',
-    regime: row.regime === 'Simples Nacional' ? 'Simples Nacional' : 'MEI',
-    hasPayroll: row.has_payroll === true || row.has_employees === true || row.has_pro_labore === true,
-    whatsapp: (row.whatsapp as string) ?? '',
-    email: (row.email as string) ?? '',
-    monthlyFee: Number(row.monthly_fee ?? 0),
-    notes: (row.notes as string) ?? '',
-    status: row.status === 'Inativo' ? 'Inativo' : 'Ativo',
-  }
+  return mapRoutineClient(row)
 }
 
 function getInitials(name: string) {
@@ -132,6 +141,14 @@ export default function AdminHomeClientes() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
 
+  const [attachmentsClientId, setAttachmentsClientId] = useState<string | null>(null)
+
+  const [obligations, setObligations] = useState<RoutineClientCustomObligation[]>([])
+  const [obligationsLoading, setObligationsLoading] = useState(false)
+  const [obligationForm, setObligationForm] = useState<ObligationFormState>(EMPTY_OBLIGATION_FORM)
+  const [obligationBusy, setObligationBusy] = useState(false)
+  const [obligationError, setObligationError] = useState('')
+
   const loadData = useCallback(async () => {
     setLoading(true)
     setLoadError('')
@@ -179,9 +196,23 @@ export default function AdminHomeClientes() {
     return { total, active, inactive, withPayroll, payrollPct, recurringRevenue }
   }, [clients])
 
+  const loadObligations = useCallback(async (clientId: string) => {
+    setObligationsLoading(true)
+    const { data } = await supabase
+      .from('routine_client_custom_obligations')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('sort_order', { ascending: true })
+    setObligations((data ?? []).map(mapRoutineCustomObligation))
+    setObligationsLoading(false)
+  }, [])
+
   function openCreateModal() {
     setEditingId(null)
     setForm(EMPTY_FORM)
+    setObligations([])
+    setObligationForm(EMPTY_OBLIGATION_FORM)
+    setObligationError('')
     setFormError('')
     setModalOpen(true)
   }
@@ -196,13 +227,62 @@ export default function AdminHomeClientes() {
       regime: client.regime,
       status: client.status,
       hasPayroll: client.hasPayroll,
+      hasEmployees: client.hasEmployees,
+      hasProLabore: client.hasProLabore,
+      issuesInvoices: client.issuesInvoices,
+      needsFiscalTracking: client.needsFiscalTracking,
       whatsapp: client.whatsapp,
       email: client.email,
       monthlyFee: client.monthlyFee ? String(client.monthlyFee) : '',
       notes: client.notes,
     })
+    setObligations([])
+    setObligationForm(EMPTY_OBLIGATION_FORM)
+    setObligationError('')
     setFormError('')
     setModalOpen(true)
+    loadObligations(client.id)
+  }
+
+  async function handleAddObligation() {
+    if (!editingId) return
+    if (!obligationForm.name.trim()) {
+      setObligationError('Informe o nome da obrigação.')
+      return
+    }
+    setObligationBusy(true)
+    setObligationError('')
+    const sortOrder = 900 + obligations.filter(o => o.active).length
+    const { data, error } = await supabase
+      .from('routine_client_custom_obligations')
+      .insert({
+        client_id: editingId,
+        name: obligationForm.name.trim(),
+        department: obligationForm.department,
+        category: obligationForm.category.trim() || 'Personalizada',
+        requires_file: obligationForm.requiresFile,
+        active: true,
+        sort_order: sortOrder,
+      })
+      .select('*')
+      .single()
+    setObligationBusy(false)
+    if (error || !data) {
+      setObligationError('Não consegui salvar essa obrigação.')
+      return
+    }
+    setObligations(current => [...current, mapRoutineCustomObligation(data)])
+    setObligationForm(EMPTY_OBLIGATION_FORM)
+  }
+
+  async function handleRemoveObligation(obligation: RoutineClientCustomObligation) {
+    if (!window.confirm(`Remover a obrigação "${obligation.name}"? As competências já lançadas não são alteradas.`)) return
+    const { error } = await supabase.from('routine_client_custom_obligations').delete().eq('id', obligation.id)
+    if (error) {
+      window.alert('Não consegui remover essa obrigação agora.')
+      return
+    }
+    setObligations(current => current.filter(o => o.id !== obligation.id))
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -222,6 +302,10 @@ export default function AdminHomeClientes() {
       partner_cpf: form.partnerCpf.trim(),
       regime: form.regime,
       has_payroll: form.hasPayroll,
+      has_employees: form.hasEmployees,
+      has_pro_labore: form.hasProLabore,
+      issues_invoices: form.issuesInvoices,
+      needs_fiscal_tracking: form.needsFiscalTracking,
       whatsapp: form.whatsapp.trim(),
       email: form.email.trim(),
       monthly_fee: form.monthlyFee ? Number(form.monthlyFee.replace(',', '.')) || 0 : 0,
@@ -367,7 +451,7 @@ export default function AdminHomeClientes() {
               </thead>
               <tbody>
                 {filtered.map(client => (
-                  <tr key={client.id}>
+                  <tr key={client.id} className="clientes-nucleo-row-clickable" onClick={() => setAttachmentsClientId(client.id)}>
                     <td>
                       <div className="clientes-nucleo-name-cell">
                         <span className="clientes-nucleo-avatar">{getInitials(client.name)}</span>
@@ -388,7 +472,7 @@ export default function AdminHomeClientes() {
                     <td>{client.email || '—'}</td>
                     <td>{formatCurrency(client.monthlyFee)}</td>
                     <td>
-                      <div className="clientes-nucleo-row-actions">
+                      <div className="clientes-nucleo-row-actions" onClick={event => event.stopPropagation()}>
                         <button type="button" aria-label={`Editar ${client.name}`} onClick={() => openEditModal(client)}>
                           <Pencil size={15} aria-hidden />
                         </button>
@@ -498,14 +582,54 @@ export default function AdminHomeClientes() {
                   <option value="Inativo">Inativo</option>
                 </select>
               </label>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={form.hasPayroll}
-                  onChange={event => setForm(current => ({ ...current, hasPayroll: event.target.checked }))}
-                />
-                Possui folha de pagamento
-              </label>
+              <div className="span-2 clientes-nucleo-param-block">
+                <span className="clientes-nucleo-param-title">Parametrização de obrigações</span>
+                <p className="clientes-nucleo-param-hint">
+                  Define quais rotinas são geradas quando uma nova competência é criada para este cliente.
+                </p>
+                <div className="clientes-nucleo-param-grid">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.hasPayroll}
+                      onChange={event => setForm(current => ({ ...current, hasPayroll: event.target.checked }))}
+                    />
+                    Possui folha de pagamento
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.hasEmployees}
+                      onChange={event => setForm(current => ({ ...current, hasEmployees: event.target.checked }))}
+                    />
+                    Tem funcionários (CLT)
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.hasProLabore}
+                      onChange={event => setForm(current => ({ ...current, hasProLabore: event.target.checked }))}
+                    />
+                    Tem pró-labore
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.issuesInvoices}
+                      onChange={event => setForm(current => ({ ...current, issuesInvoices: event.target.checked }))}
+                    />
+                    Emite notas fiscais
+                  </label>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={form.needsFiscalTracking}
+                      onChange={event => setForm(current => ({ ...current, needsFiscalTracking: event.target.checked }))}
+                    />
+                    Acompanhamento fiscal
+                  </label>
+                </div>
+              </div>
               <label className="span-2">
                 Observações
                 <textarea
@@ -515,6 +639,86 @@ export default function AdminHomeClientes() {
                 />
               </label>
             </div>
+
+            {editingId && (
+              <div className="clientes-nucleo-param-block">
+                <span className="clientes-nucleo-param-title">Obrigações específicas</span>
+                <p className="clientes-nucleo-param-hint">
+                  Rotinas extras deste cliente. Entram automaticamente nas próximas competências; use “Recalcular rotinas”
+                  em Competências para aplicar às competências já abertas.
+                </p>
+                {obligationsLoading ? (
+                  <p className="clientes-nucleo-param-hint">Carregando…</p>
+                ) : (
+                  <div className="clientes-nucleo-obligation-list">
+                    {obligations.filter(o => o.active).length === 0 && (
+                      <p className="clientes-nucleo-param-hint">Nenhuma obrigação específica cadastrada.</p>
+                    )}
+                    {obligations
+                      .filter(o => o.active)
+                      .map(obligation => (
+                        <div key={obligation.id} className="clientes-nucleo-obligation-row">
+                          <span>
+                            {obligation.name}
+                            <small> · {obligation.department}</small>
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Remover ${obligation.name}`}
+                            onClick={() => handleRemoveObligation(obligation)}
+                          >
+                            <Trash2 size={14} aria-hidden />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+                <div className="clientes-nucleo-obligation-form">
+                  <input
+                    type="text"
+                    placeholder="Nome da obrigação"
+                    value={obligationForm.name}
+                    onChange={event => setObligationForm(current => ({ ...current, name: event.target.value }))}
+                  />
+                  <select
+                    value={obligationForm.department}
+                    onChange={event =>
+                      setObligationForm(current => ({ ...current, department: event.target.value as RoutineDepartment }))
+                    }
+                  >
+                    {OBLIGATION_DEPARTMENTS.map(department => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Categoria (opcional)"
+                    value={obligationForm.category}
+                    onChange={event => setObligationForm(current => ({ ...current, category: event.target.value }))}
+                  />
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={obligationForm.requiresFile}
+                      onChange={event => setObligationForm(current => ({ ...current, requiresFile: event.target.checked }))}
+                    />
+                    Exige arquivo
+                  </label>
+                  <button
+                    type="button"
+                    className="clientes-nucleo-btn ghost"
+                    onClick={handleAddObligation}
+                    disabled={obligationBusy}
+                  >
+                    <Plus size={14} aria-hidden />
+                    {obligationBusy ? 'Salvando…' : 'Adicionar'}
+                  </button>
+                </div>
+                {obligationError && <p className="clientes-nucleo-modal-error">{obligationError}</p>}
+              </div>
+            )}
 
             {formError && <p className="clientes-nucleo-modal-error">{formError}</p>}
 
@@ -529,6 +733,20 @@ export default function AdminHomeClientes() {
           </form>
         </div>
       )}
+
+      {attachmentsClientId && (() => {
+        const client = clients.find(item => item.id === attachmentsClientId)
+        if (!client) return null
+        return (
+          <ClientAttachmentsModal
+            clientId={client.id}
+            clientName={client.name || 'Sem nome'}
+            legacyDocuments={client.documents}
+            onClose={() => setAttachmentsClientId(null)}
+            onCountChange={delta => setAttachmentsTotal(current => current + delta)}
+          />
+        )
+      })()}
     </>
   )
 }

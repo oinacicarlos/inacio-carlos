@@ -32,10 +32,14 @@ export const ROUTINE_DEPARTMENTS: RoutineDepartment[] = [
   'Obrigações específicas',
 ]
 
+export type RoutineClientDocument = { id?: string; name: string; url: string; size?: number; type?: string }
+
 export type RoutineClient = {
   id: string
   name: string
   cnpj: string
+  partnerName: string
+  partnerCpf: string
   regime: RoutineRegime
   hasPayroll: boolean
   hasEmployees: boolean
@@ -44,6 +48,9 @@ export type RoutineClient = {
   needsFiscalTracking: boolean
   whatsapp: string
   email: string
+  monthlyFee: number
+  notes: string
+  documents: RoutineClientDocument[]
   status: RoutineClientStatus
 }
 
@@ -96,6 +103,7 @@ export type RoutineDefinition = {
   requiresFile: boolean
   sortOrder: number
   requiresPayroll?: boolean
+  requiresEmployees?: boolean
   requiresInvoices?: boolean
   requiresFiscalTracking?: boolean
 }
@@ -115,12 +123,12 @@ export type RoutineItemInsertPayload = {
 export const ROUTINE_DEFINITIONS: RoutineDefinition[] = [
   { name: 'DAS', department: 'Obrigatoriedade', category: 'Obrigação mensal', regimes: ['MEI'], requiresFile: true, sortOrder: 10 },
 
-  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['MEI'], requiresFile: true, requiresInvoices: true, sortOrder: 100 },
-  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 100 },
-  { name: 'Declaração Simples', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 110 },
-  { name: 'Recibo de Declaração', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 120 },
-  { name: 'Guia PGDAS', department: 'Fiscal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 130 },
-  { name: 'Optante Simples', department: 'Fiscal', category: 'Conferência', regimes: ['Simples Nacional'], requiresFile: true, sortOrder: 140 },
+  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['MEI'], requiresFile: true, requiresInvoices: true, requiresFiscalTracking: true, sortOrder: 100 },
+  { name: 'Soma de NF', department: 'Fiscal', category: 'Notas fiscais', regimes: ['Simples Nacional'], requiresFile: true, requiresInvoices: true, requiresFiscalTracking: true, sortOrder: 100 },
+  { name: 'Declaração Simples', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, requiresFiscalTracking: true, sortOrder: 110 },
+  { name: 'Recibo de Declaração', department: 'Fiscal', category: 'Apuração', regimes: ['Simples Nacional'], requiresFile: true, requiresFiscalTracking: true, sortOrder: 120 },
+  { name: 'Guia PGDAS', department: 'Fiscal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresFiscalTracking: true, sortOrder: 130 },
+  { name: 'Optante Simples', department: 'Fiscal', category: 'Conferência', regimes: ['Simples Nacional'], requiresFile: true, requiresFiscalTracking: true, sortOrder: 140 },
 
   { name: 'Cartão CNPJ', department: 'Atualização Cadastral', category: 'Cadastro', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 200 },
   { name: 'QSA', department: 'Atualização Cadastral', category: 'Cadastro', regimes: ['MEI', 'Simples Nacional'], requiresFile: true, sortOrder: 210 },
@@ -131,11 +139,11 @@ export const ROUTINE_DEFINITIONS: RoutineDefinition[] = [
   { name: 'Folha de PG', department: 'Departamento Pessoal', category: 'Folha', regimes: ['MEI'], requiresFile: true, requiresPayroll: true, sortOrder: 300 },
   { name: 'DAE', department: 'Departamento Pessoal', category: 'Guias', regimes: ['MEI'], requiresFile: true, requiresPayroll: true, sortOrder: 310 },
   { name: 'Folha de PG', department: 'Departamento Pessoal', category: 'Folha', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 300 },
-  { name: 'Extrato Mensal de Folha', department: 'Departamento Pessoal', category: 'Folha', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 310 },
-  { name: 'Guia FGTS', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 320 },
+  { name: 'Extrato Mensal de Folha', department: 'Departamento Pessoal', category: 'Folha', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, requiresEmployees: true, sortOrder: 310 },
+  { name: 'Guia FGTS', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, requiresEmployees: true, sortOrder: 320 },
   { name: 'Guia INSS', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 330 },
-  { name: 'Relatório de Consignado', department: 'Departamento Pessoal', category: 'Relatórios', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 340 },
-  { name: 'Detalhamento de Guia', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, sortOrder: 350 },
+  { name: 'Relatório de Consignado', department: 'Departamento Pessoal', category: 'Relatórios', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, requiresEmployees: true, sortOrder: 340 },
+  { name: 'Detalhamento de Guia', department: 'Departamento Pessoal', category: 'Guias', regimes: ['Simples Nacional'], requiresFile: true, requiresPayroll: true, requiresEmployees: true, sortOrder: 350 },
 ]
 
 export function genId() {
@@ -155,6 +163,8 @@ export function mapRoutineClient(row: Record<string, unknown>): RoutineClient {
     id: String(row.id),
     name: (row.name as string) ?? '',
     cnpj: (row.cnpj as string) ?? '',
+    partnerName: (row.partner_name as string) ?? '',
+    partnerCpf: (row.partner_cpf as string) ?? '',
     regime: row.regime === 'Simples Nacional' ? 'Simples Nacional' : 'MEI',
     hasPayroll,
     hasEmployees,
@@ -163,6 +173,9 @@ export function mapRoutineClient(row: Record<string, unknown>): RoutineClient {
     needsFiscalTracking: row.needs_fiscal_tracking !== false,
     whatsapp: (row.whatsapp as string) ?? '',
     email: (row.email as string) ?? '',
+    monthlyFee: Number(row.monthly_fee ?? 0),
+    notes: (row.notes as string) ?? '',
+    documents: Array.isArray(row.documents) ? (row.documents as RoutineClientDocument[]) : [],
     status: row.status === 'Inativo' ? 'Inativo' : 'Ativo',
   }
 }
@@ -218,6 +231,7 @@ export function isRoutineDefinitionApplicableToClient(client: RoutineClient, def
   if (!client) return false
   if (!definition.regimes.includes(client.regime)) return false
   if (definition.requiresPayroll && !(client.hasPayroll || client.hasEmployees || client.hasProLabore)) return false
+  if (definition.requiresEmployees && !client.hasEmployees) return false
   if (definition.requiresInvoices && !client.issuesInvoices) return false
   if (definition.requiresFiscalTracking && !client.needsFiscalTracking) return false
   return true
@@ -259,6 +273,43 @@ export function buildRoutineItemsPayload(
     }))
 
   return [...standardPayload, ...customPayload]
+}
+
+/**
+ * Compara as rotinas já lançadas em uma competência com o que os parâmetros
+ * atuais do cliente (regime, folha, funcionários CLT, emissão de NF,
+ * acompanhamento fiscal e obrigações específicas) exigem e devolve o que
+ * precisa ser inserido e o que ficou obsoleto.
+ *
+ * Só marca como obsoleto item padrão ainda pendente e sem arquivo — nada que
+ * já tenha sido anexado/enviado ou marcado como "Não precisa" é removido.
+ */
+export function reconcileRoutineItems(
+  client: RoutineClient,
+  competenceId: string,
+  existingItems: RoutineItem[],
+  customObligations: RoutineClientCustomObligation[],
+): { toInsert: RoutineItemInsertPayload[]; staleItemIds: string[] } {
+  const fullPayload = buildRoutineItemsPayload(client, competenceId, customObligations)
+
+  const hasStandard = (name: string, department: RoutineDepartment) =>
+    existingItems.some(item => !item.isCustom && item.routineName === name && item.department === department)
+  const hasCustom = (obligationId: string) =>
+    existingItems.some(item => item.isCustom && item.customObligationId === obligationId)
+
+  const toInsert = fullPayload.filter(payload =>
+    payload.is_custom
+      ? !hasCustom(payload.custom_obligation_id ?? '')
+      : !hasStandard(payload.routine_name, payload.department),
+  )
+
+  const staleItemIds = existingItems
+    .filter(item => !item.isCustom)
+    .filter(item => !isRoutineItemApplicableToClient(client, item))
+    .filter(item => item.status === 'Pendente' && !isRoutineItemReady(item))
+    .map(item => item.id)
+
+  return { toInsert, staleItemIds }
 }
 
 export function isRoutineItemApplicableToClient(client: RoutineClient, item: RoutineItem) {

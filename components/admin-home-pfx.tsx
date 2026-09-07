@@ -5,14 +5,19 @@ import { supabase } from '@/lib/supabaseClient'
 import {
   AlertTriangle,
   CalendarClock,
+  Download,
   FileWarning,
   IdCard,
+  MessageSquare,
   Pencil,
+  Receipt,
+  RefreshCw,
   Search,
   Trash2,
   UploadCloud,
   UserPlus,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 
 type ClientType = 'PJ' | 'PF'
@@ -118,6 +123,12 @@ function getWhatsappUrl(client: PfxClientRow, intent: WhatsAppIntent) {
   const phone = normalizeWhatsapp(client.whatsapp)
   const message = encodeURIComponent(getWhatsappMessage(client, intent))
   return `https://wa.me/${phone}?text=${message}`
+}
+
+const WHATSAPP_INTENT_ICONS: Record<WhatsAppIntent, LucideIcon> = {
+  Cobrança: Receipt,
+  Feedback: MessageSquare,
+  Renovação: RefreshCw,
 }
 
 function formatFileSize(bytes: number) {
@@ -402,7 +413,7 @@ export default function AdminHomePfx() {
                   const status = getValidityStatus(client.validityDate)
                   const hasWhatsapp = normalizeWhatsapp(client.whatsapp) !== ''
                   return (
-                    <tr key={client.id}>
+                    <tr key={client.id} className="clientes-nucleo-row-clickable" onClick={() => openEditModal(client)}>
                       <td>
                         <div className="clientes-nucleo-name-cell">
                           <span className="clientes-nucleo-avatar">{client.clientName.slice(0, 2).toUpperCase() || '?'}</span>
@@ -431,26 +442,31 @@ export default function AdminHomePfx() {
                           {client.birdIdDone ? 'Feito' : 'Não feito'}
                         </span>
                       </td>
-                      <td>
+                      <td onClick={event => event.stopPropagation()}>
                         <div className="pfx-whatsapp-actions">
-                          {(['Cobrança', 'Feedback', 'Renovação'] as WhatsAppIntent[]).map(intent => (
-                            <a
-                              key={intent}
-                              href={hasWhatsapp ? getWhatsappUrl(client, intent) : undefined}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-disabled={!hasWhatsapp}
-                              onClick={event => {
-                                if (!hasWhatsapp) event.preventDefault()
-                              }}
-                              className={hasWhatsapp ? 'pfx-whatsapp-chip' : 'pfx-whatsapp-chip disabled'}
-                            >
-                              {intent}
-                            </a>
-                          ))}
+                          {(['Cobrança', 'Feedback', 'Renovação'] as WhatsAppIntent[]).map(intent => {
+                            const Icon = WHATSAPP_INTENT_ICONS[intent]
+                            return (
+                              <a
+                                key={intent}
+                                href={hasWhatsapp ? getWhatsappUrl(client, intent) : undefined}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={intent}
+                                aria-label={intent}
+                                aria-disabled={!hasWhatsapp}
+                                onClick={event => {
+                                  if (!hasWhatsapp) event.preventDefault()
+                                }}
+                                className={hasWhatsapp ? 'pfx-whatsapp-chip' : 'pfx-whatsapp-chip disabled'}
+                              >
+                                <Icon size={14} aria-hidden />
+                              </a>
+                            )
+                          })}
                         </div>
                       </td>
-                      <td>
+                      <td onClick={event => event.stopPropagation()}>
                         <div className="clientes-nucleo-row-actions">
                           <button type="button" aria-label={`Editar ${client.clientName}`} onClick={() => openEditModal(client)}>
                             <Pencil size={15} aria-hidden />
@@ -546,6 +562,12 @@ export default function AdminHomePfx() {
                     <span className="pfx-file-name">
                       {form.pfxFileName} {form.pfxFileSize ? `· ${formatFileSize(form.pfxFileSize)}` : ''}
                     </span>
+                  )}
+                  {form.pfxFileUrl && (
+                    <a href={form.pfxFileUrl} download={form.pfxFileName || 'certificado.pfx'} className="pfx-file-download">
+                      <Download size={14} aria-hidden />
+                      Baixar arquivo
+                    </a>
                   )}
                 </div>
                 {fileError && <span className="clientes-nucleo-modal-error">{fileError}</span>}

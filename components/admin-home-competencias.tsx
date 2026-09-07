@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { ChevronLeft, ChevronRight, Layers, Plus, Trash2, Users2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Layers, Plus, RefreshCw, Trash2, Users2, X } from 'lucide-react'
 import {
   type RoutineClient,
   type RoutineClientCustomObligation,
@@ -22,6 +22,7 @@ import {
   mapRoutineItem,
   matchesRoutineDepartmentFilter,
   normalizeRoutineCompetenceMonth,
+  reconcileRoutineItems,
   shiftRoutineCompetenceMonth,
 } from '@/lib/routine-engine'
 import RoutineCompetenceDetail from '@/components/routine-competence-detail'
@@ -253,6 +254,70 @@ export default function AdminHomeCompetencias() {
     setCustomObligations(next)
   }
 
+  const [recalcBusy, setRecalcBusy] = useState(false)
+
+  async function recalcCompetenceItems(competenceId: string, client: RoutineClient) {
+    const existing = items.filter(item => item.competenceId === competenceId)
+    const clientObligations = customObligations.filter(o => o.clientId === client.id)
+    const { toInsert, staleItemIds } = reconcileRoutineItems(client, competenceId, existing, clientObligations)
+    if (toInsert.length === 0 && staleItemIds.length === 0) return { inserted: 0, removed: 0 }
+
+    if (staleItemIds.length > 0) {
+      const { error } = await supabase.from('routine_items').delete().in('id', staleItemIds)
+      if (error) throw new Error('recalc-delete-failed')
+    }
+
+    let insertedItems: RoutineItem[] = []
+    if (toInsert.length > 0) {
+      const { data, error } = await supabase.from('routine_items').insert(toInsert).select('*')
+      if (error) throw new Error('recalc-insert-failed')
+      insertedItems = (data ?? []).map(mapRoutineItem)
+    }
+
+    setItems(current => [...current.filter(item => !staleItemIds.includes(item.id)), ...insertedItems])
+    return { inserted: insertedItems.length, removed: staleItemIds.length }
+  }
+
+  async function handleRecalcCompetence(competence: RoutineCompetence, client: RoutineClient) {
+    setRecalcBusy(true)
+    try {
+      const result = await recalcCompetenceItems(competence.id, client)
+      if (result.inserted === 0 && result.removed === 0) {
+        window.alert('As rotinas já estão sincronizadas com os parâmetros atuais do cliente.')
+      } else {
+        window.alert(`Rotinas atualizadas: +${result.inserted} incluída(s), -${result.removed} removida(s).`)
+      }
+    } catch {
+      window.alert('Não consegui recalcular as rotinas agora.')
+    } finally {
+      setRecalcBusy(false)
+    }
+  }
+
+  async function handleRecalcMonth() {
+    if (monthRows.length === 0) return
+    if (!window.confirm(`Recalcular as rotinas de ${monthRows.length} competência(s) de ${formatRoutineCompetence(month)} a partir dos parâmetros atuais dos clientes?`)) {
+      return
+    }
+    setRecalcBusy(true)
+    let inserted = 0
+    let removed = 0
+    let failed = 0
+    for (const row of monthRows) {
+      try {
+        const result = await recalcCompetenceItems(row.competence.id, row.client)
+        inserted += result.inserted
+        removed += result.removed
+      } catch {
+        failed += 1
+      }
+    }
+    setRecalcBusy(false)
+    window.alert(
+      `Sincronização concluída: +${inserted} incluída(s), -${removed} removida(s)${failed ? `, ${failed} competência(s) com erro` : ''}.`,
+    )
+  }
+
   if (selected) {
     return (
       <RoutineCompetenceDetail
@@ -277,6 +342,15 @@ export default function AdminHomeCompetencias() {
           <p>Rotinas mensais por cliente, geradas a partir do regime e das obrigações de cada um.</p>
         </div>
         <div className="clientes-nucleo-actions">
+          <button
+            type="button"
+            className="clientes-nucleo-btn ghost"
+            onClick={handleRecalcMonth}
+            disabled={recalcBusy || monthRows.length === 0}
+          >
+            <RefreshCw size={15} aria-hidden />
+            {recalcBusy ? 'Sincronizando…' : 'Sincronizar rotinas'}
+          </button>
           <button type="button" className="clientes-nucleo-btn ghost" onClick={() => setBulkOpen(true)}>
             <Users2 size={15} aria-hidden />
             Processar em massa
@@ -382,6 +456,15 @@ export default function AdminHomeCompetencias() {
                         >
                           <Layers size={14} aria-hidden />
                           Abrir
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Recalcular rotinas de ${row.client.name}`}
+                          title="Recalcular rotinas a partir dos parâmetros atuais do cliente"
+                          disabled={recalcBusy}
+                          onClick={() => handleRecalcCompetence(row.competence, row.client)}
+                        >
+                          <RefreshCw size={15} aria-hidden />
                         </button>
                         <button
                           type="button"

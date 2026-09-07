@@ -2,9 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createContext, type ReactNode, useContext, useMemo, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react'
 import { Home, Globe } from 'lucide-react'
 import { PILLARS, type Pillar, type PillarId } from '@/lib/admin-pillars'
+
+function getPillarIdFromPathname(pathname: string): PillarId | null {
+  for (const candidate of PILLARS) {
+    const matches = candidate.modules.some(item => pathname === item.href || pathname.startsWith(`${item.href}/`))
+    if (matches) return candidate.id
+  }
+  return null
+}
 
 type AdminPillarContextValue = {
   pillarId: PillarId
@@ -25,8 +33,15 @@ export function useAdminPillar() {
 export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [pillarId, setPillarIdState] = useState<PillarId>('processos')
+  const [pillarId, setPillarIdState] = useState<PillarId>(() => getPillarIdFromPathname(pathname) ?? 'processos')
   const pillar = PILLARS.find(item => item.id === pillarId) ?? PILLARS[1]
+
+  useEffect(() => {
+    const matched = getPillarIdFromPathname(pathname)
+    if (matched) {
+      setPillarIdState(current => (current === matched ? current : matched))
+    }
+  }, [pathname])
 
   const setPillarId = (id: PillarId) => {
     setPillarIdState(id)
