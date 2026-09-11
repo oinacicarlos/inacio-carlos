@@ -19,6 +19,7 @@ import {
   CalendarPlus,
   Upload,
   MessageCircle,
+  NotebookPen,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -124,11 +125,13 @@ export const PILLARS: Pillar[] = [
       { id: 'links', label: 'Links', href: '/admin/links', status: 'built', icon: Link2 },
       { id: 'anexos', label: 'Anexos', href: '/admin/anexos', status: 'built', icon: Paperclip },
       { id: 'contatos', label: 'Contatos', href: '/admin/contatos', status: 'built', icon: Contact },
+      { id: 'notas', label: 'Notas', href: '/admin/notas', status: 'built', icon: NotebookPen },
     ],
     shortcuts: [
       { label: 'Novo link', href: '/admin/links', status: 'built', icon: Link2 },
       { label: 'Enviar anexo', href: '/admin/anexos', status: 'built', icon: Paperclip },
       { label: 'Novo contato', href: '/admin/contatos', status: 'built', icon: Contact },
+      { label: 'Abrir notas', href: '/admin/notas', status: 'built', icon: NotebookPen },
     ],
     upcoming: [],
   },

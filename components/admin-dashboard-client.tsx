@@ -176,7 +176,7 @@ type DisparazapCampaign = {
   finished_at?: string | null
 }
 
-type DisparazapInboxFilter = 'all' | 'unread' | 'interested' | 'optout'
+type DisparazapInboxFilter = 'all' | 'unread' | 'interested' | 'optout' | 'blocked'
 
 type DisparazapConversation = {
   id: string
@@ -3846,6 +3846,7 @@ function DisparazapModule() {
   }), [bulkContactSummary, bulkSummary, parsedBulkContacts])
   const filteredBulkContactRows = bulkContactFilter === 'all' ? bulkContactRows : bulkContactRows.filter(row => row.situation === bulkContactFilter)
   const selectedInboxWindow = getDisparazapWindowState(inboxSelected?.customer_service_window_expires_at)
+  const isInboxSelectedBlocked = inboxSelected?.status === 'blocked'
 
   useEffect(() => {
     let mounted = true
@@ -3994,6 +3995,59 @@ function DisparazapModule() {
       setInboxError(sendError instanceof Error ? sendError.message : 'Não consegui enviar a resposta.')
     } finally {
       setInboxSending(false)
+    }
+  }
+
+  const handleBlockInboxConversation = async () => {
+    if (!inboxSelected) return
+    if (!window.confirm(`Bloquear "${inboxSelected.name || inboxSelected.phone}"? A conversa some da caixa principal e você não poderá mais responder.`)) return
+
+    try {
+      const response = await fetch(`/api/whatsapp/conversations/${inboxSelected.id}/block`, { method: 'POST' })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown } | null
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+      setInboxSelectedId('')
+      setInboxSelected(null)
+      await loadInboxConversations({ silent: true })
+    } catch (blockError) {
+      setInboxError(blockError instanceof Error ? blockError.message : 'Não consegui bloquear essa conversa agora.')
+    }
+  }
+
+  const handleUnblockInboxConversation = async () => {
+    if (!inboxSelected) return
+
+    try {
+      const response = await fetch(`/api/whatsapp/conversations/${inboxSelected.id}/unblock`, { method: 'POST' })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown } | null
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+      setInboxSelected(current => (current ? { ...current, status: 'open' } : current))
+      await loadInboxConversations({ silent: true })
+    } catch (unblockError) {
+      setInboxError(unblockError instanceof Error ? unblockError.message : 'Não consegui desbloquear essa conversa agora.')
+    }
+  }
+
+  const handleDeleteInboxConversation = async () => {
+    if (!inboxSelected) return
+    if (!window.confirm(`Excluir a conversa com "${inboxSelected.name || inboxSelected.phone}"? Isso apaga todo o histórico de mensagens e não pode ser desfeito.`)) return
+
+    try {
+      const response = await fetch(`/api/whatsapp/conversations/${inboxSelected.id}`, { method: 'DELETE' })
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown } | null
+      if (!response.ok || !data?.ok) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+      setInboxSelectedId('')
+      setInboxSelected(null)
+      setInboxMessages([])
+      await loadInboxConversations({ silent: true })
+    } catch (deleteError) {
+      setInboxError(deleteError instanceof Error ? deleteError.message : 'Não consegui excluir essa conversa agora.')
     }
   }
 
@@ -4739,6 +4793,7 @@ function DisparazapModule() {
                   ['unread', 'Não lidas'],
                   ['interested', 'Interessados'],
                   ['optout', 'Opt-out'],
+                  ['blocked', 'Bloqueados'],
                 ].map(([key, label]) => (
                   <button key={key} type="button" className={inboxFilter === key ? 'is-active' : ''} onClick={() => setInboxFilter(key as DisparazapInboxFilter)}>
                     {label}
@@ -4792,8 +4847,27 @@ function DisparazapModule() {
                     <div className="disparazap-inbox-badges">
                       {inboxSelected.interested && <em className="is-interested">Interessado</em>}
                       {inboxSelected.opted_out && <em className="is-optout">Opt-out</em>}
-                      <b className={selectedInboxWindow.active ? 'is-active' : 'is-closed'}>{selectedInboxWindow.label}</b>
-                      <small>{selectedInboxWindow.detail}</small>
+                      {isInboxSelectedBlocked && <em className="is-optout">Bloqueado</em>}
+                      {!isInboxSelectedBlocked && (
+                        <>
+                          <b className={selectedInboxWindow.active ? 'is-active' : 'is-closed'}>{selectedInboxWindow.label}</b>
+                          <small>{selectedInboxWindow.detail}</small>
+                        </>
+                      )}
+                      <div className="disparazap-inbox-actions">
+                        {isInboxSelectedBlocked ? (
+                          <button type="button" aria-label="Desbloquear conversa" onClick={handleUnblockInboxConversation}>
+                            <DisparazapIcon type="shield" />
+                          </button>
+                        ) : (
+                          <button type="button" aria-label="Bloquear conversa" onClick={handleBlockInboxConversation}>
+                            <DisparazapIcon type="ban" />
+                          </button>
+                        )}
+                        <button type="button" aria-label="Excluir conversa" onClick={handleDeleteInboxConversation}>
+                          <DisparazapIcon type="trash" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -4820,10 +4894,10 @@ function DisparazapModule() {
                   </div>
 
                   <form className="disparazap-inbox-reply" onSubmit={handleSendInboxReply}>
-                    {!selectedInboxWindow.active || inboxSelected.opted_out ? (
+                    {isInboxSelectedBlocked || !selectedInboxWindow.active || inboxSelected.opted_out ? (
                       <div className="disparazap-empty-params">
                         <DisparazapIcon type="info" />
-                        <span>{inboxSelected.opted_out ? 'Este contato pediu opt-out. Não responda por texto livre.' : 'A janela de atendimento de 24 horas terminou. Use um template aprovado para iniciar uma nova conversa.'}</span>
+                        <span>{isInboxSelectedBlocked ? 'Você bloqueou essa conversa. Desbloqueie para poder responder de novo.' : inboxSelected.opted_out ? 'Este contato pediu opt-out. Não responda por texto livre.' : 'A janela de atendimento de 24 horas terminou. Use um template aprovado para iniciar uma nova conversa.'}</span>
                       </div>
                     ) : (
                       <>
@@ -5688,7 +5762,7 @@ function ModuleIcon({
 function DisparazapIcon({
   type,
 }: {
-  type: 'user' | 'template' | 'globe' | 'sliders' | 'phone' | 'info' | 'send' | 'verified' | 'checks'
+  type: 'user' | 'template' | 'globe' | 'sliders' | 'phone' | 'info' | 'send' | 'verified' | 'checks' | 'ban' | 'shield' | 'trash'
 }) {
   if (type === 'user') {
     return (
@@ -5775,6 +5849,36 @@ function DisparazapIcon({
       <svg aria-hidden viewBox="0 0 24 24">
         <path d="m3 12 4 4 8-8" />
         <path d="m13 12 3 3 5-6" />
+      </svg>
+    )
+  }
+
+  if (type === 'ban') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m4.9 4.9 14.2 14.2" />
+      </svg>
+    )
+  }
+
+  if (type === 'shield') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    )
+  }
+
+  if (type === 'trash') {
+    return (
+      <svg aria-hidden viewBox="0 0 24 24">
+        <path d="M3 6h18" />
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
       </svg>
     )
   }

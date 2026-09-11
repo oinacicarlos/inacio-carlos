@@ -16640,6 +16640,41 @@ a:focus-visible {
 	text-align: right;
 }
 
+.disparazap-inbox-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.disparazap-inbox-actions button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 8px;
+	border: 1px solid rgba(105, 145, 210, 0.2);
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(255, 255, 255, 0.56);
+	cursor: pointer;
+	transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.disparazap-inbox-actions button:hover {
+	color: #fff;
+	border-color: rgba(58, 126, 255, 0.5);
+	background: rgba(13, 31, 60, 0.75);
+}
+
+.disparazap-inbox-actions svg {
+	width: 15px;
+	height: 15px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
 .disparazap-inbox-messages {
 	display: flex;
 	flex: 1 1 auto;
@@ -34571,6 +34606,55 @@ a.admin-home-nav-item:hover {
 
 .links-category-modal {
 	width: min(420px, 100%);
+}
+
+/* ==================== Núcleo Tropa · Bloco de notas ==================== */
+
+.notepad-shell {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.notepad-textarea {
+	width: 100%;
+	min-height: 60vh;
+	padding: 18px 20px;
+	border-radius: 16px;
+	border: 1px solid var(--nucleo-line, rgba(105, 145, 210, 0.2));
+	background: var(--nucleo-surface, linear-gradient(180deg, rgba(10, 23, 45, 0.74), rgba(7, 17, 34, 0.88)));
+	color: var(--nucleo-ink, #fff);
+	font-size: 14.5px;
+	line-height: 1.6;
+	font-family: inherit;
+	resize: vertical;
+}
+
+.notepad-textarea:focus {
+	outline: none;
+	border-color: rgba(58, 126, 255, 0.5);
+}
+
+.notepad-textarea::placeholder {
+	color: var(--nucleo-muted-2, rgba(255, 255, 255, 0.36));
+}
+
+.notepad-status {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	align-self: flex-end;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--nucleo-muted, rgba(255, 255, 255, 0.56));
+}
+
+.notepad-status.is-pending {
+	color: #f6c94c;
+}
+
+.notepad-status.is-error {
+	color: #ff6f7c;
 }
 
 /* ==================== Núcleo Tropa · Pré-visualização de anexos ==================== */
