@@ -11,6 +11,7 @@ type CampaignPayload = {
   templateLanguage?: unknown
   templateCategory?: unknown
   contactsText?: unknown
+  testGroup?: unknown
 }
 
 function cleanString(value: unknown, maxLength = 180) {
@@ -33,9 +34,9 @@ export async function GET() {
 
   const { data, error } = await admin.supabase
     .from("whatsapp_campaigns")
-    .select("id,name,template_name,template_language,template_category,status,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,created_at,started_at,finished_at")
+    .select("id,name,template_name,template_language,template_category,status,test_group,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at,started_at,finished_at")
     .order("created_at", { ascending: false })
-    .limit(20)
+    .limit(50)
 
   if (error) {
     return NextResponse.json({ ok: false, error: "Não consegui carregar as campanhas." }, { status: 500 })
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
   const templateLanguage = cleanString(payload.templateLanguage, 32)
   const templateCategory = cleanString(payload.templateCategory, 80)
   const contactsText = typeof payload.contactsText === "string" ? payload.contactsText : ""
+  const testGroup = cleanString(payload.testGroup, 120)
 
   if (!name || !templateName || !templateLanguage || !templateCategory) {
     return NextResponse.json({ ok: false, error: "Campanha ou template inválido." }, { status: 400 })
@@ -141,8 +143,9 @@ export async function POST(request: Request) {
       created_by: admin.user.id,
       total_contacts: recipients.length,
       total_optout: optoutCount,
+      test_group: testGroup,
     })
-    .select("id,name,template_name,template_language,template_category,status,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,created_at")
+    .select("id,name,template_name,template_language,template_category,status,test_group,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at")
     .single()
 
   if (campaignError || !campaign) {

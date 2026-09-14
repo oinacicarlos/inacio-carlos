@@ -134,6 +134,7 @@ export async function processWhatsAppCampaignBatch(campaignId: string, options: 
         status: result.messageStatus ?? "accepted",
         metaTimestamp: new Date().toISOString(),
         incrementUnread: false,
+        campaignId: campaign.id,
       })
 
       processed += 1

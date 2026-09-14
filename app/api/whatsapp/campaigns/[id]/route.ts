@@ -18,7 +18,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data: campaign, error: campaignError } = await admin.supabase
     .from("whatsapp_campaigns")
-    .select("id,name,template_name,template_language,template_category,status,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,created_at,started_at,finished_at")
+    .select("id,name,template_name,template_language,template_category,status,test_group,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at,started_at,finished_at")
     .eq("id", id)
     .single()
 

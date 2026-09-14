@@ -113,7 +113,7 @@ type DisparazapSendResult = {
   wamid: string
 }
 
-type DisparazapMode = 'individual' | 'bulk' | 'inbox'
+type DisparazapMode = 'individual' | 'bulk' | 'inbox' | 'reports'
 type DisparazapBulkStep = 'contacts' | 'template' | 'review' | 'send' | 'result'
 
 type DisparazapCampaignSummary = {
@@ -164,6 +164,7 @@ type DisparazapCampaign = {
   template_language: string
   template_category: string
   status: string
+  test_group: string | null
   total_contacts: number
   total_queued: number
   total_sent: number
@@ -171,6 +172,8 @@ type DisparazapCampaign = {
   total_read: number
   total_failed: number
   total_optout: number
+  total_replied: number
+  total_interested: number
   created_at: string
   started_at?: string | null
   finished_at?: string | null
@@ -651,6 +654,11 @@ function formatDisparazapRelativeTime(iso: string | null | undefined) {
   const diffHours = Math.floor(diffMinutes / 60)
   if (diffHours < 24) return `Há ${diffHours}h`
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+function formatDisparazapRate(numerator: number, denominator: number) {
+  if (!denominator) return '—'
+  return `${((numerator / denominator) * 100).toFixed(1)}%`
 }
 
 function getDisparazapWindowState(expiresAt: string | null | undefined) {
@@ -3798,6 +3806,7 @@ function DisparazapModule() {
   const [result, setResult] = useState<DisparazapSendResult | null>(null)
   const [bulkStep, setBulkStep] = useState<DisparazapBulkStep>('contacts')
   const [bulkName, setBulkName] = useState(`Campanha ${new Date().toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' })}`)
+  const [bulkTestGroup, setBulkTestGroup] = useState('')
   const [bulkContactsText, setBulkContactsText] = useState('')
   const [bulkContactsFileName, setBulkContactsFileName] = useState('')
   const [bulkContactsValidated, setBulkContactsValidated] = useState(false)
@@ -3822,6 +3831,11 @@ function DisparazapModule() {
   const [inboxError, setInboxError] = useState('')
   const [inboxReply, setInboxReply] = useState('')
   const [inboxSending, setInboxSending] = useState(false)
+  const inboxNotificationAudioRef = useRef<HTMLAudioElement | null>(null)
+  const inboxPreviousUnreadTotalRef = useRef<number | null>(null)
+  const [reportsCampaigns, setReportsCampaigns] = useState<DisparazapCampaign[]>([])
+  const [reportsLoading, setReportsLoading] = useState(false)
+  const [reportsError, setReportsError] = useState('')
 
   const templateOptions = useMemo(() => templates.map(template => ({
     key: `${template.name}::${template.language}::${template.category}`,
@@ -3847,6 +3861,16 @@ function DisparazapModule() {
   const filteredBulkContactRows = bulkContactFilter === 'all' ? bulkContactRows : bulkContactRows.filter(row => row.situation === bulkContactFilter)
   const selectedInboxWindow = getDisparazapWindowState(inboxSelected?.customer_service_window_expires_at)
   const isInboxSelectedBlocked = inboxSelected?.status === 'blocked'
+  const reportsGroups = useMemo(() => {
+    const groups = new Map<string, DisparazapCampaign[]>()
+    for (const campaign of reportsCampaigns) {
+      const key = campaign.test_group?.trim() || 'Sem grupo de teste'
+      const list = groups.get(key) ?? []
+      list.push(campaign)
+      groups.set(key, list)
+    }
+    return Array.from(groups.entries())
+  }, [reportsCampaigns])
 
   useEffect(() => {
     let mounted = true
@@ -3884,6 +3908,13 @@ function DisparazapModule() {
     }
   }, [])
 
+  const playInboxNotificationSound = () => {
+    const audio = inboxNotificationAudioRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    void audio.play().catch(() => {})
+  }
+
   const loadInboxConversations = async (options: { silent?: boolean } = {}) => {
     if (!options.silent) setInboxLoading(true)
     setInboxError('')
@@ -3904,6 +3935,13 @@ function DisparazapModule() {
       if (!inboxSelectedId && data.conversations[0]) {
         setInboxSelectedId(data.conversations[0].id)
       }
+
+      const totalUnread = data.conversations.reduce((sum, conversation) => sum + (conversation.unread_count || 0), 0)
+      const previousTotal = inboxPreviousUnreadTotalRef.current
+      if (previousTotal !== null && totalUnread > previousTotal) {
+        playInboxNotificationSound()
+      }
+      inboxPreviousUnreadTotalRef.current = totalUnread
     } catch (loadError) {
       setInboxError(loadError instanceof Error ? loadError.message : 'Não consegui carregar a caixa de entrada.')
     } finally {
@@ -3944,6 +3982,15 @@ function DisparazapModule() {
   }
 
   useEffect(() => {
+    inboxNotificationAudioRef.current = new Audio('/sounds/new-message.mp3')
+    inboxNotificationAudioRef.current.volume = 0.6
+  }, [])
+
+  useEffect(() => {
+    inboxPreviousUnreadTotalRef.current = null
+  }, [inboxFilter, inboxSearch])
+
+  useEffect(() => {
     if (mode !== 'inbox') return
     void loadInboxConversations()
     const intervalId = window.setInterval(() => {
@@ -3953,6 +4000,31 @@ function DisparazapModule() {
 
     return () => window.clearInterval(intervalId)
   }, [mode, inboxFilter, inboxSearch, inboxSelectedId])
+
+  const loadReportsCampaigns = async () => {
+    setReportsLoading(true)
+    setReportsError('')
+
+    try {
+      const response = await fetch('/api/whatsapp/campaigns')
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; campaigns?: DisparazapCampaign[]; error?: unknown } | null
+
+      if (!response.ok || !data?.ok || !Array.isArray(data.campaigns)) {
+        throw new Error(getDisparazapSafeError(data?.error))
+      }
+
+      setReportsCampaigns(data.campaigns)
+    } catch (loadError) {
+      setReportsError(loadError instanceof Error ? loadError.message : 'Não consegui carregar os relatórios.')
+    } finally {
+      setReportsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (mode !== 'reports') return
+    void loadReportsCampaigns()
+  }, [mode])
 
   useEffect(() => {
     if (mode !== 'inbox' || !inboxSelectedId) return
@@ -4275,6 +4347,7 @@ function DisparazapModule() {
           templateLanguage: selectedTemplate.language,
           templateCategory: selectedTemplate.category,
           contactsText: bulkContactsText,
+          testGroup: bulkTestGroup,
         }),
       })
       const data = (await response.json().catch(() => null)) as {
@@ -4407,6 +4480,7 @@ function DisparazapModule() {
           <button type="button" className={mode === 'individual' ? 'is-active' : ''} onClick={() => setMode('individual')}>Envio individual</button>
           <button type="button" className={mode === 'bulk' ? 'is-active' : ''} onClick={() => setMode('bulk')}>Disparo em massa</button>
           <button type="button" className={mode === 'inbox' ? 'is-active' : ''} onClick={() => setMode('inbox')}>Caixa de entrada</button>
+          <button type="button" className={mode === 'reports' ? 'is-active' : ''} onClick={() => setMode('reports')}>Relatórios</button>
         </div>
 
         {mode === 'individual' ? (
@@ -4570,6 +4644,15 @@ function DisparazapModule() {
                     <label className="disparazap-field">
                       <span>Campanha</span>
                       <input value={bulkName} onChange={event => setBulkName(event.target.value)} placeholder="Nome da campanha" />
+                    </label>
+
+                    <label className="disparazap-field">
+                      <span>Grupo de teste (opcional)</span>
+                      <input
+                        value={bulkTestGroup}
+                        onChange={event => setBulkTestGroup(event.target.value)}
+                        placeholder="Ex: Oferta direta vs. Prova social"
+                      />
                     </label>
 
                     <div className="disparazap-model-row">
@@ -4769,7 +4852,7 @@ function DisparazapModule() {
               </div>
             </div>
           </>
-        ) : (
+        ) : mode === 'inbox' ? (
           <div className="disparazap-inbox">
             <aside className="disparazap-card disparazap-inbox-list">
               <div className="disparazap-card-header">
@@ -4912,6 +4995,59 @@ function DisparazapModule() {
                 </>
               )}
             </section>
+          </div>
+        ) : (
+          <div className="disparazap-card disparazap-reports">
+            <div className="disparazap-card-header">
+              <span className="disparazap-card-icon is-whatsapp">
+                <ModuleIcon type="message" />
+              </span>
+              <div>
+                <strong>Relatórios</strong>
+                <span>Compare campanhas pra ver qual abordagem trouxe mais resposta.</span>
+              </div>
+              <button type="button" className="disparazap-reports-refresh" onClick={() => void loadReportsCampaigns()} disabled={reportsLoading}>
+                {reportsLoading ? 'Atualizando...' : 'Atualizar'}
+              </button>
+            </div>
+
+            {reportsError && <span className="crm-global-error">{reportsError}</span>}
+
+            {reportsLoading && reportsCampaigns.length === 0 ? (
+              <div className="disparazap-inbox-empty">Carregando campanhas...</div>
+            ) : reportsCampaigns.length === 0 ? (
+              <div className="disparazap-inbox-empty">
+                <strong>Nenhuma campanha ainda</strong>
+                <span>Assim que você iniciar um disparo em massa, ele aparece aqui pra comparar.</span>
+              </div>
+            ) : (
+              <div className="disparazap-reports-groups">
+                {reportsGroups.map(([groupName, campaigns]) => (
+                  <div key={groupName} className="disparazap-reports-group">
+                    <h3>{groupName}</h3>
+                    <div className="disparazap-reports-cards">
+                      {campaigns.map(campaign => (
+                        <div key={campaign.id} className="disparazap-reports-card">
+                          <header>
+                            <strong>{campaign.name}</strong>
+                            <span className={`disparazap-reports-status is-${campaign.status}`}>{campaign.status}</span>
+                          </header>
+                          <span className="disparazap-reports-template">{campaign.template_name} · {new Date(campaign.created_at).toLocaleDateString('pt-BR')}</span>
+                          <div className="disparazap-reports-stats">
+                            <div><span>Enviados</span><strong>{campaign.total_sent}</strong></div>
+                            <div><span>Entregues</span><strong>{campaign.total_delivered}</strong><small>{formatDisparazapRate(campaign.total_delivered, campaign.total_sent)}</small></div>
+                            <div><span>Lidos</span><strong>{campaign.total_read}</strong><small>{formatDisparazapRate(campaign.total_read, campaign.total_sent)}</small></div>
+                            <div><span>Responderam</span><strong>{campaign.total_replied}</strong><small>{formatDisparazapRate(campaign.total_replied, campaign.total_sent)}</small></div>
+                            <div className="is-highlight"><span>Interessados</span><strong>{campaign.total_interested}</strong><small>{formatDisparazapRate(campaign.total_interested, campaign.total_sent)}</small></div>
+                            <div><span>Opt-out</span><strong>{campaign.total_optout}</strong><small>{formatDisparazapRate(campaign.total_optout, campaign.total_contacts)}</small></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

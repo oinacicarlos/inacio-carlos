@@ -17,6 +17,7 @@ export type WhatsAppInboxMessageInput = {
   status?: string | null
   metaTimestamp?: string | null
   incrementUnread?: boolean
+  campaignId?: string | null
 }
 
 function addCustomerServiceWindow(value: string | null | undefined) {
@@ -47,7 +48,7 @@ export async function upsertWhatsAppInboxMessage(supabase: SupabaseClient, input
 
   const { data: existingConversation } = await supabase
     .from("whatsapp_conversations")
-    .select("id,unread_count,interested,opted_out")
+    .select("id,unread_count,interested,opted_out,campaign_id,has_replied")
     .eq("phone", phone)
     .maybeSingle()
 
@@ -60,6 +61,8 @@ export async function upsertWhatsAppInboxMessage(supabase: SupabaseClient, input
     interested: Boolean(existingConversation?.interested) || interested,
     opted_out: Boolean(existingConversation?.opted_out) || optedOut,
     customer_service_window_expires_at: input.direction === "inbound" ? addCustomerServiceWindow(metaTimestamp) : undefined,
+    campaign_id: existingConversation?.campaign_id ?? input.campaignId ?? null,
+    has_replied: Boolean(existingConversation?.has_replied) || input.direction === "inbound",
   }
 
   const { data: conversation, error: conversationError } = await supabase
