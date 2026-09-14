@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Mail, MessageCircle, User, Users2 } from 'lucide-react'
+import { BarChart3, Mail, MessageCircle, User, Users2 } from 'lucide-react'
 import EmailIndividual from '@/components/disparos/email-individual'
 import EmailGroup from '@/components/disparos/email-group'
 import WhatsappIndividual from '@/components/disparos/whatsapp-individual'
 import WhatsappGroup from '@/components/disparos/whatsapp-group'
+import WhatsappReports from '@/components/disparos/whatsapp-reports'
 
 type Canal = 'email' | 'whatsapp'
-type Destino = 'individual' | 'grupo'
+type Destino = 'individual' | 'grupo' | 'relatorios'
 
 export default function AdminHomeDisparos() {
   const [canal, setCanal] = useState<Canal | null>(null)
@@ -23,6 +24,7 @@ export default function AdminHomeDisparos() {
     if (canal === 'email' && destino === 'individual') return <EmailIndividual onBack={reset} />
     if (canal === 'email' && destino === 'grupo') return <EmailGroup onBack={reset} />
     if (canal === 'whatsapp' && destino === 'individual') return <WhatsappIndividual onBack={reset} />
+    if (canal === 'whatsapp' && destino === 'relatorios') return <WhatsappReports onBack={reset} />
     return <WhatsappGroup onBack={reset} />
   }
 
@@ -72,6 +74,15 @@ export default function AdminHomeDisparos() {
               <strong>Grupo</strong>
               <span>Vários destinatários de uma vez</span>
             </button>
+            {canal === 'whatsapp' && (
+              <button type="button" className="disparos-choice-card" onClick={() => setDestino('relatorios')}>
+                <span className="disparos-choice-icon">
+                  <BarChart3 size={22} aria-hidden />
+                </span>
+                <strong>Relatórios</strong>
+                <span>Compare campanhas e taxas de resposta</span>
+              </button>
+            )}
           </div>
         </>
       )}

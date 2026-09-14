@@ -27,6 +27,7 @@ type RecipientResult = {
 
 export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('')
+  const [testGroup, setTestGroup] = useState('')
   const [contactsText, setContactsText] = useState('')
 
   const [templates, setTemplates] = useState<Template[]>([])
@@ -129,6 +130,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
           templateLanguage: selectedTemplate.language,
           templateCategory: selectedTemplate.category,
           contactsText,
+          testGroup,
         }),
       })
       const createData = await createResponse.json()
@@ -225,6 +227,16 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
       <label className="routine-email-field">
         Nome da campanha
         <input type="text" value={name} onChange={event => setName(event.target.value)} />
+      </label>
+
+      <label className="routine-email-field">
+        Grupo de teste (opcional)
+        <input
+          type="text"
+          value={testGroup}
+          onChange={event => setTestGroup(event.target.value)}
+          placeholder="Ex: Oferta direta vs. Prova social"
+        />
       </label>
 
       <ContactsImport

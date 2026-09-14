@@ -16592,6 +16592,25 @@ a:focus-visible {
 	padding-bottom: 0;
 }
 
+.disparazap-reports-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.disparazap-reports-heading h2 {
+	margin: 0 0 4px;
+}
+
+.disparazap-reports-heading .disparazap-reports-refresh {
+	margin-left: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
 .disparazap-reports-refresh {
 	margin-left: auto;
 	height: 37px;
@@ -34216,9 +34235,9 @@ a.admin-home-nav-item:hover {
 
 .disparos-choice-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 14px;
-	max-width: 640px;
+	max-width: 760px;
 }
 
 .disparos-choice-card {

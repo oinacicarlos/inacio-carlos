@@ -76,6 +76,24 @@ export default function AdminHomeInbox() {
 
   const selectedIdRef = useRef(selectedId)
   selectedIdRef.current = selectedId
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null)
+  const previousUnreadTotalRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    notificationAudioRef.current = new Audio('/sounds/new-message.mp3')
+    notificationAudioRef.current.volume = 0.6
+  }, [])
+
+  useEffect(() => {
+    previousUnreadTotalRef.current = null
+  }, [filter, search])
+
+  function playNotificationSound() {
+    const audio = notificationAudioRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    void audio.play().catch(() => {})
+  }
 
   async function loadConversations(silent = false) {
     if (!silent) setListLoading(true)
@@ -92,6 +110,13 @@ export default function AdminHomeInbox() {
       if (!silent && !selectedIdRef.current && data.conversations.length > 0) {
         setSelectedId(data.conversations[0].id)
       }
+
+      const totalUnread = (data.conversations as Conversation[]).reduce((sum, conversation) => sum + (conversation.unread_count || 0), 0)
+      const previousTotal = previousUnreadTotalRef.current
+      if (previousTotal !== null && totalUnread > previousTotal) {
+        playNotificationSound()
+      }
+      previousUnreadTotalRef.current = totalUnread
     } finally {
       if (!silent) setListLoading(false)
     }
