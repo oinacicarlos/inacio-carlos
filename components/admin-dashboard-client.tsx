@@ -4377,17 +4377,34 @@ function DisparazapModule() {
     if (!bulkCampaign || bulkWorking) return
     setBulkWorking(true)
     setError('')
+    setBulkStep('send')
 
     try {
-      const response = await fetch(`/api/whatsapp/campaigns/${bulkCampaign.id}/start`, { method: 'POST' })
-      const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown; status?: string } | null
+      let status = 'processing'
+      let stalledCalls = 0
 
-      if (!response.ok || !data?.ok) {
-        throw new Error(getDisparazapSafeError(data?.error))
+      while (status === 'processing') {
+        const response = await fetch(`/api/whatsapp/campaigns/${bulkCampaign.id}/start`, { method: 'POST' })
+        const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: unknown; status?: string; processed?: number } | null
+
+        if (!response.ok || !data?.ok) {
+          throw new Error(getDisparazapSafeError(data?.error))
+        }
+
+        stalledCalls = Number(data.processed ?? 0) > 0 ? 0 : stalledCalls + 1
+        if (stalledCalls >= 3) {
+          throw new Error('O disparo travou sem enviar novas mensagens.')
+        }
+
+        status = data.status ?? 'processing'
+        setBulkCampaign(current => current ? { ...current, status } : current)
       }
 
-      setBulkCampaign(current => current ? { ...current, status: data.status ?? 'processing' } : current)
-      setBulkStep('send')
+      const detailResponse = await fetch(`/api/whatsapp/campaigns/${bulkCampaign.id}`)
+      const detailData = (await detailResponse.json().catch(() => null)) as { ok?: boolean; campaign?: DisparazapCampaign } | null
+      if (detailResponse.ok && detailData?.ok && detailData.campaign) {
+        setBulkCampaign(detailData.campaign)
+      }
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : 'Não consegui iniciar a campanha.')
     } finally {

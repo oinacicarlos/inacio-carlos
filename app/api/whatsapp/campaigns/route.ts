@@ -3,7 +3,7 @@ import { requireAdminRoute } from "@/lib/admin-route"
 import { normalizeBrazilianWhatsAppPhone, parseWhatsAppContactsText, maskWhatsAppPhone } from "@/lib/whatsapp/contacts"
 import { fetchWhatsAppTemplates } from "@/lib/whatsapp/templates"
 
-const WHATSAPP_CAMPAIGN_TEST_CAP = 5
+const WHATSAPP_CAMPAIGN_TEST_CAP = 100
 
 type CampaignPayload = {
   name?: unknown

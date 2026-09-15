@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Send } from 'lucide-react'
 import ContactsImport from '@/components/disparos/contacts-import'
 
-const WHATSAPP_CAMPAIGN_TEST_CAP = 5
+const WHATSAPP_CAMPAIGN_TEST_CAP = 100
 
 type Template = {
   name: string
@@ -44,6 +44,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
   const [campaignId, setCampaignId] = useState('')
   const [results, setResults] = useState<RecipientResult[]>([])
   const [done, setDone] = useState(false)
+  const [sendProgress, setSendProgress] = useState<{ sent: number; total: number } | null>(null)
 
   useEffect(() => {
     async function loadTemplates() {
@@ -120,6 +121,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
     }
 
     setCreating(true)
+    setSendProgress({ sent: 0, total: validateSummary.ready })
     try {
       const createResponse = await fetch('/api/whatsapp/campaigns', {
         method: 'POST',
@@ -143,12 +145,30 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
       const id = createData.campaign.id as string
       setCampaignId(id)
 
-      const startResponse = await fetch(`/api/whatsapp/campaigns/${id}/start`, { method: 'POST' })
-      const startData = await startResponse.json()
-      if (!startResponse.ok || !startData.ok) {
-        setError(startData.error || 'Campanha criada, mas não consegui disparar.')
-        setCreating(false)
-        return
+      let sentSoFar = 0
+      let status = 'processing'
+      let stalledCalls = 0
+
+      while (status === 'processing') {
+        const startResponse = await fetch(`/api/whatsapp/campaigns/${id}/start`, { method: 'POST' })
+        const startData = await startResponse.json()
+        if (!startResponse.ok || !startData.ok) {
+          setError(startData.error || 'Campanha criada, mas não consegui continuar o disparo.')
+          setCreating(false)
+          return
+        }
+
+        const processedInThisChunk = Number(startData.processed ?? 0)
+        stalledCalls = processedInThisChunk > 0 ? 0 : stalledCalls + 1
+        if (stalledCalls >= 3) {
+          setError('O disparo travou sem enviar novas mensagens. Confira a campanha na aba Relatórios.')
+          setCreating(false)
+          return
+        }
+
+        sentSoFar += processedInThisChunk
+        setSendProgress({ sent: sentSoFar, total: validateSummary.ready })
+        status = startData.status ?? 'processing'
       }
 
       const detailResponse = await fetch(`/api/whatsapp/campaigns/${id}`)
@@ -322,11 +342,17 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
 
       {error && <p className="clientes-nucleo-modal-error">{error}</p>}
 
+      {creating && sendProgress && (
+        <p className="disparos-muted">
+          Enviando {sendProgress.sent}/{sendProgress.total}… são ~5s entre cada mensagem, não feche esta aba.
+        </p>
+      )}
+
       <div className="routine-email-actions">
         <span className="routine-email-to">{validateSummary?.ready ?? 0} destinatário(s) vão receber</span>
         <button type="button" className="clientes-nucleo-btn primary" onClick={handleCreateAndStart} disabled={creating}>
           <Send size={14} aria-hidden />
-          {creating ? 'Enviando…' : 'Criar e disparar'}
+          {creating ? `Enviando ${sendProgress?.sent ?? 0}/${sendProgress?.total ?? 0}…` : 'Criar e disparar'}
         </button>
       </div>
     </div>

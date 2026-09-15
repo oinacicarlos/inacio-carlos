@@ -4,6 +4,12 @@ import { maskWhatsAppPhone } from "@/lib/whatsapp/contacts"
 import { sendWhatsAppTemplate, WhatsAppSendError } from "@/lib/whatsapp/send-template"
 
 const MAX_CAMPAIGN_ATTEMPTS = 3
+const WHATSAPP_SEND_BATCH_SIZE = 5
+const WHATSAPP_SEND_INTERVAL_MS = 5000
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 type CampaignRecord = {
   id: string
@@ -34,7 +40,7 @@ function getBodyParameters(value: unknown, fallbackName: string) {
 }
 
 export async function processWhatsAppCampaignBatch(campaignId: string, options: { limit?: number } = {}) {
-  const limit = Math.max(1, Math.min(options.limit ?? 1, 5))
+  const limit = Math.max(1, Math.min(options.limit ?? 1, WHATSAPP_SEND_BATCH_SIZE))
   const supabase = createServiceRoleSupabaseClient()
 
   const { data: campaignData, error: campaignError } = await supabase
@@ -82,8 +88,13 @@ export async function processWhatsAppCampaignBatch(campaignId: string, options: 
 
   let processed = 0
 
-  for (const recipient of recipients) {
+  for (let index = 0; index < recipients.length; index += 1) {
+    const recipient = recipients[index]
     if (recipient.wamid) continue
+
+    if (index > 0) {
+      await sleep(WHATSAPP_SEND_INTERVAL_MS)
+    }
 
     const attempts = Number(recipient.attempts ?? 0) + 1
     const now = new Date().toISOString()
