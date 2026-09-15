@@ -344,7 +344,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
 
       {creating && sendProgress && (
         <p className="disparos-muted">
-          Enviando {sendProgress.sent}/{sendProgress.total}… são ~5s entre cada mensagem, não feche esta aba.
+          Enviando {sendProgress.sent}/{sendProgress.total}… não feche esta aba até terminar.
         </p>
       )}
 

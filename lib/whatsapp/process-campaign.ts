@@ -5,7 +5,7 @@ import { sendWhatsAppTemplate, WhatsAppSendError } from "@/lib/whatsapp/send-tem
 
 const MAX_CAMPAIGN_ATTEMPTS = 3
 const WHATSAPP_SEND_BATCH_SIZE = 5
-const WHATSAPP_SEND_INTERVAL_MS = 5000
+const WHATSAPP_SEND_INTERVAL_MS = 500
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
