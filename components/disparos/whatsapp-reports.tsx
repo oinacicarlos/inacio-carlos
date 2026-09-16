@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 
 type Campaign = {
   id: string
@@ -17,6 +17,14 @@ type Campaign = {
   total_replied: number
   total_interested: number
   created_at: string
+}
+
+type RecipientDetail = {
+  id: string
+  name: string
+  phone: string
+  status: string
+  error_message: string | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -48,6 +56,9 @@ export default function WhatsappReports({ onBack }: { onBack: () => void }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [expandedId, setExpandedId] = useState('')
+  const [detailsById, setDetailsById] = useState<Record<string, RecipientDetail[]>>({})
+  const [detailsLoading, setDetailsLoading] = useState('')
 
   async function loadCampaigns() {
     setLoading(true)
@@ -70,6 +81,27 @@ export default function WhatsappReports({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     loadCampaigns()
   }, [])
+
+  async function toggleDetails(campaignId: string) {
+    if (expandedId === campaignId) {
+      setExpandedId('')
+      return
+    }
+
+    setExpandedId(campaignId)
+    if (detailsById[campaignId]) return
+
+    setDetailsLoading(campaignId)
+    try {
+      const response = await fetch(`/api/whatsapp/campaigns/${campaignId}`)
+      const data = await response.json()
+      if (response.ok && data.ok && Array.isArray(data.recipients)) {
+        setDetailsById(current => ({ ...current, [campaignId]: data.recipients }))
+      }
+    } finally {
+      setDetailsLoading('')
+    }
+  }
 
   const groups = useMemo(() => {
     const map = new Map<string, Campaign[]>()
@@ -131,6 +163,42 @@ export default function WhatsappReports({ onBack }: { onBack: () => void }) {
                       <div className="is-highlight"><span>Interessados</span><strong>{campaign.total_interested}</strong><small>{formatRate(campaign.total_interested, campaign.total_sent)}</small></div>
                       <div><span>Opt-out</span><strong>{campaign.total_optout}</strong><small>{formatRate(campaign.total_optout, campaign.total_contacts)}</small></div>
                     </div>
+
+                    <button type="button" className="disparos-report-details-toggle" onClick={() => void toggleDetails(campaign.id)}>
+                      {expandedId === campaign.id ? <ChevronUp size={13} aria-hidden /> : <ChevronDown size={13} aria-hidden />}
+                      {expandedId === campaign.id ? 'Esconder destinatários' : 'Ver destinatários'}
+                    </button>
+
+                    {expandedId === campaign.id && (
+                      <div className="disparos-report-details">
+                        {detailsLoading === campaign.id ? (
+                          <p className="routine-department-empty">Carregando destinatários…</p>
+                        ) : !detailsById[campaign.id]?.length ? (
+                          <p className="routine-department-empty">Nenhum destinatário encontrado.</p>
+                        ) : (
+                          detailsById[campaign.id].map(recipient => (
+                            <div key={recipient.id} className="disparos-report-detail-row">
+                              <div>
+                                <strong>{recipient.name}</strong>
+                                <span>{recipient.phone}</span>
+                              </div>
+                              <span
+                                className={`clientes-nucleo-chip ${
+                                  recipient.status === 'sent' || recipient.status === 'delivered' || recipient.status === 'read'
+                                    ? 'ok'
+                                    : recipient.status === 'failed'
+                                      ? 'danger'
+                                      : 'muted'
+                                }`}
+                              >
+                                {recipient.status}
+                              </span>
+                              {recipient.error_message && <small>{recipient.error_message}</small>}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

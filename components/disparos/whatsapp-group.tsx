@@ -200,6 +200,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
                 <th>Nome</th>
                 <th>Telefone</th>
                 <th>Status</th>
+                <th>Motivo</th>
               </tr>
             </thead>
             <tbody>
@@ -220,6 +221,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
                       {recipient.status}
                     </span>
                   </td>
+                  <td>{recipient.error_message ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
