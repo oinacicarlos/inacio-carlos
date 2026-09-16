@@ -104,14 +104,14 @@ export async function POST(request: Request) {
   }))
 
   const recipients = parsedContacts.flatMap((contact) => {
-    if (!contact.normalizedPhone || !contact.name) return []
+    if (!contact.normalizedPhone || !contact.name || contact.duplicate) return []
 
     const isOptout = optoutPhones.has(contact.normalizedPhone)
     return [{
       name: contact.name,
       phone: contact.normalizedPhone,
-      status: isOptout ? "optout" : contact.duplicate ? "skipped" : "pending",
-      error_message: isOptout ? "Bloqueado / opt-out" : contact.duplicate ? "Duplicado na lista" : null,
+      status: isOptout ? "optout" : "pending",
+      error_message: isOptout ? "Bloqueado / opt-out" : null,
       body_parameters: buildBodyParameters(selectedTemplate.bodyVariableCount, contact.name),
     }]
   })
