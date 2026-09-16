@@ -34374,6 +34374,13 @@ a.admin-home-nav-item:hover {
 	white-space: nowrap;
 }
 
+.disparos-report-card-tools {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: none;
+}
+
 .disparos-report-meta {
 	display: block;
 	margin-bottom: 14px;
