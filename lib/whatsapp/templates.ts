@@ -44,7 +44,7 @@ type MetaTemplatesResponse = {
 }
 
 function countTemplateVariables(value: string) {
-  const matches = value.match(/{{\s*\d+\s*}}/g)
+  const matches = value.match(/{{\s*[a-zA-Z0-9_]+\s*}}/g)
   return matches?.length ?? 0
 }
 

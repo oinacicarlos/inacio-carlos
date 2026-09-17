@@ -4125,7 +4125,12 @@ function DisparazapModule() {
 
   const getPreviewBody = (template: DisparazapTemplate | null, values: string[]) => {
     if (!template) return 'Selecione um template aprovado'
-    return template.body.replace(/{{\s*(\d+)\s*}}/g, (_match, index: string) => values[Number(index) - 1] || `{{${index}}}`)
+    let position = 0
+    return template.body.replace(/{{\s*[a-zA-Z0-9_]+\s*}}/g, (match) => {
+      const value = values[position]
+      position += 1
+      return value || match
+    })
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
