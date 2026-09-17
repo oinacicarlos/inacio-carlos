@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react'
-import { Home, Globe } from 'lucide-react'
+import { ArrowLeft, Home, Globe } from 'lucide-react'
 import { PILLARS, type Pillar, type PillarId } from '@/lib/admin-pillars'
+
+type RailView = 'pillars' | 'modules'
 
 function getPillarIdFromPathname(pathname: string): PillarId | null {
   for (const candidate of PILLARS) {
@@ -34,17 +36,20 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [pillarId, setPillarIdState] = useState<PillarId>(() => getPillarIdFromPathname(pathname) ?? 'processos')
+  const [railView, setRailView] = useState<RailView>('modules')
   const pillar = PILLARS.find(item => item.id === pillarId) ?? PILLARS[1]
 
   useEffect(() => {
     const matched = getPillarIdFromPathname(pathname)
     if (matched) {
       setPillarIdState(current => (current === matched ? current : matched))
+      setRailView('modules')
     }
   }, [pathname])
 
   const setPillarId = (id: PillarId) => {
     setPillarIdState(id)
+    setRailView('modules')
     if (pathname !== '/admin') {
       router.push('/admin')
     }
@@ -56,71 +61,71 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     <AdminPillarContext.Provider value={contextValue}>
       <main className="admin-home-page">
         <div className="admin-home-shell">
-          <aside className="admin-home-rail" aria-label={`Navegação de ${pillar.label}`}>
-            <div className="admin-home-rail-head">
-              <h2>{pillar.label}</h2>
-            </div>
+          <aside className="admin-home-rail" aria-label="Navegação principal">
+            <Link href="/admin" className="admin-home-rail-icon" aria-label="Visão geral" data-tip="Visão geral">
+              <Home size={20} aria-hidden />
+            </Link>
 
-            <span className="admin-home-nav-label">Navegação</span>
-            <div className="admin-home-nav">
-              <Link
-                href="/admin"
-                className={pathname === '/admin' ? 'admin-home-nav-item active' : 'admin-home-nav-item'}
-                aria-current={pathname === '/admin' ? 'page' : undefined}
-              >
-                <Home size={16} aria-hidden />
-                Visão geral
-              </Link>
-              {pillar.modules.map(item => {
-                const Icon = item.icon
-                const active = pathname === item.href
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={active ? 'admin-home-nav-item active' : 'admin-home-nav-item'}
-                    aria-current={active ? 'page' : undefined}
+            {railView === 'pillars' ? (
+              <div className="admin-home-rail-group" role="tablist" aria-label="Módulos principais">
+                {PILLARS.map(item => {
+                  const Icon = item.icon
+                  const active = item.id === pillarId
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={active ? 'admin-home-rail-icon active' : 'admin-home-rail-icon'}
+                      onClick={() => setPillarId(item.id)}
+                      aria-pressed={active}
+                      data-tip={item.label}
+                    >
+                      <Icon size={20} aria-hidden />
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <>
+                <div className="admin-home-rail-back-group">
+                  <button
+                    type="button"
+                    className="admin-home-rail-icon is-back"
+                    onClick={() => setRailView('pillars')}
+                    aria-label="Voltar para os módulos principais"
+                    data-tip="Voltar"
                   >
-                    <Icon size={16} aria-hidden />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
+                    <ArrowLeft size={18} aria-hidden />
+                  </button>
+                </div>
+                <div className="admin-home-rail-group" role="tablist" aria-label={`Módulos de ${pillar.label}`}>
+                  {pillar.modules.map(item => {
+                    const Icon = item.icon
+                    const active = pathname === item.href
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className={active ? 'admin-home-rail-icon active' : 'admin-home-rail-icon'}
+                        aria-current={active ? 'page' : undefined}
+                        data-tip={item.label}
+                      >
+                        <Icon size={20} aria-hidden />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </>
+            )}
 
             <div className="admin-home-rail-foot">
-              <Link href="/clientes/online" className="admin-home-online-link">
-                <Globe size={14} aria-hidden />
-                Painel online
+              <Link href="/clientes/online" className="admin-home-rail-icon" aria-label="Painel online" data-tip="Painel online">
+                <Globe size={18} aria-hidden />
               </Link>
             </div>
           </aside>
 
           <div className="admin-home-content">
-            <nav className="admin-home-pillars" aria-label="Frentes da operação">
-              {PILLARS.map(item => {
-                const Icon = item.icon
-                const active = item.id === pillarId
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={active ? 'admin-home-pillar-card active' : 'admin-home-pillar-card'}
-                    onClick={() => setPillarId(item.id)}
-                    aria-pressed={active}
-                  >
-                    <span className="admin-home-pillar-icon">
-                      <Icon size={20} aria-hidden />
-                    </span>
-                    <span className="admin-home-pillar-body">
-                      <strong>{item.label}</strong>
-                      <span>{item.tagline}</span>
-                    </span>
-                  </button>
-                )
-              })}
-            </nav>
-
             {children}
           </div>
         </div>
