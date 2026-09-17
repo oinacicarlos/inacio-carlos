@@ -29,7 +29,7 @@ type RecipientResult = {
 export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('')
   const [testGroup, setTestGroup] = useState('')
-  const [headerImageUrl, setHeaderImageUrl] = useState('')
+  const [headerImageUrl, setHeaderImageUrl] = useState('https://tropacontabilidade.com/whatsapp/reforma-tributaria.jpg')
   const [contactsText, setContactsText] = useState('')
 
   const [templates, setTemplates] = useState<Template[]>([])

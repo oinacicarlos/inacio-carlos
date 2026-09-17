@@ -37,7 +37,7 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
   const [templatesError, setTemplatesError] = useState('')
   const [templateKey, setTemplateKey] = useState('')
   const [variables, setVariables] = useState<string[]>([])
-  const [headerImageUrl, setHeaderImageUrl] = useState('')
+  const [headerImageUrl, setHeaderImageUrl] = useState('https://tropacontabilidade.com/whatsapp/reforma-tributaria.jpg')
 
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
