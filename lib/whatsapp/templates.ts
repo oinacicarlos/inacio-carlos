@@ -13,6 +13,7 @@ export type SanitizedWhatsAppTemplate = {
   components: Array<Record<string, unknown>>
   bodyVariables: string[]
   bodyVariableCount: number
+  headerFormat: "NONE" | "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT"
 }
 
 type MetaTemplateComponent = {
@@ -55,7 +56,13 @@ function sanitizeTemplate(template: MetaTemplate): SanitizedWhatsAppTemplate | n
   const components = Array.isArray(template.components) ? template.components : []
   const bodyComponent = components.find((component) => component.type?.toUpperCase() === "BODY")
   const buttonComponents = components.filter((component) => component.type?.toUpperCase() === "BUTTONS")
+  const headerComponent = components.find((component) => component.type?.toUpperCase() === "HEADER")
   const body = typeof bodyComponent?.text === "string" ? bodyComponent.text : ""
+  const headerFormatRaw = typeof headerComponent?.format === "string" ? headerComponent.format.toUpperCase() : "NONE"
+  const headerFormat: SanitizedWhatsAppTemplate["headerFormat"] =
+    headerFormatRaw === "IMAGE" || headerFormatRaw === "VIDEO" || headerFormatRaw === "DOCUMENT" || headerFormatRaw === "TEXT"
+      ? headerFormatRaw
+      : "NONE"
 
   return {
     name: template.name,
@@ -73,6 +80,7 @@ function sanitizeTemplate(template: MetaTemplate): SanitizedWhatsAppTemplate | n
     components: components.map((component) => ({ ...component })),
     bodyVariables: extractTemplateVariables(body),
     bodyVariableCount: extractTemplateVariables(body).length,
+    headerFormat,
   }
 }
 

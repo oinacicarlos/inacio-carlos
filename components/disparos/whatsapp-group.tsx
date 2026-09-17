@@ -13,6 +13,7 @@ type Template = {
   language: string
   body: string
   bodyVariableCount: number
+  headerFormat: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
 }
 
 type ValidateRow = { name: string; phone: string; situation: string; error: string | null }
@@ -28,6 +29,7 @@ type RecipientResult = {
 export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('')
   const [testGroup, setTestGroup] = useState('')
+  const [headerImageUrl, setHeaderImageUrl] = useState('')
   const [contactsText, setContactsText] = useState('')
 
   const [templates, setTemplates] = useState<Template[]>([])
@@ -111,6 +113,10 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
       setError('Selecione um template aprovado.')
       return
     }
+    if (selectedTemplate.headerFormat === 'IMAGE' && !headerImageUrl.trim()) {
+      setError('Este template exige uma imagem de cabeçalho (URL https).')
+      return
+    }
     if (!validateSummary || validateSummary.ready < 1) {
       setError('Cole ao menos um contato válido.')
       return
@@ -133,6 +139,7 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
           templateCategory: selectedTemplate.category,
           contactsText,
           testGroup,
+          headerImageUrl,
         }),
       })
       const createData = await createResponse.json()
@@ -340,6 +347,18 @@ export default function WhatsappGroup({ onBack }: { onBack: () => void }) {
         <div className="disparos-template-preview">
           <p>{selectedTemplate.body}</p>
         </div>
+      )}
+
+      {selectedTemplate?.headerFormat === 'IMAGE' && (
+        <label className="routine-email-field">
+          Imagem do cabeçalho (URL https)
+          <input
+            type="text"
+            value={headerImageUrl}
+            onChange={event => setHeaderImageUrl(event.target.value)}
+            placeholder="https://tropacontabilidade.com/whatsapp/imagem.jpg"
+          />
+        </label>
       )}
 
       {error && <p className="clientes-nucleo-modal-error">{error}</p>}

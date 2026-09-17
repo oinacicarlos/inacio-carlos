@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { requireAdminRoute } from "@/lib/admin-route"
 import { normalizeBrazilianWhatsAppPhone, parseWhatsAppContactsText, maskWhatsAppPhone } from "@/lib/whatsapp/contacts"
 import { fetchWhatsAppTemplates } from "@/lib/whatsapp/templates"
+import { cleanHeaderImageUrl } from "@/lib/whatsapp/send-template"
 
 const WHATSAPP_CAMPAIGN_TEST_CAP = 100
 
@@ -12,6 +13,7 @@ type CampaignPayload = {
   templateCategory?: unknown
   contactsText?: unknown
   testGroup?: unknown
+  headerImageUrl?: unknown
 }
 
 function cleanString(value: unknown, maxLength = 180) {
@@ -33,7 +35,7 @@ export async function GET() {
 
   const { data, error } = await admin.supabase
     .from("whatsapp_campaigns")
-    .select("id,name,template_name,template_language,template_category,status,test_group,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at,started_at,finished_at")
+    .select("id,name,template_name,template_language,template_category,status,test_group,header_image_url,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at,started_at,finished_at")
     .order("created_at", { ascending: false })
     .limit(50)
 
@@ -83,6 +85,11 @@ export async function POST(request: Request) {
 
   if (selectedTemplate.status !== "APPROVED") {
     return NextResponse.json({ ok: false, error: "Apenas templates aprovados podem virar campanha." }, { status: 400 })
+  }
+
+  const headerImageUrl = cleanHeaderImageUrl(payload.headerImageUrl)
+  if (selectedTemplate.headerFormat === "IMAGE" && !headerImageUrl) {
+    return NextResponse.json({ ok: false, error: "Este template exige uma imagem de cabeçalho (URL https)." }, { status: 400 })
   }
 
   const parsedContacts = parseWhatsAppContactsText(contactsText)
@@ -143,8 +150,9 @@ export async function POST(request: Request) {
       total_contacts: recipients.length,
       total_optout: optoutCount,
       test_group: testGroup,
+      header_image_url: headerImageUrl,
     })
-    .select("id,name,template_name,template_language,template_category,status,test_group,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at")
+    .select("id,name,template_name,template_language,template_category,status,test_group,header_image_url,total_contacts,total_queued,total_sent,total_delivered,total_read,total_failed,total_optout,total_replied,total_interested,created_at")
     .single()
 
   if (campaignError || !campaign) {

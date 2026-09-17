@@ -13,6 +13,7 @@ export type WhatsAppTemplateSendInput = {
   templateName: unknown
   languageCode: unknown
   bodyParameters?: unknown
+  headerImageUrl?: unknown
 }
 
 export type WhatsAppTemplateSendResult = {
@@ -142,6 +143,20 @@ export function cleanBodyParameters(value: unknown): WhatsAppTemplateBodyParamet
   return parameters.every((item): item is WhatsAppTemplateBodyParameter => item !== null) ? parameters : null
 }
 
+export function cleanHeaderImageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null
+
+  const url = value.trim()
+  if (!url) return null
+
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === "https:" ? url : null
+  } catch {
+    return null
+  }
+}
+
 export function getSafeMetaError(error: MetaError | undefined) {
   if (!error) {
     return "Erro ao enviar mensagem pelo WhatsApp."
@@ -164,12 +179,34 @@ function buildTemplateMessage({
   templateName,
   languageCode,
   bodyParameters,
+  headerImageUrl,
 }: {
   to: string
   templateName: string
   languageCode: string
   bodyParameters: WhatsAppTemplateBodyParameter[]
+  headerImageUrl: string | null
 }) {
+  const components: Array<Record<string, unknown>> = []
+
+  if (headerImageUrl) {
+    components.push({
+      type: "header",
+      parameters: [{ type: "image", image: { link: headerImageUrl } }],
+    })
+  }
+
+  if (bodyParameters.length > 0) {
+    components.push({
+      type: "body",
+      parameters: bodyParameters.map(({ name, value }): WhatsAppTemplateParameter => (
+        NUMERIC_PARAMETER_NAME.test(name)
+          ? { type: "text", text: value }
+          : { type: "text", parameter_name: name, text: value }
+      )),
+    })
+  }
+
   return {
     messaging_product: "whatsapp",
     to,
@@ -179,20 +216,7 @@ function buildTemplateMessage({
       language: {
         code: languageCode,
       },
-      ...(bodyParameters.length > 0
-        ? {
-            components: [
-              {
-                type: "body",
-                parameters: bodyParameters.map(({ name, value }): WhatsAppTemplateParameter => (
-                  NUMERIC_PARAMETER_NAME.test(name)
-                    ? { type: "text", text: value }
-                    : { type: "text", parameter_name: name, text: value }
-                )),
-              },
-            ],
-          }
-        : {}),
+      ...(components.length > 0 ? { components } : {}),
     },
   }
 }
@@ -202,13 +226,14 @@ export function validateWhatsAppTemplateSendInput(input: WhatsAppTemplateSendInp
   const templateName = cleanTemplateName(input.templateName)
   const languageCode = cleanLanguageCode(input.languageCode)
   const bodyParameters = cleanBodyParameters(input.bodyParameters)
+  const headerImageUrl = cleanHeaderImageUrl(input.headerImageUrl)
 
   if (!to) return { ok: false as const, error: "Destinatário inválido." }
   if (!templateName) return { ok: false as const, error: "Nome do template inválido." }
   if (!languageCode) return { ok: false as const, error: "Código de idioma inválido." }
   if (!bodyParameters) return { ok: false as const, error: "Parâmetros do template inválidos." }
 
-  return { ok: true as const, to, templateName, languageCode, bodyParameters }
+  return { ok: true as const, to, templateName, languageCode, bodyParameters, headerImageUrl }
 }
 
 export async function sendWhatsAppTemplate(input: WhatsAppTemplateSendInput): Promise<WhatsAppTemplateSendResult> {

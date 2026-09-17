@@ -16,6 +16,7 @@ type CampaignRecord = {
   template_name: string
   template_language: string
   status: string
+  header_image_url: string | null
 }
 
 type RecipientRecord = {
@@ -62,7 +63,7 @@ export async function processWhatsAppCampaignBatch(campaignId: string, options: 
 
   const { data: campaignData, error: campaignError } = await supabase
     .from("whatsapp_campaigns")
-    .select("id,template_name,template_language,status")
+    .select("id,template_name,template_language,status,header_image_url")
     .eq("id", campaignId)
     .single()
   const campaign = campaignData as CampaignRecord | null
@@ -138,6 +139,7 @@ export async function processWhatsAppCampaignBatch(campaignId: string, options: 
         templateName: campaign.template_name,
         languageCode: campaign.template_language,
         bodyParameters: getBodyParameters(recipient.body_parameters, recipient.name),
+        headerImageUrl: campaign.header_image_url,
       })
 
       await supabase

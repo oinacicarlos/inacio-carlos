@@ -12,6 +12,7 @@ type Template = {
   body: string
   bodyVariables: string[]
   bodyVariableCount: number
+  headerFormat: 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'
 }
 
 type ClientOption = { id: string; name: string; whatsapp: string }
@@ -36,6 +37,7 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
   const [templatesError, setTemplatesError] = useState('')
   const [templateKey, setTemplateKey] = useState('')
   const [variables, setVariables] = useState<string[]>([])
+  const [headerImageUrl, setHeaderImageUrl] = useState('')
 
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -107,6 +109,10 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
       setError('Selecione um template aprovado.')
       return
     }
+    if (selectedTemplate.headerFormat === 'IMAGE' && !headerImageUrl.trim()) {
+      setError('Este template exige uma imagem de cabeçalho (URL https).')
+      return
+    }
 
     setSending(true)
     try {
@@ -118,6 +124,7 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
           templateName: selectedTemplate.name,
           languageCode: selectedTemplate.language,
           bodyParameters: selectedTemplate.bodyVariables.map((name, index) => ({ name, value: variables[index] ?? '' })),
+          headerImageUrl,
         }),
       })
       const data = await response.json()
@@ -212,6 +219,18 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
         <div className="disparos-template-preview">
           <p>{selectedTemplate.body}</p>
         </div>
+      )}
+
+      {selectedTemplate?.headerFormat === 'IMAGE' && (
+        <label className="routine-email-field">
+          Imagem do cabeçalho (URL https)
+          <input
+            type="text"
+            value={headerImageUrl}
+            onChange={event => setHeaderImageUrl(event.target.value)}
+            placeholder="https://tropacontabilidade.com/whatsapp/imagem.jpg"
+          />
+        </label>
       )}
 
       {variables.length > 0 && (
