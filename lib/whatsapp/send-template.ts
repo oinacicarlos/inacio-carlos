@@ -24,7 +24,13 @@ export type WhatsAppTemplateSendResult = {
 
 type WhatsAppTemplateParameter = {
   type: "text"
+  parameter_name?: string
   text: string
+}
+
+export type WhatsAppTemplateBodyParameter = {
+  name: string
+  value: string
 }
 
 type MetaSendMessageResponse = {
@@ -105,25 +111,35 @@ export function cleanLanguageCode(value: unknown) {
   return LANGUAGE_CODE_PATTERN.test(languageCode) ? languageCode : null
 }
 
-export function cleanBodyParameters(value: unknown) {
+export function cleanBodyParameters(value: unknown): WhatsAppTemplateBodyParameter[] | null {
   if (value === undefined) return []
   if (!Array.isArray(value)) return null
   if (value.length > MAX_BODY_PARAMETERS) return null
 
-  const parameters = value.map((item) => {
-    if (typeof item !== "string" && typeof item !== "number" && typeof item !== "boolean") {
-      return null
+  const parameters = value.map((item, index) => {
+    // Legacy shape: plain value, positional (name = 1-based index).
+    if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+      const text = String(item).trim()
+      if (!text || text.length > MAX_PARAMETER_LENGTH) return null
+      return { name: String(index + 1), value: text }
     }
 
-    const text = String(item).trim()
-    if (!text || text.length > MAX_PARAMETER_LENGTH) {
-      return null
+    // Current shape: { name, value } — name is the token inside {{...}} (numeric or named).
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>
+      const name = typeof record.name === "string" ? record.name.trim() : ""
+      const rawValue = record.value
+      if (!name) return null
+      if (typeof rawValue !== "string" && typeof rawValue !== "number" && typeof rawValue !== "boolean") return null
+      const text = String(rawValue).trim()
+      if (!text || text.length > MAX_PARAMETER_LENGTH) return null
+      return { name, value: text }
     }
 
-    return text
+    return null
   })
 
-  return parameters.every((item): item is string => item !== null) ? parameters : null
+  return parameters.every((item): item is WhatsAppTemplateBodyParameter => item !== null) ? parameters : null
 }
 
 export function getSafeMetaError(error: MetaError | undefined) {
@@ -141,6 +157,8 @@ export function getSafeMetaError(error: MetaError | undefined) {
   }
 }
 
+const NUMERIC_PARAMETER_NAME = /^\d+$/
+
 function buildTemplateMessage({
   to,
   templateName,
@@ -150,7 +168,7 @@ function buildTemplateMessage({
   to: string
   templateName: string
   languageCode: string
-  bodyParameters: string[]
+  bodyParameters: WhatsAppTemplateBodyParameter[]
 }) {
   return {
     messaging_product: "whatsapp",
@@ -166,7 +184,11 @@ function buildTemplateMessage({
             components: [
               {
                 type: "body",
-                parameters: bodyParameters.map((text): WhatsAppTemplateParameter => ({ type: "text", text })),
+                parameters: bodyParameters.map(({ name, value }): WhatsAppTemplateParameter => (
+                  NUMERIC_PARAMETER_NAME.test(name)
+                    ? { type: "text", text: value }
+                    : { type: "text", parameter_name: name, text: value }
+                )),
               },
             ],
           }

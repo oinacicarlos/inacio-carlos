@@ -11,6 +11,7 @@ export type SanitizedWhatsAppTemplate = {
     text: string
   }>
   components: Array<Record<string, unknown>>
+  bodyVariables: string[]
   bodyVariableCount: number
 }
 
@@ -43,9 +44,9 @@ type MetaTemplatesResponse = {
   }
 }
 
-function countTemplateVariables(value: string) {
-  const matches = value.match(/{{\s*[a-zA-Z0-9_]+\s*}}/g)
-  return matches?.length ?? 0
+function extractTemplateVariables(value: string) {
+  const matches = value.match(/{{\s*[a-zA-Z0-9_]+\s*}}/g) ?? []
+  return matches.map((token) => token.replace(/[{}]/g, "").trim())
 }
 
 function sanitizeTemplate(template: MetaTemplate): SanitizedWhatsAppTemplate | null {
@@ -70,7 +71,8 @@ function sanitizeTemplate(template: MetaTemplate): SanitizedWhatsAppTemplate | n
       )),
     ),
     components: components.map((component) => ({ ...component })),
-    bodyVariableCount: countTemplateVariables(body),
+    bodyVariables: extractTemplateVariables(body),
+    bodyVariableCount: extractTemplateVariables(body).length,
   }
 }
 

@@ -10,6 +10,7 @@ type Template = {
   category: string
   language: string
   body: string
+  bodyVariables: string[]
   bodyVariableCount: number
 }
 
@@ -116,7 +117,7 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
           to: recipientPhone,
           templateName: selectedTemplate.name,
           languageCode: selectedTemplate.language,
-          bodyParameters: variables,
+          bodyParameters: selectedTemplate.bodyVariables.map((name, index) => ({ name, value: variables[index] ?? '' })),
         }),
       })
       const data = await response.json()
@@ -217,7 +218,7 @@ export default function WhatsappIndividual({ onBack }: { onBack: () => void }) {
         <div className="disparos-field-group">
           {variables.map((value, index) => (
             <label key={index} className="routine-email-field">
-              Variável {`{{${index + 1}}}`}
+              Variável {`{{${selectedTemplate?.bodyVariables[index] ?? index + 1}}}`}
               <input
                 type="text"
                 value={value}

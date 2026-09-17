@@ -1,7 +1,7 @@
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role"
 import { upsertWhatsAppInboxMessage } from "@/lib/whatsapp/inbox"
 import { maskWhatsAppPhone } from "@/lib/whatsapp/contacts"
-import { sendWhatsAppTemplate, WhatsAppSendError } from "@/lib/whatsapp/send-template"
+import { sendWhatsAppTemplate, WhatsAppSendError, type WhatsAppTemplateBodyParameter } from "@/lib/whatsapp/send-template"
 
 const MAX_CAMPAIGN_ATTEMPTS = 3
 const WHATSAPP_SEND_BATCH_SIZE = 5
@@ -29,14 +29,31 @@ type RecipientRecord = {
   body_parameters: unknown
 }
 
-function getBodyParameters(value: unknown, fallbackName: string) {
+function getBodyParameters(value: unknown, fallbackName: string): WhatsAppTemplateBodyParameter[] {
   if (!Array.isArray(value)) return []
 
-  return value.flatMap((item) => {
-    if (typeof item === "string" && item.trim()) return [item.trim()]
-    if (typeof item === "number" || typeof item === "boolean") return [String(item)]
+  return value.flatMap((item, index) => {
+    // Current shape: { name, value } — name is the token inside {{...}} (numeric or named).
+    if (item && typeof item === "object" && "name" in item) {
+      const record = item as { name?: unknown; value?: unknown }
+      const name = typeof record.name === "string" && record.name ? record.name : String(index + 1)
+      const rawValue = record.value
+      const text = typeof rawValue === "string"
+        ? rawValue.trim()
+        : typeof rawValue === "number" || typeof rawValue === "boolean"
+          ? String(rawValue)
+          : ""
+      return [{ name, value: text || fallbackName }]
+    }
+
+    // Legacy shape: plain value, positional.
+    if (typeof item === "string" || typeof item === "number" || typeof item === "boolean") {
+      const text = String(item).trim()
+      return [{ name: String(index + 1), value: text || fallbackName }]
+    }
+
     return []
-  }).map((item) => item || fallbackName)
+  })
 }
 
 export async function processWhatsAppCampaignBatch(campaignId: string, options: { limit?: number } = {}) {

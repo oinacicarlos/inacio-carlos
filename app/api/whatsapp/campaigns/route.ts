@@ -21,9 +21,8 @@ function cleanString(value: unknown, maxLength = 180) {
   return text
 }
 
-function buildBodyParameters(variableCount: number, contactName: string) {
-  if (variableCount <= 0) return []
-  return Array.from({ length: variableCount }, (_, index) => (index === 0 ? contactName : ""))
+function buildBodyParameters(variableNames: string[], contactName: string) {
+  return variableNames.map((name, index) => ({ name, value: index === 0 ? contactName : name }))
 }
 
 export async function GET() {
@@ -112,7 +111,7 @@ export async function POST(request: Request) {
       phone: contact.normalizedPhone,
       status: isOptout ? "optout" : "pending",
       error_message: isOptout ? "Bloqueado / opt-out" : null,
-      body_parameters: buildBodyParameters(selectedTemplate.bodyVariableCount, contact.name),
+      body_parameters: buildBodyParameters(selectedTemplate.bodyVariables, contact.name),
     }]
   })
 
